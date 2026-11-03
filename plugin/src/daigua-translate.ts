@@ -2,6 +2,8 @@ import { ITranslate, ITranslateOptions, KnowledgePack } from './types';
 import { KnowledgeLoader } from './knowledge-loader';
 import { isLikelySingleSymbol, normalizeSymbol, formatEntry, formatEntries } from './symbol-matcher';
 
+// The same Bing transport library used by MTranCode's built-in Bing source.
+// MTranCode's public extension API does not expose the built-in translator instance.
 const bingTranslateApi = require('bing-translate-api');
 
 const BING_LANG_MAP: Record<string, string> = {
@@ -11,13 +13,24 @@ const BING_LANG_MAP: Record<string, string> = {
   zh: 'zh-Hans',
 };
 
-/** The provider is evaluated on each request, not just at construction. */
+export type BingTranslator = (
+  content: string, from: string, to: string
+) => Promise<{ translation?: string }>;
+
+const defaultBingTranslator: BingTranslator =
+  bingTranslateApi.translate || bingTranslateApi.default || bingTranslateApi;
+
+/** Reads the live knowledge-pack provider on every request. */
 export class DaiguaTranslate implements ITranslate {
-  readonly maxLen = 5000;
+  // Match the length limit of MTranCode's built-in Bing translator.
+  readonly maxLen = 1000;
   private getPacks: () => KnowledgePack[];
   private loader = new KnowledgeLoader();
 
-  constructor(packs: KnowledgePack[] | (() => KnowledgePack[]) = []) {
+  constructor(
+    packs: KnowledgePack[] | (() => KnowledgePack[]) = [],
+    private readonly bingTranslator: BingTranslator = defaultBingTranslator
+  ) {
     this.getPacks = typeof packs === 'function' ? packs : () => packs;
   }
 
@@ -31,8 +44,8 @@ export class DaiguaTranslate implements ITranslate {
     }
 
     if (isLikelySingleSymbol(content)) {
-      const sym = normalizeSymbol(content);
-      const matches = this.loader.findEntries(sym, this.getPacks());
+      const symbol = normalizeSymbol(content);
+      const matches = this.loader.findEntries(symbol, this.getPacks());
       if (matches.length === 1) {
         return formatEntry(matches[0]);
       }
@@ -41,19 +54,24 @@ export class DaiguaTranslate implements ITranslate {
       }
     }
 
-    return this._bingFallback(content, from, to);
+    return this.bingFallback(content, from, to);
   }
 
-  private async _bingFallback(content: string, from: string, to: string): Promise<string> {
+  private async bingFallback(content: string, from: string, to: string): Promise<string> {
     try {
-      const sourceLang = BING_LANG_MAP[from] || from;
-      const targetLang = BING_LANG_MAP[to] || to;
-      const translateFn = bingTranslateApi.translate || bingTranslateApi.default || bingTranslateApi;
-      const res = await translateFn(content, sourceLang, targetLang);
-      return res && res.translation ? res.translation : (res ? String(res) : '');
-    } catch (err: any) {
-      console.error('[呆瓜翻译器] Bing 回退翻译失败:', err);
-      return '[翻译失败: ' + (err?.message || '未知错误') + ']';
+      const result = await this.bingTranslator(
+        content, BING_LANG_MAP[from] || from, BING_LANG_MAP[to] || to
+      );
+      // Do not return an error object/empty string as a successful translation.
+      if (typeof result?.translation !== 'string' || !result.translation.trim()) {
+        throw new Error('Bing 未返回有效译文');
+      }
+      return result.translation;
+    } catch (error) {
+      console.error('[呆瓜翻译器] Bing 回退失败:', error);
+      // MTranCode's TranslateManager caches only successful Promise results.
+      // Re-throwing prevents an error message from being cached as a translation.
+      throw error;
     }
   }
 
