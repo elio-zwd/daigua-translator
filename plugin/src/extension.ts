@@ -3,74 +3,61 @@ import { ITranslateRegistry, KnowledgePack } from './types';
 import { DaiguaTranslate } from './daigua-translate';
 import { KnowledgeLoader } from './knowledge-loader';
 
-/** 全局持有的知识包缓存与翻译实例 */
-let loadedPacks: KnowledgePack[] = [];
-let translateInstance: DaiguaTranslate | null = null;
-
 /**
- * 重新读取配置并加载知识包
+ * MTranCode creates its own translator instance after extendTranslate().
+ * The shared variable is read on every request, so existing instances see
+ * a new knowledge-pack snapshot after reload.
  */
-async function reloadPacks(): Promise<void> {
+let loadedPacks: KnowledgePack[] = [];
+let reloadRequestId = 0;
+
+async function reloadPacks(): Promise<number | null> {
+  const requestId = ++reloadRequestId;
   const config = vscode.workspace.getConfiguration('daiguaTranslate');
-  const packPaths = config.get<string[]>('packPaths', []);
+  const paths = config.get<string[]>('packPaths', []);
   const loader = new KnowledgeLoader();
+  const nextPacks = await loader.loadFromPaths(paths);
 
-  console.log('[呆瓜翻译器] 开始加载配置中的知识包...', packPaths);
-  loadedPacks = await loader.loadFromPaths(packPaths);
-
-  if (translateInstance) {
-    translateInstance.setPacks(loadedPacks);
+  // A slow, older reload must never overwrite a more recent configuration.
+  if (requestId !== reloadRequestId) {
+    return null;
   }
+  loadedPacks = nextPacks;
+  return loadedPacks.reduce((sum, pack) => sum + pack.entries.length, 0);
 }
 
-/**
- * 扩展激活入口
- */
 export async function activate(context: vscode.ExtensionContext) {
-  console.log('[呆瓜翻译器] 插件激活中...');
-
-  // 初始化翻译单例与知识包
-  translateInstance = new DaiguaTranslate(loadedPacks);
   await reloadPacks();
 
-  // 注册重新加载知识包命令
   context.subscriptions.push(
     vscode.commands.registerCommand('daiguaTranslate.reloadPacks', async () => {
-      await reloadPacks();
-      const count = loadedPacks.reduce((acc, p) => acc + (p.entries?.length || 0), 0);
-      vscode.window.showInformationMessage(`呆瓜翻译器：知识包重新加载完成，共载入 ${count} 条词条。`);
-    })
-  );
-
-  // 监听配置变更自动重新加载
-  context.subscriptions.push(
-    vscode.workspace.onDidChangeConfiguration(async (e) => {
-      if (e.affectsConfiguration('daiguaTranslate.packPaths')) {
+      const count = await reloadPacks();
+      if (count !== null) {
+        vscode.window.showInformationMessage(
+          '呆瓜翻译器：已重新加载 ' + count + ' 条词条。'
+        );
+      }
+    }),
+    vscode.workspace.onDidChangeConfiguration(async (event) => {
+      if (event.affectsConfiguration('daiguaTranslate.packPaths')) {
         await reloadPacks();
       }
     })
   );
 
-  // 向 MTranCode 暴露注册接口
   return {
-    extendTranslate: function (registry: ITranslateRegistry) {
-      console.log('[呆瓜翻译器] 注册到 MTranCode 翻译管理器...');
-      registry(
-        'daigua',
-        class extends DaiguaTranslate {
-          constructor() {
-            super(loadedPacks);
-          }
+    extendTranslate: (registry: ITranslateRegistry) => {
+      registry('daigua', class extends DaiguaTranslate {
+        constructor() {
+          // Do not pass a snapshot array: MTranCode keeps this instance alive.
+          super(() => loadedPacks);
         }
-      );
-    },
+      });
+    }
   };
 }
 
-/**
- * 扩展释放入口
- */
 export function deactivate() {
+  ++reloadRequestId;
   loadedPacks = [];
-  translateInstance = null;
 }
