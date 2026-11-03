@@ -60,6 +60,7 @@ daigua-translator/
 cd plugin
 npm install
 npm run compile
+npm test
 ```
 
 运行快速测试脚本（验证本地命中与 Bing 翻译回退）：
@@ -101,7 +102,7 @@ python validator\validate.py --pack "knowledge-packs\05_createtask-pack.json"
 
 ## 给后续 AI / 开发者的交接清单
 
-当前基础设施已全部调通并跑通测试，后续可在此基础上开展：
+基础设施具备基本实现，但实际宿主集成、缓存、VSIX 安装尚未完全验收。参见 [集成验收说明](docs/mtrancode-integration.md)。后续可在此基础上开展：
 
 1. **批量生成工程知识包**：
    - 提取产物已生成于 `extractor/out/`。
