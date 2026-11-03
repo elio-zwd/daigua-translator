@@ -36,7 +36,7 @@ npm test
 
 ## VSIX 打包说明
 
-插件运行需要 `bing-translate-api` 生产依赖，不能将 `node_modules/` 整体排除在 VSIX 外。实际打包时应检查 VSIX 是否包含生产依赖，以及安装到真正的 VS Code + MTranCode 后是否可用。
+插件运行需要 `bing-translate-api` 生产依赖，不能将 `node_modules/` 整体排除在 VSIX 外。GitHub Actions 使用 vsce 打包并检查 VSIX 中的扩展入口与 Bing 生产依赖，成功后生成可下载的构建产物。仍需安装到真正的 VS Code + MTranCode 宿主进行交互验收。
 
 ## 尚未由自动测试证明
 
