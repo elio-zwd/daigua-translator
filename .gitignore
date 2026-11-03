@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+dist/
+build/
+
+# 提取工具中间文件（不提交到仓库，按需在本地生成）
+extractor/out/
+
+# 编辑器
+.vscode/
+.idea/
+*.suo
+*.user
+
+# 系统
+Thumbs.db
+.DS_Store

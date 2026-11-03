@@ -1,0 +1,49 @@
+{
+  "name": "示例知识包",
+  "version": "1.0",
+  "source_version": "请填写工程版本或 Git 提交号",
+  "description": "用于验证完整流程的示例知识包，实际词条必须根据真实源码生成",
+  "entries": [
+    {
+      "symbol": "NFC_WriteU16LE",
+      "kind": "function",
+      "name_zh": "NFC 小端序 16 位无符号数写入",
+      "description_zh": "将指定的 16 位无符号数按小端序写入目标缓冲区。",
+      "declaration": "void NFC_WriteU16LE(uint8_t *dst, uint16_t value)",
+      "parameters": [
+        { "name": "dst", "description_zh": "目标缓冲区指针" },
+        { "name": "value", "description_zh": "待写入的 16 位无符号数值" }
+      ],
+      "returns_zh": "无返回值",
+      "scope": "nfc_codec",
+      "source": { "project": "示例工程", "file": "src/nfc_codec.c", "line": 42 },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "Motor_Start",
+      "kind": "function",
+      "name_zh": "启动电机",
+      "description_zh": "启动指定电机，设置运行标志并触发 PWM 输出。",
+      "declaration": "void Motor_Start(uint8_t motor_id)",
+      "parameters": [
+        { "name": "motor_id", "description_zh": "电机编号，从 0 开始" }
+      ],
+      "returns_zh": "无返回值",
+      "scope": "motor_ctrl",
+      "source": { "project": "示例工程", "file": "src/motor_ctrl.c", "line": 88 },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "g_sys_tick_ms",
+      "kind": "variable",
+      "name_zh": "系统毫秒计数",
+      "description_zh": "系统运行毫秒数，由 SysTick 中断递增，溢出后归零。",
+      "declaration": "volatile uint32_t g_sys_tick_ms",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "global",
+      "source": { "project": "示例工程", "file": "src/main.c", "line": 15 },
+      "uncertainty": ""
+    }
+  ]
+}
