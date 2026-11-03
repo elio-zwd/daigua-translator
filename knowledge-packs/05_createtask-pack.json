@@ -1,0 +1,93 @@
+{
+  "name": "FreeRTOS 05_createtask 课程工程知识包",
+  "version": "1.0",
+  "source_version": "freertos-learning-v1",
+  "description": "基于 05_createtask 真实工程源码提取并由 AI 编写生成的 MCU 知识包",
+  "entries": [
+    {
+      "symbol": "worker",
+      "kind": "function",
+      "name_zh": "动态工作任务函数",
+      "description_zh": "FreeRTOS 动态任务主体。接收执行间隔参数，动态申请堆内存验证运行环境，打印运行状态日志并通过 vTaskDelay 定期延时挂起。",
+      "declaration": "static void worker(void *arg)",
+      "parameters": [
+        {
+          "name": "arg",
+          "description_zh": "任务传入参数，指向 uint32_t 类型的延时周期毫秒数"
+        }
+      ],
+      "returns_zh": "无返回值",
+      "scope": "main.c",
+      "source": {
+        "file": "src/main.c",
+        "line": 4
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "intervals",
+      "kind": "variable",
+      "name_zh": "任务执行周期数组",
+      "description_zh": "定义两个任务的延时周期（单位：毫秒），分别为 500ms 和 1000ms。",
+      "declaration": "static const uint32_t intervals[2] = {500,1000}",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "main.c",
+      "source": {
+        "file": "src/main.c",
+        "line": 3
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "board_ready",
+      "kind": "variable",
+      "name_zh": "板级初始化就绪标志",
+      "description_zh": "记录板级外设（时钟、串口、按键、LED）是否已完成初始化，防止重复初始化。",
+      "declaration": "static int board_ready",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "course_board.c",
+      "source": {
+        "file": "course_board.c",
+        "line": 24
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "course_last_fault",
+      "kind": "variable",
+      "name_zh": "最近一次系统故障记录",
+      "description_zh": "保存系统发生 HardFault、MemManage、BusFault 等严重异常时的寄存器现场快照。",
+      "declaration": "volatile course_fault_type course_last_fault",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "course_hooks.c",
+      "source": {
+        "file": "course_hooks.c",
+        "line": 2
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "course_log",
+      "kind": "function",
+      "name_zh": "格式化串口日志输出",
+      "description_zh": "向调试串口输出格式化文本。在调度器运行时会自动暂停所有任务（vTaskSuspendAll）以保证输出原子性，输出完成后恢复调度。",
+      "declaration": "void course_log(const char *format, ...)",
+      "parameters": [
+        {
+          "name": "format",
+          "description_zh": "printf 格式化模板字符串"
+        }
+      ],
+      "returns_zh": "无返回值",
+      "scope": "course_board.h",
+      "source": {
+        "file": "course_board.h",
+        "line": 15
+      },
+      "uncertainty": ""
+    }
+  ]
+}

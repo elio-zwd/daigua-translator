@@ -1,0 +1,47 @@
+{
+  "name": "daigua-translator",
+  "displayName": "呆瓜翻译器",
+  "description": "MCU C/C++ 代码本地知识包翻译，未命中时回退到 Bing。用于 MTranCode 自定义翻译服务。",
+  "version": "0.1.0",
+  "engines": { "vscode": "^1.85.0" },
+  "categories": ["Other"],
+  "keywords": ["translateSource"],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "translates": [
+      { "translate": "daigua", "title": "呆瓜翻译器（本地知识包）" }
+    ],
+    "configuration": {
+      "title": "呆瓜翻译器",
+      "properties": {
+        "daiguaTranslate.packPaths": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [],
+          "description": "知识包 JSON 文件路径列表（按顺序查询，可多个）"
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "daiguaTranslate.reloadPacks",
+        "title": "呆瓜翻译器：重新加载知识包"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.3.0"
+  },
+  "dependencies": {
+    "bing-translate-api": "^2.9.1",
+    "comment-translate-manager": "^0.0.5"
+  }
+}
