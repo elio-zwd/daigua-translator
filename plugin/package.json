@@ -56,5 +56,12 @@
     "bing-translate-api": "^2.9.1",
     "comment-translate-manager": "^0.0.5"
   },
-  "publisher": "elio-zwd"
+  "publisher": "elio-zwd",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/elio-zwd/daigua-translator.git"
+  },
+  "bugs": {
+    "url": "https://github.com/elio-zwd/daigua-translator/issues"
+  }
 }
