@@ -1,0 +1,23 @@
+name: MCU tooling CI
+on:
+  push:
+    branches: [main, feat/extractor-validator-hardening]
+  pull_request:
+jobs:
+  tooling:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python: ["3.10", "3.12"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Run extractor and validator tests
+        run: python -m unittest discover -s tests -p "test_*.py" -v
+      - name: Validate bundled knowledge packs
+        run: |
+          python validator/validate.py --pack knowledge-packs/05_createtask-pack.json
+          python validator/validate.py --pack knowledge-packs/example/example-pack.json
