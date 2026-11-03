@@ -14,6 +14,11 @@ import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
+# Preserve Chinese diagnostics in Windows shells using a legacy code page.
+for stream in (sys.stdout, sys.stderr):
+    if hasattr(stream, 'reconfigure'):
+        stream.reconfigure(encoding='utf-8', errors='replace')
+
 SOURCE_SUFFIXES = {".c", ".cpp", ".cc", ".cxx", ".h", ".hpp", ".hh", ".hxx"}
 HEADER_SUFFIXES = {".h", ".hpp", ".hh", ".hxx"}
 IDENT = r"[A-Za-z_][A-Za-z0-9_]*"
