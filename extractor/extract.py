@@ -281,6 +281,7 @@ class MCUExtractor:
             return depths[bisect.bisect_right(starts, index) - 1]
 
         lines = text.splitlines()
+        masked_lines = masked.splitlines()
         self._macros(lines, relative)
         for match in ENUM.finditer(masked):
             if depth_at(match.start()) != 0:
@@ -344,7 +345,7 @@ class MCUExtractor:
             original = raw.strip()
             if not original or original.startswith("#"):
                 continue
-            masked_line = masked.splitlines()[i].strip()
+            masked_line = masked_lines[i].strip()
             if not masked_line or "(" in masked_line or ")" in masked_line:
                 continue
             if masked_line.startswith(("typedef ", "using ", "struct ", "enum ", "union ")):
@@ -354,9 +355,14 @@ class MCUExtractor:
                 name = found.group("name")
                 if name.lower() in TRIVIAL:
                     continue
+                previous_comment = lines[i - 1].strip() if i else ""
+                comment = previous_comment if previous_comment.startswith("//") else comment_before(
+                    text, starts[i]
+                )
                 self.variables.append(self.make_entry(
                     name, "variable", original.rstrip(";"), relative,
                     {"file": relative, "line": line},
+                    existing_comment=comment[:500],
                 ))
             elif (re.match(r"^(?:static|extern|volatile|const|unsigned|signed|\w+)\s+\w+", masked_line)
                   and "=" in masked_line and ";" not in masked_line):
@@ -365,6 +371,8 @@ class MCUExtractor:
         if path.suffix.lower() in {".cpp", ".cc", ".cxx", ".hpp", ".hh", ".hxx"}:
             if re.search(r"\b(?:namespace|template)\b", masked):
                 self.add_uncertain(relative, 1, "包含 namespace/template；复杂 C++ 语法需人工复核")
+        if re.search(r"(?m)^[ \t]*#[ \t]*(?:if|elif)\b", text):
+            self.add_uncertain(relative, 1, "含条件编译；未解析宏配置，提取内容需按目标构建复核")
         if re.search(r"\(\s*\*\s*" + IDENT + r"\s*\)\s*\(", masked):
             self.add_uncertain(relative, 1, "包含函数指针声明；正则提取可能遗漏")
 
