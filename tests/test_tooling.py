@@ -21,6 +21,7 @@ class ToolingTests(unittest.TestCase):
             "/**\n * @brief 启动电机\n * @param speed PWM 占空比\n */\n"
             "void Motor_Start(int speed);\n", encoding="utf-8")
         (self.src / "main.c").write_text(
+            "// 运行时毫秒计数\n"
             "uint32_t g_tick_ms;\n"
             "static const uint32_t intervals[2] = {500,1000};\n"
             "void Motor_Start(int speed) {\n"
@@ -39,6 +40,8 @@ class ToolingTests(unittest.TestCase):
         variables = {v["symbol"] for v in ext.variables}
         self.assertIn("g_tick_ms", variables)
         self.assertIn("intervals", variables)
+        tick = next(v for v in ext.variables if v["symbol"] == "g_tick_ms")
+        self.assertIn("运行时毫秒计数", tick["existing_comment"])
         self.assertNotIn("s", variables)
 
     def test_cpp_single_file_mode(self):
@@ -77,6 +80,14 @@ class ToolingTests(unittest.TestCase):
         ext = MCUExtractor(self.root)
         ext.process_file(file)
         self.assertTrue(any("函数指针" in u["reason"] for u in ext.uncertain))
+
+    def test_conditional_compilation_is_flagged(self):
+        file = self.src / "board.c"
+        file.write_text("#if defined(BOARD_A)\nint Pin_Init(void) { return 1; }\n#endif\n",
+                        encoding="utf-8")
+        ext = MCUExtractor(self.root)
+        ext.process_file(file)
+        self.assertTrue(any("条件编译" in item["reason"] for item in ext.uncertain))
 
     def test_output_contract(self):
         file = self.src / "core.c"
