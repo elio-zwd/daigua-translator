@@ -1,543 +1,471 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+"""Heuristic MCU C/C++ symbol extractor (Python stdlib only).
 
+Outputs factual intermediate JSON for AI-assisted review. It is not a compiler:
+complex declarations/preprocessor-dependent code are recorded in uncertain.json.
 """
-extract.py
-呆瓜翻译器 - MCU 源码符号提取工具
-
-用于从 MCU C/C++ 工程中提取函数、变量、宏、枚举与类型定义，
-输出标准化中间 JSON 文件，供后续 AI 生成中文释义知识包使用。
-"""
-
 import argparse
+import bisect
 import json
 import os
 import re
 import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple
 
-# Windows 终端输出编码保护
-if hasattr(sys.stdout, "reconfigure"):
-    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-if hasattr(sys.stderr, "reconfigure"):
-    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+SOURCE_SUFFIXES = {".c", ".cpp", ".cc", ".cxx", ".h", ".hpp", ".hh", ".hxx"}
+HEADER_SUFFIXES = {".h", ".hpp", ".hh", ".hxx"}
+IDENT = r"[A-Za-z_][A-Za-z0-9_]*"
+TRIVIAL = {"i", "j", "k", "tmp", "temp", "n", "idx", "ret"}
+FUNC = re.compile(
+    r"(?m)^[ \t]*(?P<signature>(?:(?:static|extern|inline|constexpr|const|volatile|__weak|"
+    r"__inline|__STATIC_INLINE)\s+)*"
+    r"(?:[A-Za-z_]\w*(?:::\w+)?(?:\s*<[^(){};]+>)?(?:\s+|\s*[*&]\s*))+"
+    r"(?P<name>[A-Za-z_]\w*)\s*\((?P<args>[^(){};]*)\)\s*(?:const\s*)?)"
+    r"(?P<end>\{|;)",
+    re.MULTILINE,
+)
+VARIABLE = re.compile(
+    r"^[ \t]*(?P<decl>(?:(?:static|extern|volatile|const|register|unsigned|signed)\s+)*"
+    r"(?:[A-Za-z_]\w*(?:::\w+)?(?:\s*<[^;{}()]+>)?(?:\s+|\s*[*&]\s*))+"
+    r"(?P<name>[A-Za-z_]\w*)(?:\s*\[[^\]]*\])?\s*(?:=\s*[^;]*)?);[ \t]*$"
+)
+ENUM = re.compile(
+    r"\btypedef\s+enum(?:\s+[A-Za-z_]\w*)?\s*\{(?P<body>[^{}]*)\}\s*"
+    r"(?P<name>[A-Za-z_]\w*)\s*;", re.DOTALL,
+)
+TYPEDEF = re.compile(
+    r"(?m)^[ \t]*typedef\s+(?!enum\b|struct\s*\{|union\s*\{)"
+    r"(?P<decl>[^;{}()]+?)\s+(?P<name>[A-Za-z_]\w*)\s*;",
+)
+COMMENT = re.compile(r"/\*\*[\s\S]*?\*/")
+PARAM = re.compile(r"[@\\]param(?:\[[^\]]+\])?\s+(" + IDENT + r")\s*:?\s+([^\r\n@\\*]+)")
+BRIEF = re.compile(r"[@\\]brief\s+([^\r\n@\\*]+)")
+RETURN = re.compile(r"[@\\](?:return|retval)\s+([^\r\n@\\*]+)")
 
-# 忽略的局部临时变量名列表
-TRIVIAL_VAR_NAMES = {
-    "i", "j", "k", "n", "m", "tmp", "temp", "buf", "buffer",
-    "len", "length", "ret", "err", "res", "result", "idx",
-    "index", "cnt", "count", "val", "value", "ch", "ptr", "p"
-}
 
-# 常见 C 关键字与修饰符
-MODIFIERS = {
-    "static", "__weak", "volatile", "inline", "__inline",
-    "__STATIC_INLINE", "extern", "const", "register", "auto"
-}
+def mask_non_code(text):
+    """Blank comments, strings and chars while preserving offsets and newlines."""
+    result = list(text)
+    i = 0
+    state = "code"
+    while i < len(text):
+        ch = text[i]
+        nxt = text[i + 1] if i + 1 < len(text) else ""
+        if state == "code":
+            if ch == "/" and nxt == "/":
+                state = "line"
+                result[i] = result[i + 1] = " "
+                i += 2
+                continue
+            if ch == "/" and nxt == "*":
+                state = "block"
+                result[i] = result[i + 1] = " "
+                i += 2
+                continue
+            if ch in ('"', "'"):
+                state = ch
+                result[i] = " "
+        elif state == "line":
+            if ch == "\n":
+                state = "code"
+            else:
+                result[i] = " "
+        elif state == "block":
+            if ch == "*" and nxt == "/":
+                result[i] = result[i + 1] = " "
+                i += 2
+                state = "code"
+                continue
+            if ch != "\n":
+                result[i] = " "
+        else:
+            if ch == "\\" and i + 1 < len(text):
+                result[i] = " "
+                if text[i + 1] != "\n":
+                    result[i + 1] = " "
+                i += 2
+                continue
+            if ch == state:
+                state = "code"
+            if ch != "\n":
+                result[i] = " "
+        i += 1
+    # Macro bodies cannot participate in structural brace matching.
+    masked = "".join(result)
+    return re.sub(r"(?m)^[ \t]*#(?:[^\n\\]|\\\n)*[^\n]*", lambda m: re.sub(r"[^\n]", " ", m.group()), masked)
+
+
+def line_index_and_depth(masked):
+    starts = [0]
+    depths = [0]
+    depth = 0
+    for i, ch in enumerate(masked):
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth = max(depth - 1, 0)
+        if ch == "\n" and i + 1 < len(masked):
+            starts.append(i + 1)
+            depths.append(depth)
+    return starts, depths
+
+
+def comment_before(text, offset):
+    prefix = text[:offset]
+    comments = list(COMMENT.finditer(prefix))
+    if not comments or prefix[comments[-1].end():].strip():
+        return ""
+    return comments[-1].group()
+
+
+def doxygen(text):
+    def one(regex):
+        m = regex.search(text)
+        return m.group(1).strip() if m else ""
+    return {
+        "brief": one(BRIEF),
+        "return": one(RETURN),
+        "params": {name: desc.strip() for name, desc in PARAM.findall(text)},
+    }
+
+
+def parse_parameters(raw, doc):
+    params = []
+    if not raw.strip() or raw.strip() == "void":
+        return params
+    for token in raw.split(","):
+        token = token.strip()
+        if not token:
+            continue
+        found = re.search(r"(" + IDENT + r")\s*(?:\[[^\]]*\])?$", token)
+        name = found.group(1) if found else token
+        params.append({
+            "name": name, "type": token,
+            "description_zh": doc["params"].get(name, ""),
+        })
+    return params
+
+
+def brace_block(masked, original, start):
+    depth = 0
+    for pos in range(start, len(masked)):
+        if masked[pos] == "{":
+            depth += 1
+        elif masked[pos] == "}":
+            depth -= 1
+            if depth == 0:
+                return original[start:pos + 1], True
+    return original[start:], False
 
 
 class MCUExtractor:
-    def __init__(self, proj_root: str, include_drivers: bool = False, include_freertos: bool = False):
+    def __init__(self, proj_root, include_drivers=False, include_freertos=False):
         self.proj_root = Path(proj_root).resolve()
         self.include_drivers = include_drivers
         self.include_freertos = include_freertos
+        self.functions = []
+        self.variables = []
+        self.macros = []
+        self.uncertain = []
+        self.processed_files = []
 
-        self.functions: List[Dict] = []
-        self.variables: List[Dict] = []
-        self.macros: List[Dict] = []
-        self.uncertain: List[Dict] = []
-
-        self.processed_files: List[str] = []
-
-    def should_ignore_file(self, file_path: Path) -> bool:
-        """判断是否忽略某文件（如汇编、构建目录、第三方内核等）"""
-        rel = file_path.as_posix().lower()
-
-        # 扩展名过滤
-        if file_path.suffix.lower() in [".s", ".asm", ".o", ".axf", ".hex", ".map", ".lst", ".d", ".crf"]:
+    def should_ignore_file(self, file):
+        file = Path(file)
+        if file.suffix.lower() not in SOURCE_SUFFIXES:
             return True
-
-        # 构建目录过滤
-        if "mdk_v5/objects" in rel or "mdk_v5/listings" in rel or "/build/" in rel or "/debug/" in rel:
+        path = file.as_posix().lower()
+        parts = {p.lower() for p in file.parts}
+        if parts.intersection({"build", "debug", "release", "objects", "listings", ".git"}):
             return True
-
-        # FreeRTOS 核心过滤（默认跳过第三方核心实现）
-        if not self.include_freertos and "common/vendor/freertos" in rel:
+        if "common/vendor/cmsis/core" in path or "at32f435_437.h" in path:
             return True
-
-        # CMSIS 核心定义过滤
-        if "common/vendor/cmsis/core" in rel:
+        if not self.include_freertos and "common/vendor/freertos" in path:
             return True
-        if "at32f435_437.h" in rel:  # 50KB 寄存器宏
+        if not self.include_drivers and "common/vendor/drivers" in path:
             return True
-
-        # 厂商驱动过滤
-        if not self.include_drivers and "common/vendor/drivers" in rel:
-            return True
-
         return False
 
-    def parse_uvprojx(self, uvprojx_path: Path) -> Tuple[List[Path], List[Path]]:
-        """从 Keil .uvprojx 解析参与编译的文件与包含目录"""
-        c_files: List[Path] = []
-        include_dirs: List[Path] = []
+    def parse_uvprojx(self, proj):
+        root = ET.parse(proj).getroot()
+        project_dir = proj.parent
+        source = []
+        include = []
+        for element in root.iter():
+            tag = element.tag.rsplit("}", 1)[-1]
+            if not element.text:
+                continue
+            if tag == "FilePath":
+                path = (project_dir / element.text.strip().replace("\\", "/")).resolve()
+                if path.is_file() and not self.should_ignore_file(path):
+                    source.append(path)
+            elif tag == "IncludePath":
+                for part in element.text.split(";"):
+                    if part.strip():
+                        directory = (project_dir / part.strip().replace("\\", "/")).resolve()
+                        if directory.is_dir():
+                            include.append(directory)
+        return source, include
 
-        proj_dir = uvprojx_path.parent
+    def collect_source_files(self, proj_file=None, src_dir=None):
+        files = set()
+        if proj_file:
+            if not proj_file.is_file():
+                raise FileNotFoundError("Keil 工程文件不存在: " + str(proj_file))
+            source, include = self.parse_uvprojx(proj_file)
+            files.update(source)
+            # Headers can be nested; include .hpp/.hh as well.
+            for directory in include:
+                files.update(
+                    f.resolve() for f in directory.rglob("*")
+                    if f.is_file() and f.suffix.lower() in HEADER_SUFFIXES
+                    and not self.should_ignore_file(f)
+                )
+            # Local headers next to source files even if not in IncludePath.
+            for file in source:
+                files.update(
+                    f.resolve() for f in file.parent.iterdir()
+                    if f.is_file() and f.suffix.lower() in HEADER_SUFFIXES
+                    and not self.should_ignore_file(f)
+                )
+        if src_dir:
+            if not src_dir.exists():
+                raise FileNotFoundError("源码路径不存在: " + str(src_dir))
+            candidates = [src_dir] if src_dir.is_file() else src_dir.rglob("*")
+            files.update(f.resolve() for f in candidates if f.is_file() and not self.should_ignore_file(f))
+        return sorted(files, key=lambda path: path.as_posix())
 
+    def relative(self, path):
+        return Path(os.path.relpath(path, self.proj_root)).as_posix()
+
+    def add_uncertain(self, path, line, reason, sample=""):
+        self.uncertain.append({
+            "source": {"file": path, "line": line},
+            "reason": reason,
+            "snippet": sample.strip()[:200],
+        })
+
+    @staticmethod
+    def make_entry(name, kind, declaration, scope, source, **extras):
+        value = {
+            "symbol": name, "kind": kind, "name_zh": "",
+            "description_zh": "", "declaration": declaration.strip(),
+            "parameters": [], "returns_zh": "", "scope": scope,
+            "source": source, "uncertainty": "",
+        }
+        value.update(extras)
+        return value
+
+    def process_file(self, path):
+        relative = self.relative(path)
         try:
-            tree = ET.parse(uvprojx_path)
-            root = tree.getroot()
-
-            # 1. 查找 FilePath
-            for elem in root.iter("FilePath"):
-                if elem.text:
-                    raw_path = elem.text.strip().replace("\\", "/")
-                    full_path = (proj_dir / raw_path).resolve()
-                    if full_path.suffix.lower() in [".c", ".cpp"]:
-                        if not self.should_ignore_file(full_path) and full_path.exists():
-                            c_files.append(full_path)
-
-            # 2. 查找 IncludePath
-            for elem in root.iter("IncludePath"):
-                if elem.text:
-                    paths = elem.text.strip().split(";")
-                    for p in paths:
-                        p = p.strip().replace("\\", "/")
-                        if p:
-                            inc_dir = (proj_dir / p).resolve()
-                            if inc_dir.exists() and inc_dir.is_dir():
-                                include_dirs.append(inc_dir)
-        except Exception as e:
-            print(f"[WARN] 解析 uvprojx 文件失败: {e}")
-
-        return c_files, include_dirs
-
-    def collect_source_files(self, proj_file: Optional[Path], src_dir: Optional[Path]) -> List[Path]:
-        """收集待分析的 C/H 源文件"""
-        files_set: Set[Path] = set()
-
-        if proj_file and proj_file.exists():
-            c_files, inc_dirs = self.parse_uvprojx(proj_file)
-            files_set.update(c_files)
-
-            # 收集 include_dirs 下的 .h
-            for idir in inc_dirs:
-                if self.should_ignore_file(idir):
-                    continue
-                for h_file in idir.glob("*.h"):
-                    if not self.should_ignore_file(h_file):
-                        files_set.add(h_file.resolve())
-
-        if src_dir and src_dir.exists():
-            for ext in ["*.c", "*.h"]:
-                for f in src_dir.rglob(ext):
-                    if not self.should_ignore_file(f):
-                        files_set.add(f.resolve())
-
-        # 按路径排序确保稳定
-        sorted_files = sorted(list(files_set), key=lambda p: str(p))
-        return sorted_files
-
-    def extract_doxygen(self, comment_text: str) -> Dict[str, str]:
-        """提取 Doxygen 注释中的 brief、param、retval"""
-        res = {"brief": "", "params": {}, "return": ""}
-        if not comment_text:
-            return res
-
-        brief_match = re.search(r'@brief\s+([^\n@*]+)', comment_text)
-        if brief_match:
-            res["brief"] = brief_match.group(1).strip()
-
-        param_matches = re.findall(r'@param\s+([a-zA-Z0-9_]+)\s*:\s*([^\n@*]+)', comment_text)
-        for p_name, p_desc in param_matches:
-            res["params"][p_name.strip()] = p_desc.strip()
-
-        ret_match = re.search(r'@(?:retval|return)\s+([^\n@*]+)', comment_text)
-        if ret_match:
-            res["return"] = ret_match.group(1).strip()
-
-        return res
-
-    def get_rel_path(self, abs_path: Path) -> str:
-        """获取相对于工程根目录的显示路径"""
-        try:
-            return abs_path.relative_to(self.proj_root).as_posix()
-        except ValueError:
-            return abs_path.name
-
-    def process_file(self, file_path: Path):
-        """分析单个源码文件"""
-        rel_path = self.get_rel_path(file_path)
-        self.processed_files.append(rel_path)
-
-        try:
-            with open(file_path, "r", encoding="utf-8", errors="replace") as f:
-                content = f.read()
-        except Exception as e:
-            print(f"[WARN] 无法读取文件 {rel_path}: {e}")
+            text = path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            text = path.read_text(encoding="utf-8", errors="replace")
+            self.add_uncertain(relative, 1, "源码编码不是 UTF-8，替换字符需复核")
+        except OSError as error:
+            self.add_uncertain(relative, 1, "读取失败: " + str(error))
             return
+        self.processed_files.append(relative)
+        masked = mask_non_code(text)
+        starts, depths = line_index_and_depth(masked)
+        def line_at(index):
+            return bisect.bisect_right(starts, index)
+        def depth_at(index):
+            return depths[bisect.bisect_right(starts, index) - 1]
 
-        lines = content.splitlines()
-
-        # 1. 提取宏定义与枚举
-        self._extract_macros_and_enums(content, lines, rel_path)
-
-        # 2. 提取函数与顶层变量
-        if file_path.suffix.lower() == ".c":
-            self._extract_c_functions_and_variables(content, lines, rel_path)
-        elif file_path.suffix.lower() == ".h":
-            self._extract_h_declarations(content, lines, rel_path)
-
-    def _extract_macros_and_enums(self, content: str, lines: List[str], rel_path: str):
-        """提取 #define 宏及 typedef enum/struct"""
-        # 1. 提取多行拼接后的 #define
-        i = 0
-        total = len(lines)
-        while i < total:
-            line = lines[i].strip()
-            line_no = i + 1
-            if line.startswith("#define"):
-                macro_lines = [line]
-                while macro_lines[-1].endswith("\\") and i + 1 < total:
-                    i += 1
-                    macro_lines.append(lines[i].strip())
-                macro_full = " ".join([l.rstrip("\\").strip() for l in macro_lines])
-
-                # 匹配 #define SYMBOL[(args)] [value]
-                m = re.match(r'^#define\s+([a-zA-Z_][a-zA-Z0-9_]*)(?:\(([^)]*)\))?(?:\s+(.*))?$', macro_full)
-                if m:
-                    sym = m.group(1)
-                    # 过滤 include guard (如 __AT32F435_437_GPIO_H 等)
-                    if not (sym.startswith("__") and sym.endswith("_H")):
-                        args = m.group(2)
-                        val = m.group(3) or ""
-                        params = []
-                        if args:
-                            params = [{"name": a.strip(), "description_zh": ""} for a in args.split(",") if a.strip()]
-
-                        self.macros.append({
-                            "symbol": sym,
-                            "kind": "macro",
-                            "name_zh": "",
-                            "description_zh": "",
-                            "declaration": macro_full[:120],
-                            "parameters": params,
-                            "returns_zh": "",
-                            "scope": os.path.basename(rel_path),
-                            "source": {"file": rel_path, "line": line_no},
-                            "uncertainty": ""
-                        })
-            i += 1
-
-        # 2. 提取 typedef enum
-        enum_pattern = re.compile(r'typedef\s+enum(?:\s+[a-zA-Z0-9_]+)?\s*\{([^}]+)\}\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*;', re.DOTALL)
-        for m in enum_pattern.finditer(content):
-            enum_body = m.group(1)
-            enum_name = m.group(2)
-            # 计算行号
-            line_no = content[:m.start()].count("\n") + 1
-
-            self.macros.append({
-                "symbol": enum_name,
-                "kind": "enum",
-                "name_zh": "",
-                "description_zh": "枚举类型定义",
-                "declaration": f"typedef enum {{ ... }} {enum_name};",
-                "parameters": [],
-                "returns_zh": "",
-                "scope": os.path.basename(rel_path),
-                "source": {"file": rel_path, "line": line_no},
-                "uncertainty": ""
-            })
-
-            # 同时提取枚举项
-            for item in enum_body.split(","):
-                item_clean = item.strip()
-                if item_clean:
-                    item_name = item_clean.split("=")[0].strip()
-                    if re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', item_name):
-                        self.macros.append({
-                            "symbol": item_name,
-                            "kind": "enum",
-                            "name_zh": "",
-                            "description_zh": f"枚举 {enum_name} 的取值常量",
-                            "declaration": item_clean,
-                            "parameters": [],
-                            "returns_zh": "",
-                            "scope": enum_name,
-                            "source": {"file": rel_path, "line": line_no},
-                            "uncertainty": ""
-                        })
-
-    def _extract_c_functions_and_variables(self, content: str, lines: List[str], rel_path: str):
-        """分析 .c 文件，提取函数体与顶层变量"""
-        # 函数定义正则表达式
-        func_regex = re.compile(
-            r'^(?:(?:static|__weak|volatile|inline|__inline|__STATIC_INLINE)\s+)*'
-            r'([a-zA-Z_][a-zA-Z0-9_\s\*]+?)\s+'  # 返回类型
-            r'([a-zA-Z_][a-zA-Z0-9_]*)\s*'        # 函数名
-            r'\(([^)]*)\)\s*'                     # 参数
-            r'\{',                                # 开花括号
-            re.MULTILINE
-        )
-
-        for match in func_regex.finditer(content):
-            ret_type = match.group(1).strip()
-            func_name = match.group(2).strip()
-            param_str = match.group(3).strip()
-            start_pos = match.start()
-            line_no = content[:start_pos].count("\n") + 1
-
-            # 过滤不是函数的 C 语句误判
-            if func_name in {"if", "for", "while", "switch"}:
+        lines = text.splitlines()
+        self._macros(lines, relative)
+        for match in ENUM.finditer(masked):
+            if depth_at(match.start()) != 0:
                 continue
+            name = match.group("name")
+            line = line_at(match.start())
+            self.macros.append(self.make_entry(
+                name, "enum", "typedef enum { ... } " + name, relative,
+                {"file": relative, "line": line},
+                description_zh="枚举类型定义",
+            ))
+            for item in match.group("body").split(","):
+                ident = re.match(r"\s*(" + IDENT + r")", item)
+                if ident:
+                    self.macros.append(self.make_entry(
+                        ident.group(1), "enum", item.strip(), relative + "::" + name,
+                        {"file": relative, "line": line},
+                        description_zh="枚举 " + name + " 的取值常量",
+                    ))
+        for match in TYPEDEF.finditer(masked):
+            if depth_at(match.start()) == 0:
+                self.macros.append(self.make_entry(
+                    match.group("name"), "typedef", text[match.start():match.end()],
+                    relative, {"file": relative, "line": line_at(match.start())},
+                ))
 
-            # 1. 查找前置 Doxygen 注释
-            pre_text = content[:start_pos]
-            dox_info = {"brief": "", "params": {}, "return": ""}
-            comment_match = re.search(r'/\*\*[\s\S]*?\*/\s*$', pre_text)
-            existing_comment = ""
-            if comment_match:
-                existing_comment = comment_match.group(0).strip()
-                dox_info = self.extract_doxygen(existing_comment)
-
-            # 2. 提取参数
-            parameters = []
-            if param_str and param_str != "void":
-                for p in param_str.split(","):
-                    p_clean = p.strip()
-                    if not p_clean:
-                        continue
-                    # 提取参数名
-                    p_m = re.search(r'([a-zA-Z_][a-zA-Z0-9_]*)$', p_clean)
-                    p_name = p_m.group(1) if p_m else p_clean
-                    p_desc = dox_info["params"].get(p_name, "")
-                    parameters.append({
-                        "name": p_name,
-                        "type": p_clean,
-                        "description_zh": p_desc
-                    })
-
-            # 3. 提取函数实现体（大括号配对）
-            brace_start = match.end() - 1
-            body_text = self._extract_brace_block(content, brace_start)
-            body_lines = body_text.splitlines()
-            if len(body_lines) > 50:
-                body_truncated = "\n".join(body_lines[:50]) + "\n// [截断，完整实现请查看源码]"
-            else:
-                body_truncated = body_text
-
-            # 4. 函数签名
-            declaration = f"{ret_type} {func_name}({param_str})"
-
-            self.functions.append({
-                "symbol": func_name,
-                "kind": "function",
-                "name_zh": dox_info["brief"] if dox_info["brief"] else "",
-                "description_zh": dox_info["brief"] if dox_info["brief"] else "",
-                "declaration": declaration,
-                "parameters": parameters,
-                "returns_zh": dox_info["return"] if dox_info["return"] else "",
-                "scope": os.path.basename(rel_path),
-                "body": body_truncated,
-                "existing_comment": existing_comment[:200] if existing_comment else "",
-                "source": {"file": rel_path, "line": line_no},
-                "uncertainty": ""
-            })
-
-        # 5. 提取顶层静态/全局变量
-        self._extract_global_variables(lines, rel_path)
-
-    def _extract_global_variables(self, lines: List[str], rel_path: str):
-        """提取顶层静态与全局变量"""
-        in_function = False
-        brace_depth = 0
-
-        for line_idx, raw_line in enumerate(lines):
-            line = raw_line.strip()
-            line_no = line_idx + 1
-
-            # 跟踪括号深度，判断是否在函数体内
-            brace_depth += raw_line.count("{") - raw_line.count("}")
-            if brace_depth > 0:
+        for match in FUNC.finditer(masked):
+            if depth_at(match.start()) != 0:
                 continue
-
-            if not line or line.startswith("//") or line.startswith("/*") or line.startswith("#"):
+            name = match.group("name")
+            signature = text[match.start("signature"):match.end("signature")].strip()
+            if name in {"if", "while", "for", "switch", "catch", "sizeof"}:
                 continue
+            comment = comment_before(text, match.start())
+            doc = doxygen(comment)
+            definition = match.group("end") == "{"
+            source = {"file": relative, "line": line_at(match.start())}
+            body = ""
+            if definition:
+                body, closed = brace_block(masked, text, match.start("end"))
+                if not closed:
+                    self.add_uncertain(relative, source["line"], "函数大括号未闭合", signature)
+                if len(body.splitlines()) > 50:
+                    body = "\n".join(body.splitlines()[:50]) + "\n// [截断，请回看源码]"
+            entry = self.make_entry(
+                name, "function", signature, relative, source,
+                name_zh=doc["brief"], description_zh=doc["brief"],
+                parameters=parse_parameters(text[match.start("args"):match.end("args")], doc),
+                returns_zh=doc["return"], body=body,
+                existing_comment=comment[:500],
+            )
+            entry["_definition"] = definition
+            entry["_static"] = bool(re.search(r"\bstatic\b", signature))
+            self.functions.append(entry)
 
-            # 匹配形如: static int board_ready; 或 volatile course_fault_type course_last_fault;
-            # static const uint32_t intervals[2] = {500, 1000};
-            if ("static" in line or "volatile" in line or "extern" in line) and ";" in line and "(" not in line:
-                var_match = re.search(r'^(?:(?:static|volatile|extern|const)\s+)+([a-zA-Z0-9_\s\*]+?)\s+([a-zA-Z_][a-zA-Z0-9_]*)(?:\[[^\]]*\])?(?:\s*=.*)?;', line)
-                if var_match:
-                    v_type = var_match.group(1).strip()
-                    v_name = var_match.group(2).strip()
-                    if v_name.lower() not in TRIVIAL_VAR_NAMES:
-                        self.variables.append({
-                            "symbol": v_name,
-                            "kind": "variable",
-                            "name_zh": "",
-                            "description_zh": "",
-                            "declaration": line.rstrip(";"),
-                            "parameters": [],
-                            "returns_zh": "",
-                            "scope": os.path.basename(rel_path),
-                            "source": {"file": rel_path, "line": line_no},
-                            "uncertainty": ""
-                        })
-
-    def _extract_h_declarations(self, content: str, lines: List[str], rel_path: str):
-        """分析 .h 头文件中的函数原型声明"""
-        decl_regex = re.compile(
-            r'^(?:extern\s+)?(?:(?:static|__weak|volatile|inline|__inline|__STATIC_INLINE)\s+)*'
-            r'([a-zA-Z_][a-zA-Z0-9_\s\*]+?)\s+'
-            r'([a-zA-Z_][a-zA-Z0-9_]*)\s*'
-            r'\(([^)]*)\)\s*;',
-            re.MULTILINE
-        )
-
-        for match in decl_regex.finditer(content):
-            ret_type = match.group(1).strip()
-            func_name = match.group(2).strip()
-            param_str = match.group(3).strip()
-            start_pos = match.start()
-            line_no = content[:start_pos].count("\n") + 1
-
-            if func_name in {"if", "for", "while", "switch"}:
+        # Parse one-statement, file-scope variables; skip declarations inside bodies.
+        for i, raw in enumerate(lines):
+            line = i + 1
+            if i >= len(depths) or depths[i] != 0:
                 continue
+            original = raw.strip()
+            if not original or original.startswith("#"):
+                continue
+            masked_line = masked.splitlines()[i].strip()
+            if not masked_line or "(" in masked_line or ")" in masked_line:
+                continue
+            if masked_line.startswith(("typedef ", "using ", "struct ", "enum ", "union ")):
+                continue
+            found = VARIABLE.match(masked_line)
+            if found:
+                name = found.group("name")
+                if name.lower() in TRIVIAL:
+                    continue
+                self.variables.append(self.make_entry(
+                    name, "variable", original.rstrip(";"), relative,
+                    {"file": relative, "line": line},
+                ))
+            elif (re.match(r"^(?:static|extern|volatile|const|unsigned|signed|\w+)\s+\w+", masked_line)
+                  and "=" in masked_line and ";" not in masked_line):
+                self.add_uncertain(relative, line, "可能存在跨行初始化的全局变量", original)
 
-            pre_text = content[:start_pos]
-            dox_info = {"brief": "", "params": {}, "return": ""}
-            comment_match = re.search(r'/\*\*[\s\S]*?\*/\s*$', pre_text)
-            existing_comment = ""
-            if comment_match:
-                existing_comment = comment_match.group(0).strip()
-                dox_info = self.extract_doxygen(existing_comment)
+        if path.suffix.lower() in {".cpp", ".cc", ".cxx", ".hpp", ".hh", ".hxx"}:
+            if re.search(r"\b(?:namespace|template)\b", masked):
+                self.add_uncertain(relative, 1, "包含 namespace/template；复杂 C++ 语法需人工复核")
+        if re.search(r"\(\s*\*\s*" + IDENT + r"\s*\)\s*\(", masked):
+            self.add_uncertain(relative, 1, "包含函数指针声明；正则提取可能遗漏")
 
-            parameters = []
-            if param_str and param_str != "void":
-                for p in param_str.split(","):
-                    p_clean = p.strip()
-                    if not p_clean:
-                        continue
-                    p_m = re.search(r'([a-zA-Z_][a-zA-Z0-9_]*)$', p_clean)
-                    p_name = p_m.group(1) if p_m else p_clean
-                    p_desc = dox_info["params"].get(p_name, "")
-                    parameters.append({
-                        "name": p_name,
-                        "type": p_clean,
-                        "description_zh": p_desc
-                    })
+    def _macros(self, lines, relative):
+        index = 0
+        while index < len(lines):
+            raw = lines[index].strip()
+            line_no = index + 1
+            if raw.startswith("#define "):
+                parts = [raw]
+                while parts[-1].endswith("\\") and index + 1 < len(lines):
+                    index += 1
+                    parts.append(lines[index].strip())
+                full = " ".join(x.rstrip("\\").strip() for x in parts)
+                match = re.match(r"#define\s+(" + IDENT + r")(\([^)]*\))?(?:\s+.*)?$", full)
+                if match:
+                    name = match.group(1)
+                    if not (name.startswith("__") and name.endswith("_H")):
+                        self.macros.append(self.make_entry(
+                            name, "macro", full, relative,
+                            {"file": relative, "line": line_no},
+                        ))
+                else:
+                    self.add_uncertain(relative, line_no, "无法解析宏定义", full)
+            index += 1
 
-            self.functions.append({
-                "symbol": func_name,
-                "kind": "function",
-                "name_zh": dox_info["brief"] if dox_info["brief"] else "",
-                "description_zh": dox_info["brief"] if dox_info["brief"] else "",
-                "declaration": f"{ret_type} {func_name}({param_str})",
-                "parameters": parameters,
-                "returns_zh": dox_info["return"] if dox_info["return"] else "",
-                "scope": os.path.basename(rel_path),
-                "body": "",
-                "existing_comment": existing_comment[:200] if existing_comment else "",
-                "source": {"file": rel_path, "line": line_no},
-                "uncertainty": ""
-            })
+    def deduplicate(self):
+        """Prefer function bodies to header prototypes; preserve file-local statics."""
+        chosen = {}
+        for entry in self.functions:
+            param_types = []
+            for p in entry["parameters"]:
+                token = p["type"]
+                # Ignore a trailing argument name when comparing header/definition.
+                token = re.sub(r"\b" + re.escape(p["name"]) + r"\s*$", "", token).strip()
+                param_types.append(re.sub(r"\s+", "", token))
+            key = (
+                entry["symbol"], tuple(param_types),
+                entry["scope"] if entry["_static"] else "",
+            )
+            existing = chosen.get(key)
+            if existing is None:
+                chosen[key] = entry
+                continue
+            preferred = entry if entry["_definition"] and not existing["_definition"] else existing
+            extra = existing if preferred is entry else entry
+            for field in ("name_zh", "description_zh", "returns_zh", "existing_comment"):
+                if not preferred[field] and extra[field]:
+                    preferred[field] = extra[field]
+            for idx, p in enumerate(preferred["parameters"]):
+                if idx < len(extra["parameters"]) and not p["description_zh"]:
+                    p["description_zh"] = extra["parameters"][idx]["description_zh"]
+            chosen[key] = preferred
+        self.functions = list(chosen.values())
+        for entry in self.functions:
+            entry.pop("_definition", None)
+            entry.pop("_static", None)
 
-    def _extract_brace_block(self, content: str, start_index: int) -> str:
-        """从左大括号开始截取匹配的完整大括号块"""
-        depth = 0
-        end_index = start_index
-        for idx in range(start_index, len(content)):
-            char = content[idx]
-            if char == "{":
-                depth += 1
-            elif char == "}":
-                depth -= 1
-                if depth == 0:
-                    end_index = idx + 1
-                    break
-        return content[start_index:end_index]
-
-    def export(self, out_dir: Path):
-        """导出四个中间 JSON 文件及统计摘要"""
+    def export(self, out_dir):
+        self.deduplicate()
         out_dir.mkdir(parents=True, exist_ok=True)
-
-        # 写入 functions.json
-        with open(out_dir / "functions.json", "w", encoding="utf-8") as f:
-            json.dump(self.functions, f, ensure_ascii=False, indent=2)
-
-        # 写入 variables.json
-        with open(out_dir / "variables.json", "w", encoding="utf-8") as f:
-            json.dump(self.variables, f, ensure_ascii=False, indent=2)
-
-        # 写入 macros.json
-        with open(out_dir / "macros.json", "w", encoding="utf-8") as f:
-            json.dump(self.macros, f, ensure_ascii=False, indent=2)
-
-        # 写入 uncertain.json
-        with open(out_dir / "uncertain.json", "w", encoding="utf-8") as f:
-            json.dump(self.uncertain, f, ensure_ascii=False, indent=2)
-
-        # 写入 extract_summary.txt
-        summary_text = f"""=== 呆瓜翻译器 - MCU 源码提取摘要 ===
-分析文件总数: {len(self.processed_files)}
-提取函数总数: {len(self.functions)}
-提取变量总数: {len(self.variables)}
-提取宏与枚举: {len(self.macros)}
-待确认项目数: {len(self.uncertain)}
-
-分析的文件列表:
-""" + "\n".join([f"  - {f}" for f in self.processed_files])
-
-        with open(out_dir / "extract_summary.txt", "w", encoding="utf-8") as f:
-            f.write(summary_text)
-
-        print(f"\n[OK] 提取完成，生成成果文件位于: {out_dir}")
-        print(f"  - 分析文件: {len(self.processed_files)}")
-        print(f"  - 函数: {len(self.functions)}")
-        print(f"  - 变量: {len(self.variables)}")
-        print(f"  - 宏与枚举: {len(self.macros)}")
+        for name, values in (
+            ("functions", self.functions), ("variables", self.variables),
+            ("macros", self.macros), ("uncertain", self.uncertain),
+        ):
+            (out_dir / (name + ".json")).write_text(
+                json.dumps(values, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+            )
+        summary = (
+            f"文件: {len(self.processed_files)}\n函数: {len(self.functions)}\n"
+            f"变量: {len(self.variables)}\n宏/枚举/类型: {len(self.macros)}\n"
+            f"待确认: {len(self.uncertain)}\n\n" + "\n".join(self.processed_files) + "\n"
+        )
+        (out_dir / "extract_summary.txt").write_text(summary, encoding="utf-8")
+        print(summary)
 
 
 def main():
-    parser = argparse.ArgumentParser(description="呆瓜翻译器 - MCU C/C++ 源码提取工具")
-    parser.add_argument("--proj", default=None, help="Keil .uvprojx 工程文件路径")
-    parser.add_argument("--src", default=None, help="源码根目录或单个源码文件路径")
-    parser.add_argument("--out", required=True, help="中间文件输出目录")
-    parser.add_argument("--include-drivers", action="store_true", help="是否包含第三方/厂商驱动库符号提取")
-    parser.add_argument("--include-freertos", action="store_true", help="是否包含 FreeRTOS 核心代码提取")
-
+    parser = argparse.ArgumentParser(description="MCU C/C++ 工程源码事实提取")
+    parser.add_argument("--proj", help="Keil .uvprojx 工程")
+    parser.add_argument("--src", help="源码目录或单个文件")
+    parser.add_argument("--out", required=True, help="输出目录")
+    parser.add_argument("--include-drivers", action="store_true")
+    parser.add_argument("--include-freertos", action="store_true")
     args = parser.parse_args()
-
-    proj_file = Path(args.proj).resolve() if args.proj else None
-    src_dir = Path(args.src).resolve() if args.src else None
-
-    # 确定项目总根目录
-    root_dir = proj_file.parent if proj_file else (src_dir if src_dir else Path.cwd())
-    # 如果是在 05_createtask/mdk_v5 下，往上一层
-    if "mdk_v5" in root_dir.as_posix():
-        root_dir = root_dir.parent
-
-    extractor = MCUExtractor(
-        proj_root=str(root_dir),
-        include_drivers=args.include_drivers,
-        include_freertos=args.include_freertos
-    )
-
-    source_files = extractor.collect_source_files(proj_file, src_dir)
-    if not source_files:
-        print("[WARN] 未检索到符合条件的 C/H 源码文件，请检查 --proj 或 --src 路径")
-        sys.exit(1)
-
-    print(f"准备开始分析，共计 {len(source_files)} 个源文件...")
-    for sf in source_files:
-        extractor.process_file(sf)
-
+    if not args.proj and not args.src:
+        parser.error("需要提供 --proj 或 --src")
+    proj = Path(args.proj).resolve() if args.proj else None
+    src = Path(args.src).resolve() if args.src else None
+    root = proj.parent if proj else (src.parent if src and src.is_file() else src)
+    if root and root.name.lower() == "mdk_v5":
+        root = root.parent
+    extractor = MCUExtractor(root or Path.cwd(), args.include_drivers, args.include_freertos)
+    try:
+        files = extractor.collect_source_files(proj, src)
+    except (OSError, ET.ParseError) as error:
+        print("[ERROR] " + str(error), file=sys.stderr)
+        return 1
+    if not files:
+        print("[ERROR] 未找到支持的 C/C++ 源文件", file=sys.stderr)
+        return 1
+    for file in files:
+        extractor.process_file(file)
     extractor.export(Path(args.out).resolve())
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
