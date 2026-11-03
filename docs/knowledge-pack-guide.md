@@ -1,59 +1,39 @@
-# 知识包制作说明
+# MCU 知识包制作流程
 
-本文告诉 Antigravity 或 Codex 怎样为一个 MCU 工程制作知识包。
+使用 Antigravity、Codex 等 AI 编程工具协助理解源码，插件运行时不使用在线 AI。
 
-## 第一步：运行提取工具
+## 1. 从工程提取事实
 
-在 Antigravity / Codex 中打开 MCU 工程目录，执行：
-
-```
-python extractor/extract.py --src <工程目录> --out <中间文件输出目录>
+```powershell
+python extractor/extract.py --proj "D:\\MCU\\mdk_v5\\project.uvprojx" --out extractor/out
 ```
 
-提取工具会扫描所有 `.c` / `.h` 文件，输出以下中间文件：
+也可以用 `--src` 指定源码目录或单个 `.c/.cpp` 文件。工具输出 `functions.json`、`variables.json`、`macros.json`、`uncertain.json` 和统计摘要。
 
-- `functions.json` — 函数名称、声明、参数、已有注释、实现体、来源
-- `variables.json` — 全局/静态变量名、类型、已有注释、所在文件
-- `macros.json` — 宏定义、枚举、类型别名
+优先阅读 `uncertain.json`；该文件不是穷尽性的错误检测，不可把空文件理解为“提取结果完全准确”。
 
-普通局部变量（`i`、`j`、`tmp` 等）默认跳过。  
-提取不确定的内容在 `uncertain.json` 中单独列出。
+## 2. AI 阅读事实并写中文词条
 
-## 第二步：让 AI 编写中文说明
+按源码文件或模块分批将中间 JSON 交给 AI。按实际实现与必要源码补充：
 
-将中间文件交给 Antigravity / Codex，按以下提示逐批处理：
+- `name_zh`：非空的中文名称。
+- `description_zh`：函数作用或变量用途。
+- `parameters[].description_zh`、`returns_zh`：有证据才填写。
+- `source.file`、`source.line`、`scope`：保留真实信息，避免同名冲突。
+- `uncertainty`：不能核实的地方，不要编造。
 
-> 读取 functions.json，对每个函数补充：  
-> - `name_zh`：简短中文名称  
-> - `description_zh`：根据实现体说明函数做什么  
-> - 各参数的 `description_zh`  
-> - `returns_zh`  
-> 没有依据的字段留空，不确定的内容写入 `uncertainty`。  
-> 完成后保存为知识包 JSON，格式见 `knowledge-packs/example/example-pack.json`。
+**注意**：提取器生成的原始词条 `name_zh` 可能为空，不能直接通过正式知识包校验器。需要先由 AI 和人工补全。
 
-按文件或模块分批处理，不要求一次提交整个工程。
+## 3. 复核并严格校验
 
-## 第三步：校验并导出知识包
-
-```
-python validator/validate.py --pack <知识包.json>
+```powershell
+python validator/validate.py --pack knowledge-packs/my-pack.json --src "D:\\MCU" --out knowledge-packs/ready.json
 ```
 
-校验内容：
+校验器会拒绝同作用域重复符号、非法类别、空中文名、类型错误。传入 `--src` 时，找不到真实源码会导致失败；不传 `--src` 不能据此认为来源已验证。
 
-- 必填字段（`symbol`、`kind`、`name_zh`、`source`）不为空
-- `symbol` 在同一作用域内不重复
-- `source.file` 路径存在（可选，传入工程目录时检查）
+## 4. 加载与更新
 
-校验通过后，知识包即可直接使用。
+把通过校验的 JSON 绝对路径写入 `daiguaTranslate.packPaths`，并运行“呆瓜翻译器：重新加载知识包”。
 
-## 更新知识包
-
-1. 重新对受影响文件运行提取工具，得到新中间文件。
-2. 将新中间文件与旧词条一并交给 AI，让 AI 修改对应词条。
-3. 再次校验后替换旧知识包文件。
-
-## 加载到插件
-
-在 MTranCode 插件设置中填写知识包 JSON 路径，点击"重新加载"即生效。  
-可同时加载一份工程包和一份通用包（如 HAL、FreeRTOS 常用符号）。
+更新时先重新提取受影响文件，AI 对照旧词条生成差异，再经过人工复核与校验。插件侧已支持更新知识包快照；但 MTranCode **宿主缓存**对已经查询过的相同符号仍可能返回旧释义，详见 `docs/mtrancode-integration.md`。
