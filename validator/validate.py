@@ -8,6 +8,11 @@ import re
 import sys
 from pathlib import Path, PureWindowsPath
 
+# GitHub Actions and some Windows shells default to a non-Unicode console code page.
+for stream in (sys.stdout, sys.stderr):
+    if hasattr(stream, 'reconfigure'):
+        stream.reconfigure(encoding='utf-8', errors='replace')
+
 VALID_KINDS = {"function", "variable", "macro", "enum", "typedef"}
 SYMBOL_RE = re.compile(r"^[A-Za-z_]\w*$")
 OPTIONAL_TEXT = ("description_zh", "declaration", "returns_zh", "scope", "uncertainty")
