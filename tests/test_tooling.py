@@ -81,6 +81,27 @@ class ToolingTests(unittest.TestCase):
         ext.process_file(file)
         self.assertTrue(any("函数指针" in u["reason"] for u in ext.uncertain))
 
+    def test_common_mcu_macros_enums_typedef_and_pointer_function(self):
+        file = self.src / "peripheral.c"
+        file.write_text(
+            "#define MOTOR_SPEED 42\n"
+            "typedef enum { MOTOR_STOP = 0, MOTOR_RUN = 1 } MotorState;\n"
+            "typedef unsigned int CounterType;\n"
+            "/** @brief 读取状态\n * @param[in] dst 目标地址\n * @return 读取长度\n */\n"
+            "int *Read_State(int *dst) { return dst; }\n",
+            encoding="utf-8",
+        )
+        ext = MCUExtractor(self.root)
+        ext.process_file(file)
+        symbols = {x["symbol"] for x in ext.macros}
+        self.assertTrue({"MOTOR_SPEED", "MotorState", "MOTOR_STOP", "MOTOR_RUN",
+                         "CounterType"} <= symbols)
+        matches = [f for f in ext.functions if f["symbol"] == "Read_State"]
+        self.assertEqual(len(matches), 1)
+        self.assertEqual(matches[0]["name_zh"], "读取状态")
+        self.assertEqual(matches[0]["parameters"][0]["description_zh"], "目标地址")
+        self.assertEqual(matches[0]["returns_zh"], "读取长度")
+
     def test_conditional_compilation_is_flagged(self):
         file = self.src / "board.c"
         file.write_text("#if defined(BOARD_A)\nint Pin_Init(void) { return 1; }\n#endif\n",
