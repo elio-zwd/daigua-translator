@@ -1,14 +1,14 @@
 name: Plugin CI
 on:
   push:
-    branches: [main, fix/mtrancode-integration]
+    branches: [main, feat/v1-readiness]
   pull_request:
 jobs:
-  plugin:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: plugin
+  verify:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -16,20 +16,29 @@ jobs:
           node-version: '22'
           cache: npm
           cache-dependency-path: plugin/package-lock.json
-      - run: npm ci
-      - run: npm test
-      - name: Build installable VSIX
-        run: npx --yes @vscode/vsce package --out daigua-translator.vsix
-      - name: Check runtime assets in VSIX
-        run: |
-          python - <<'PY'
-          import zipfile
-          with zipfile.ZipFile('daigua-translator.vsix') as z:
-              files = z.namelist()
-              assert 'extension/out/extension.js' in files, 'compiled entry missing'
-              assert any(p.startswith('extension/node_modules/bing-translate-api/') for p in files), 'Bing dependency missing'
-          print('VSIX compiled entry and Bing dependency verified')
-          PY
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: npm --prefix plugin ci
+      - run: npm --prefix plugin test
+      - run: python -m unittest discover -s tests -p "test_*.py" -v
+      - run: python validator/validate.py --pack examples/mcu-demo/demo-pack.json --src examples/mcu-demo
+      - run: python validator/validate.py --pack examples/mcu-demo/ambiguity-pack.json --src examples/mcu-demo
+      - run: node scripts/test-plugin.js
+  package:
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: plugin/package-lock.json
+      - run: npm --prefix plugin ci
+      - run: npm --prefix plugin run package
+      - name: Check VSIX runtime assets
+        run: python scripts/check-vsix.py plugin/daigua-translator.vsix
       - uses: actions/upload-artifact@v4
         with:
           name: daigua-translator-vsix

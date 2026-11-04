@@ -1,0 +1,55 @@
+{
+  "name": "电机最小演示包",
+  "version": "1.0",
+  "entries": [
+    {
+      "symbol": "Motor_Start",
+      "kind": "function",
+      "name_zh": "启动电机演示",
+      "description_zh": "记录启动次数并返回目标速度；这是软件示例，不驱动真实硬件。",
+      "declaration": "int Motor_Start(int speed)",
+      "parameters": [
+        {
+          "name": "speed",
+          "description_zh": "目标速度"
+        }
+      ],
+      "returns_zh": "本次目标速度",
+      "scope": "main.c",
+      "source": {
+        "file": "main.c",
+        "line": 11
+      }
+    },
+    {
+      "symbol": "motor_start_count",
+      "kind": "variable",
+      "name_zh": "电机启动计数",
+      "description_zh": "每次调用 Motor_Start 时递增。",
+      "source": {
+        "file": "main.c",
+        "line": 3
+      }
+    },
+    {
+      "symbol": "reload_probe_count",
+      "kind": "variable",
+      "name_zh": "重载探针旧版本",
+      "description_zh": "示例计数，用于首次查询验证重载后的新内容。",
+      "source": {
+        "file": "main.c",
+        "line": 4
+      }
+    },
+    {
+      "symbol": "retained_probe_count",
+      "kind": "variable",
+      "name_zh": "保留旧包探针",
+      "description_zh": "示例计数，用于坏包重载后首次查询，避免混淆宿主缓存。",
+      "source": {
+        "file": "main.c",
+        "line": 5
+      }
+    }
+  ]
+}

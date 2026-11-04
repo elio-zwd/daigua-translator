@@ -1,0 +1,18 @@
+{
+  "name": "同名符号候选演示包",
+  "version": "1.0",
+  "entries": [
+    {
+      "symbol": "Motor_Start",
+      "kind": "function",
+      "name_zh": "另一模块的电机启动入口",
+      "description_zh": "专门用于验证多包歧义展示；与演示包引用同一源码，不代表第二个硬件实现。",
+      "scope": "ambiguity-demo",
+      "parameters": [],
+      "source": {
+        "file": "main.c",
+        "line": 11
+      }
+    }
+  ]
+}
