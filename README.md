@@ -1,121 +1,53 @@
-# 呆瓜翻译器 (daigua-translator)
+# 呆瓜翻译器
 
-> 面向 MCU C/C++ 单片机开发的代码翻译工具，作为 MTranCode 自定义翻译服务使用。
+面向 MCU C/C++ 的 MTranCode 翻译源：优先查询本地知识包，未命中时使用与 MTranCode 相同的 `bing-translate-api` 库请求 Bing。运行时不调用 AI，不需要模型地址或 API Key。
 
-## 核心设计与使用流程
+当前为首版候选实现，自动验证已具备。真实 VS Code/MTranCode、实际断网和硬件行为由用户手动验收，知识包中文仍待人工复核。已查询文本可能受宿主持久化缓存影响，详见[验收步骤与记录](docs/mtrancode-integration.md)。
 
-1. **日常翻译**：在 MTranCode 中发起翻译，优先查询已加载的本地知识包。
-   - **精确命中**：直接显示本地整理好的中文释义、函数声明、参数/返回值及源码出处，不发起任何网络请求。
-   - **未命中/普通长文本**：自动回退至 MTranCode 自带的 Bing 翻译。
-   - **无在线 AI 依赖**：插件运行时纯本地运行，不配置任何 API Key 或模型地址。
-2. **知识包制作**：由 AI 编程工具协同制作：
-   - 运行本地提取脚本 `extractor/extract.py` 扫描 MCU 工程（如 Keil `.uvprojx`），提取函数、变量、宏等事实。
-   - AI 根据提取事实与源码逐批编写中文名称、功能说明与参数释义。
-   - 运行校验工具 `validator/validate.py` 检查格式与重复项，导出标准知识包 JSON。
+## 安装与使用
 
----
+1. 在 VS Code 安装 MTranCode，再选择“从 VSIX 安装”安装本插件。
+2. 将 `daiguaTranslate.packPaths` 设为知识包 JSON **绝对路径**数组。
+3. 从 MTranCode 的 Change translation source 选择“呆瓜翻译器（本地知识包）”。
+4. 查询 `worker()`、`intervals` 或 `local_count`，查看中文、参数和来源。未收录内容完整回退 Bing。
 
-## 目录结构
+“呆瓜翻译器：重新加载知识包”更新活动翻译器，路径配置变化也会重载。坏包整体拒绝；重载失败保留该路径上一次有效内容，移除路径立即移除该包。提示显示成功包数、有效词条数和失败路径，详细原因见“呆瓜翻译器”输出通道。
 
-```
-daigua-translator/
-├── plugin/                     # MTranCode 自定义翻译服务插件 (TypeScript / VS Code Extension)
-│   ├── src/
-│   │   ├── types.ts            # 数据结构定义与 ITranslate 接口规范
-│   │   ├── knowledge-loader.ts # 知识包异步加载与查找
-│   │   ├── symbol-matcher.ts   # 符号匹配、剥离 () 与中文输出排版格式化
-│   │   ├── daigua-translate.ts # 核心翻译服务 (本地优先 + Bing 回退)
-│   │   └── extension.ts        # VS Code 扩展入口与 MTranCode 服务注册
-│   ├── package.json
-│   └── tsconfig.json
-│
-├── extractor/                  # MCU 源码事实提取工具 (Python 3)
-│   └── extract.py              # 支持 Keil .uvprojx 解析、Doxygen 注释提取、函数体捕获、全局变量过滤
-│
-├── validator/                  # 知识包规范校验与导出工具 (Python 3)
-│   └── validate.py             # 必填项、合法类别、同作用域重复项、源码文件存在性检查
-│
-├── knowledge-packs/            # 知识包目录
-│   ├── example/
-│   │   └── example-pack.json   # 基础示例知识包
-│   └── 05_createtask-pack.json # 基于真实 FreeRTOS 课程工程制作的示范知识包
-│
-├── docs/                       # 方案与制作说明
-│   ├── spec-v0.2.md            # 方案设计草稿
-│   └── knowledge-pack-guide.md # 知识包制作操作指南
-│
-├── scripts/                    # 测试与验证脚本
-│   └── test-plugin.js          # 本地匹配与 Bing 回退端到端快速测试脚本
-│
-└── README.md
-```
+## 开发与验证（Win10 x64）
 
----
-
-## 快速使用与验证命令
-
-### 1. 验证与编译翻译插件 (plugin)
+需要 PowerShell 7、Node.js 22+ 和 Python 3.10+。在仓库根目录执行：
 
 ```powershell
-cd plugin
-npm install
-npm run compile
-npm test
+npm --prefix plugin ci
+pwsh -NoProfile -File scripts/verify.ps1
+# 可选：联网示例与本机真实工程快照核对
+pwsh -NoProfile -File scripts/verify.ps1 -Online -SourceRoot 'D:\FreeRtos\projects\freertos-learning'
 ```
 
-运行快速测试脚本（验证本地命中与 Bing 翻译回退）：
+验证通过后再打包：
 
 ```powershell
-$env:NODE_PATH="M:\005869\My_Elio\daigua-translator\plugin\node_modules"
-node scripts\test-plugin.js
+npm --prefix plugin run package
 ```
 
-### 2. 运行源码提取工具 (extractor)
+产物为 `plugin/daigua-translator.vsix`。打包命令先执行插件测试和离线示例，再运行固定版本的 vsce；完整 Python 检查请先执行验证脚本。脚本不操作电脑界面、不安装插件、不发布 Marketplace。
 
-支持传入 Keil `.uvprojx` 工程文件（自动解析编译文件列表与 Include 目录），或者直接指定源码目录：
+## 制作知识包
 
 ```powershell
-python extractor\extract.py `
-  --proj "M:\005869\My_Elio\FreeRtos\projects\freertos-learning\05_createtask\mdk_v5\course.uvprojx" `
-  --out "extractor\out" `
-  --include-drivers
+python extractor/extract.py --proj 'D:\FreeRtos\projects\freertos-learning\05_createtask\mdk_v5\course.uvprojx' --root 'D:\FreeRtos\projects\freertos-learning' --include-locals --out extractor/out/05_createtask
+# AI 根据草稿和源码筛选、编写，再由人工复核
+python validator/validate.py --pack knowledge-packs/05_createtask-pack.json --src 'D:\FreeRtos\projects\freertos-learning'
 ```
 
-提取产物位于 `extractor/out/`：
-- `functions.json`（函数名、返回类型、参数列表、实现体、Doxygen 注释、源码位置）
-- `variables.json`（静态/全局变量、类型、源码位置）
-- `macros.json`（宏定义、枚举常量、枚举类型）
-- `uncertain.json`（待确认项目）
-- `extract_summary.txt`（提取文件数与各符号统计）
+05 工程包包含 75 条 AI 初筛词条，覆盖任务、共享板级代码、关键配置及部分局部状态。[149 项候选清单](knowledge-packs/reviews/05_createtask-review.md)记录收录、排除原因、来源和人工状态。按键接线未核实，相关条目保留待确认说明。
 
-### 3. 校验知识包 (validator)
+提取器是启发式扫描器，不能完整解析 C/C++。复杂语法和条件编译须回看源码，`uncertain.json` 不能保证列出全部遗漏。结构校验不证明中文语义正确。
 
-```powershell
-python validator\validate.py --pack "knowledge-packs\05_createtask-pack.json"
-```
+- [提取器说明](extractor/README.md)
+- [校验器说明](validator/README.md)
+- [AI 制包与人工筛选](docs/knowledge-pack-guide.md)
+- [手工验收与缓存限制](docs/mtrancode-integration.md)
+- [方案规格](docs/spec-v0.2.md)
 
-可选参数：
-- `--src <源码目录>`：检查词条中引用的源文件是否真实存在
-- `--out <导出路径>`：校验通过后导出格式化 JSON（未通过则拒绝导出）
-
-### 4. 运行 MCU 工具回归测试
-
-```powershell
-python -m unittest discover -s tests -p "test_*.py" -v
-```
-
-源码提取输出属于需要 AI / 人工复核的事实草稿，不是保证准确的 C/C++ 完整语法树；`uncertain.json` 记录已发现的复杂结构，不能保证覆盖全部漏提取项。严格校验器需要中文名称等字段已补齐。`--src` 指向真实源码根目录时会检查来源文件存在性。详见 [提取工具说明](extractor/README.md)、[校验工具说明](validator/README.md)。
-
----
-
-## 给后续 AI / 开发者的交接清单
-
-基础设施具备基本实现，但实际宿主集成、缓存、VSIX 安装尚未完全验收。参见 [集成验收说明](docs/mtrancode-integration.md)。后续可在此基础上开展：
-
-1. **批量生成工程知识包**：
-   - 提取产物已生成于 `extractor/out/`。
-   - 读取 `functions.json`、`variables.json`，让 AI 批量为更多模块生成中文释义，填入并扩充 `knowledge-packs/` 下的 JSON 文件。
-2. **VS Code 插件调试与安装**：
-   - 在 VS Code 中打开 `plugin/` 目录，按 `F5` 启动扩展开发宿主窗口。
-   - 在 MTranCode 设置中将翻译源切换为 `呆瓜翻译器（本地知识包）`。
-   - 在配置项 `daiguaTranslate.packPaths` 中配置生成的知识包 JSON 绝对路径。
+目录：`plugin/` 插件，`extractor/` 提取器，`validator/` 校验器，`knowledge-packs/` 知识包和复核记录，`examples/mcu-demo/` 可复现示例，`tests/` 和 `scripts/` 自动验证。
