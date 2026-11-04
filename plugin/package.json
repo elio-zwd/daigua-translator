@@ -3,6 +3,7 @@
   "displayName": "呆瓜翻译器",
   "description": "MCU C/C++ 代码本地知识包翻译，未命中时回退到 Bing。用于 MTranCode 自定义翻译服务。",
   "version": "0.2.0",
+  "icon": "./images/icon.png",
   "engines": {
     "vscode": "^1.85.0"
   },

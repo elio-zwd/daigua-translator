@@ -1,5 +1,7 @@
 # 呆瓜翻译器
 
+![呆瓜翻译器 MCU 代码翻译形象](docs/assets/daigua-mcu-illustration.png)
+
 面向 MCU C/C++ 的 MTranCode 翻译源：优先查询本地知识包，未命中时使用与 MTranCode 相同的 `bing-translate-api` 库请求 Bing。运行时不调用 AI，不需要模型地址或 API Key。
 
 当前为首版候选实现，自动验证已具备。真实 VS Code/MTranCode、实际断网和硬件行为由用户手动验收，知识包中文仍待人工复核。已查询文本可能受宿主持久化缓存影响，详见[验收步骤与记录](docs/mtrancode-integration.md)。
