@@ -1,91 +1,1233 @@
 {
   "name": "FreeRTOS 05_createtask 课程工程知识包",
-  "version": "1.0",
-  "source_version": "freertos-learning-v1",
-  "description": "基于 05_createtask 真实工程源码提取并由 AI 编写生成的 MCU 知识包",
+  "version": "1.1.0",
+  "source_version": "2b16b3041576f4d904d7296ac00386cc289bbc53",
+  "description": "覆盖 05 应用及共享板级模块；AI 初筛并对照源码编写，仍待人工复核。源码路径相对 freertos-learning。",
   "entries": [
     {
       "symbol": "worker",
       "kind": "function",
-      "name_zh": "动态工作任务函数",
-      "description_zh": "FreeRTOS 动态任务主体。接收执行间隔参数，动态申请堆内存验证运行环境，打印运行状态日志并通过 vTaskDelay 定期延时挂起。",
+      "name_zh": "动态工作任务",
+      "description_zh": "读取传入的毫秒周期，申请并释放一块 64 字节堆内存用于演示，然后循环记录计数并延时。",
       "declaration": "static void worker(void *arg)",
       "parameters": [
         {
           "name": "arg",
-          "description_zh": "任务传入参数，指向 uint32_t 类型的延时周期毫秒数"
+          "type": "void *arg",
+          "description_zh": "指向 uint32_t 毫秒周期的指针"
         }
       ],
-      "returns_zh": "无返回值",
-      "scope": "main.c",
+      "returns_zh": "任务循环不返回",
+      "scope": "05_createtask/src/main.c",
       "source": {
-        "file": "src/main.c",
+        "file": "05_createtask/src/main.c",
         "line": 4
       },
       "uncertainty": ""
     },
     {
-      "symbol": "intervals",
-      "kind": "variable",
-      "name_zh": "任务执行周期数组",
-      "description_zh": "定义两个任务的延时周期（单位：毫秒），分别为 500ms 和 1000ms。",
-      "declaration": "static const uint32_t intervals[2] = {500,1000}",
+      "symbol": "main",
+      "kind": "function",
+      "name_zh": "课程入口",
+      "description_zh": "初始化板级资源，创建周期分别为 500 和 1000 毫秒的两个动态任务，启动调度器；调度器返回时进入故障处理。",
+      "declaration": "int main(void)",
       "parameters": [],
-      "returns_zh": "",
-      "scope": "main.c",
+      "returns_zh": "正常运行时不返回",
+      "scope": "05_createtask/src/main.c",
       "source": {
-        "file": "src/main.c",
-        "line": 3
+        "file": "05_createtask/src/main.c",
+        "line": 20
       },
       "uncertainty": ""
     },
     {
-      "symbol": "board_ready",
-      "kind": "variable",
-      "name_zh": "板级初始化就绪标志",
-      "description_zh": "记录板级外设（时钟、串口、按键、LED）是否已完成初始化，防止重复初始化。",
-      "declaration": "static int board_ready",
+      "symbol": "system_clock_config",
+      "kind": "function",
+      "name_zh": "系统时钟配置",
+      "description_zh": "启用外部晶振和 PLL，配置 AHB/APB 分频并将系统时钟切换到 PLL；板级初始化随后更新 system_core_clock。",
+      "declaration": "void system_clock_config(void)",
       "parameters": [],
-      "returns_zh": "",
-      "scope": "course_board.c",
+      "returns_zh": "无返回值",
+      "scope": "common/platform/at32f435_437_clock.c",
       "source": {
-        "file": "course_board.c",
-        "line": 24
+        "file": "common/platform/at32f435_437_clock.c",
+        "line": 57
       },
       "uncertainty": ""
     },
     {
-      "symbol": "course_last_fault",
-      "kind": "variable",
-      "name_zh": "最近一次系统故障记录",
-      "description_zh": "保存系统发生 HardFault、MemManage、BusFault 等严重异常时的寄存器现场快照。",
-      "declaration": "volatile course_fault_type course_last_fault",
+      "symbol": "course_board_init",
+      "kind": "function",
+      "name_zh": "板级初始化",
+      "description_zh": "配置系统时钟、优先级分组、LED、串口和 DWT 周期计数器，设置就绪标志并检查核心时钟为 288 MHz。没有防止重复调用的判断。",
+      "declaration": "void course_board_init(void)",
       "parameters": [],
-      "returns_zh": "",
-      "scope": "course_hooks.c",
+      "returns_zh": "无返回值",
+      "scope": "common/platform/course_board.c",
       "source": {
-        "file": "course_hooks.c",
-        "line": 2
+        "file": "common/platform/course_board.c",
+        "line": 68
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "course_led_set",
+      "kind": "function",
+      "name_zh": "设置 LED",
+      "description_zh": "根据 led 选择两个 LED 引脚之一，使用低电平表示点亮。",
+      "declaration": "void course_led_set(unsigned int led, int on)",
+      "parameters": [
+        {
+          "name": "led",
+          "type": "unsigned int led",
+          "description_zh": "0 选择 LED A，其他值选择 LED B"
+        },
+        {
+          "name": "on",
+          "type": "int on",
+          "description_zh": "非零点亮，0 熄灭"
+        }
+      ],
+      "returns_zh": "无返回值",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 26
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "course_led_toggle",
+      "kind": "function",
+      "name_zh": "翻转 LED",
+      "description_zh": "读取所选 LED 输出位并写入相反电平。",
+      "declaration": "void course_led_toggle(unsigned int led)",
+      "parameters": [
+        {
+          "name": "led",
+          "type": "unsigned int led",
+          "description_zh": "0 选择 LED A，其他值选择 LED B"
+        }
+      ],
+      "returns_zh": "无返回值",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 31
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "course_uart_write",
+      "kind": "function",
+      "name_zh": "串口轮询输出",
+      "description_zh": "板级就绪后逐字节轮询 USART1 发送空闲标志并发送字符串；尚未就绪则直接返回。",
+      "declaration": "void course_uart_write(const char *text)",
+      "parameters": [
+        {
+          "name": "text",
+          "type": "const char *text",
+          "description_zh": "以空字符结尾的文本指针"
+        }
+      ],
+      "returns_zh": "无返回值",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 36
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "course_uart_read",
+      "kind": "function",
+      "name_zh": "串口非阻塞读取",
+      "description_zh": "检查 USART1 接收标志，有数据时读取一个字节；没有数据时不写入目标。",
+      "declaration": "int course_uart_read(uint8_t *byte)",
+      "parameters": [
+        {
+          "name": "byte",
+          "type": "uint8_t *byte",
+          "description_zh": "接收字节的目标指针"
+        }
+      ],
+      "returns_zh": "有数据返回 1，否则返回 0",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 44
       },
       "uncertainty": ""
     },
     {
       "symbol": "course_log",
       "kind": "function",
-      "name_zh": "格式化串口日志输出",
-      "description_zh": "向调试串口输出格式化文本。在调度器运行时会自动暂停所有任务（vTaskSuspendAll）以保证输出原子性，输出完成后恢复调度。",
+      "name_zh": "格式化串口日志",
+      "description_zh": "检查当前处于线程模式，将文本格式化到 160 字节缓冲区；调度器运行时暂停任务调度，输出文本和换行后恢复调度。中断仍可运行，不保证相对中断的原子性。",
       "declaration": "void course_log(const char *format, ...)",
       "parameters": [
         {
           "name": "format",
-          "description_zh": "printf 格式化模板字符串"
+          "type": "const char *format",
+          "description_zh": "printf 格式字符串"
+        },
+        {
+          "name": "...",
+          "type": "...",
+          "description_zh": "与格式字符串对应的可变参数"
         }
       ],
       "returns_zh": "无返回值",
-      "scope": "course_board.h",
+      "scope": "common/platform/course_board.c",
       "source": {
-        "file": "course_board.h",
+        "file": "common/platform/course_board.c",
+        "line": 50
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "course_busy_ms",
+      "kind": "function",
+      "name_zh": "周期计数忙等待",
+      "description_zh": "根据核心时钟计算等待周期数，轮询 DWT 周期计数器直到达到目标；注释限定用于不超过 200 毫秒的负载演示。",
+      "declaration": "void course_busy_ms(uint32_t ms)",
+      "parameters": [
+        {
+          "name": "ms",
+          "type": "uint32_t ms",
+          "description_zh": "忙等待毫秒数"
+        }
+      ],
+      "returns_zh": "无返回值",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 102
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "course_keys_probe_init",
+      "kind": "function",
+      "name_zh": "初始化全部候选按键",
+      "description_zh": "遍历八项候选引脚表，逐项配置输入模式，用于识别实际板载按键。",
+      "declaration": "void course_keys_probe_init(void)",
+      "parameters": [],
+      "returns_zh": "无返回值",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 121
+      },
+      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。"
+    },
+    {
+      "symbol": "course_keys_raw",
+      "kind": "function",
+      "name_zh": "读取候选按键电平",
+      "description_zh": "遍历八项候选输入，将高电平输入映射到返回值的对应位；此值不等于经过消抖的按下状态。",
+      "declaration": "uint32_t course_keys_raw(void)",
+      "parameters": [],
+      "returns_zh": "八个候选输入的电平位图",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 126
+      },
+      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。"
+    },
+    {
+      "symbol": "course_key_ready",
+      "kind": "function",
+      "name_zh": "检查按键配置",
+      "description_zh": "检查 COURSE_KEY_INDEX 是否非零；默认值 0 表示尚未确认按键。",
+      "declaration": "int course_key_ready(void)",
+      "parameters": [],
+      "returns_zh": "已配置返回非零，否则返回 0",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 135
+      },
+      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。"
+    },
+    {
+      "symbol": "course_key_pressed",
+      "kind": "function",
+      "name_zh": "读取按键按下状态",
+      "description_zh": "未配置按键时返回 0；否则比较所选引脚电平与 COURSE_KEY_ACTIVE_LEVEL，不进行消抖。",
+      "declaration": "int course_key_pressed(void)",
+      "parameters": [],
+      "returns_zh": "按下返回 1，否则返回 0",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 140
+      },
+      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。"
+    },
+    {
+      "symbol": "course_key_input_init",
+      "kind": "function",
+      "name_zh": "初始化选定按键",
+      "description_zh": "仅在按键索引非零时，按候选表配置选定输入。",
+      "declaration": "void course_key_input_init(void)",
+      "parameters": [],
+      "returns_zh": "无返回值",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 136
+      },
+      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。"
+    },
+    {
+      "symbol": "course_key_irq_init",
+      "kind": "function",
+      "name_zh": "初始化按键外部中断",
+      "description_zh": "未配置按键时直接返回 0；否则配置输入、外部中断映射、双边沿触发和 NVIC 优先级。",
+      "declaration": "int course_key_irq_init(void)",
+      "parameters": [],
+      "returns_zh": "配置成功返回 1，按键未配置返回 0",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 149
+      },
+      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。"
+    },
+    {
+      "symbol": "course_key_isr",
+      "kind": "function",
+      "name_zh": "按键中断弱回调",
+      "description_zh": "提供默认空实现，供课程应用覆盖。",
+      "declaration": "__weak void course_key_isr(void)",
+      "parameters": [],
+      "returns_zh": "无返回值",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 168
+      },
+      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。"
+    },
+    {
+      "symbol": "course_stats_init",
+      "kind": "function",
+      "name_zh": "运行时间计数器初始化",
+      "description_zh": "根据 APB1 分频计算定时器时钟，将 TMR2 配置为 32 位向上计数，目标计数频率为 10 kHz。",
+      "declaration": "void course_stats_init(void)",
+      "parameters": [],
+      "returns_zh": "无返回值",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 184
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "course_stats_counter",
+      "kind": "function",
+      "name_zh": "读取运行时间计数",
+      "description_zh": "读取 TMR2 当前计数值；运行时间统计默认未启用。",
+      "declaration": "uint32_t course_stats_counter(void)",
+      "parameters": [],
+      "returns_zh": "TMR2 计数值",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 198
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "course_fail",
+      "kind": "function",
+      "name_zh": "报告课程运行失败",
+      "description_zh": "将给定原因传给 stop，关闭中断、记录故障并停止运行。",
+      "declaration": "void course_fail(const char *reason)",
+      "parameters": [
+        {
+          "name": "reason",
+          "type": "const char *reason",
+          "description_zh": "故障原因字符串"
+        }
+      ],
+      "returns_zh": "不返回",
+      "scope": "common/platform/course_hooks.c",
+      "source": {
+        "file": "common/platform/course_hooks.c",
+        "line": 17
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "course_assert_fail",
+      "kind": "function",
+      "name_zh": "报告断言失败",
+      "description_zh": "将 assert 原因及源文件行号传给 stop。",
+      "declaration": "void course_assert_fail(const char *file, unsigned int line)",
+      "parameters": [
+        {
+          "name": "file",
+          "type": "const char *file",
+          "description_zh": "断言发生的文件名"
+        },
+        {
+          "name": "line",
+          "type": "unsigned int line",
+          "description_zh": "断言行号"
+        }
+      ],
+      "returns_zh": "不返回",
+      "scope": "common/platform/course_hooks.c",
+      "source": {
+        "file": "common/platform/course_hooks.c",
+        "line": 18
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "key_input",
+      "kind": "function",
+      "name_zh": "配置候选按键输入",
+      "description_zh": "打开候选按键所在端口时钟，将对应引脚配置为采用 COURSE_KEY_PULL 的输入模式。",
+      "declaration": "static void key_input(const key_pin_type *key)",
+      "parameters": [
+        {
+          "name": "key",
+          "type": "const key_pin_type *key",
+          "description_zh": "候选引脚表项指针"
+        }
+      ],
+      "returns_zh": "无返回值",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 109
+      },
+      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。"
+    },
+    {
+      "symbol": "key_irq_dispatch",
+      "kind": "function",
+      "name_zh": "分发按键中断",
+      "description_zh": "检查选定按键的外部中断标志，清除标志后调用 course_key_isr。",
+      "declaration": "static void key_irq_dispatch(void)",
+      "parameters": [],
+      "returns_zh": "无返回值",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 169
+      },
+      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。"
+    },
+    {
+      "symbol": "EXINT1_IRQHandler",
+      "kind": "function",
+      "name_zh": "外部中断处理入口",
+      "description_zh": "将该组外部中断交给 key_irq_dispatch 检查并分发；默认按键索引为 0 时不调用按键回调。",
+      "declaration": "void EXINT1_IRQHandler(void)",
+      "parameters": [],
+      "returns_zh": "无返回值",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 179
+      },
+      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。"
+    },
+    {
+      "symbol": "EXINT2_IRQHandler",
+      "kind": "function",
+      "name_zh": "外部中断处理入口",
+      "description_zh": "将该组外部中断交给 key_irq_dispatch 检查并分发；默认按键索引为 0 时不调用按键回调。",
+      "declaration": "void EXINT2_IRQHandler(void)",
+      "parameters": [],
+      "returns_zh": "无返回值",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 180
+      },
+      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。"
+    },
+    {
+      "symbol": "EXINT4_IRQHandler",
+      "kind": "function",
+      "name_zh": "外部中断处理入口",
+      "description_zh": "将该组外部中断交给 key_irq_dispatch 检查并分发；默认按键索引为 0 时不调用按键回调。",
+      "declaration": "void EXINT4_IRQHandler(void)",
+      "parameters": [],
+      "returns_zh": "无返回值",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 181
+      },
+      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。"
+    },
+    {
+      "symbol": "EXINT15_10_IRQHandler",
+      "kind": "function",
+      "name_zh": "外部中断处理入口",
+      "description_zh": "将该组外部中断交给 key_irq_dispatch 检查并分发；默认按键索引为 0 时不调用按键回调。",
+      "declaration": "void EXINT15_10_IRQHandler(void)",
+      "parameters": [],
+      "returns_zh": "无返回值",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 182
+      },
+      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。"
+    },
+    {
+      "symbol": "stop",
+      "kind": "function",
+      "name_zh": "故障停机",
+      "description_zh": "关闭中断，记录原因、文件和行号，点亮两个 LED 并尝试输出简短故障文本，随后永久循环。不会保存寄存器现场。",
+      "declaration": "static void stop(const char *reason, const char *file, unsigned int line)",
+      "parameters": [
+        {
+          "name": "reason",
+          "type": "const char *reason",
+          "description_zh": "故障原因"
+        },
+        {
+          "name": "file",
+          "type": "const char *file",
+          "description_zh": "来源文件，可为空指针"
+        },
+        {
+          "name": "line",
+          "type": "unsigned int line",
+          "description_zh": "来源行号，可为 0"
+        }
+      ],
+      "returns_zh": "不返回",
+      "scope": "common/platform/course_hooks.c",
+      "source": {
+        "file": "common/platform/course_hooks.c",
+        "line": 3
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "vApplicationMallocFailedHook",
+      "kind": "function",
+      "name_zh": "堆分配失败钩子",
+      "description_zh": "进入 stop，记录 allocation failed 原因；配置已启用此钩子。",
+      "declaration": "void vApplicationMallocFailedHook(void)",
+      "parameters": [],
+      "returns_zh": "不返回",
+      "scope": "common/platform/course_hooks.c",
+      "source": {
+        "file": "common/platform/course_hooks.c",
+        "line": 19
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "vApplicationStackOverflowHook",
+      "kind": "function",
+      "name_zh": "任务栈溢出钩子",
+      "description_zh": "忽略任务句柄和名称，进入 stop 记录 stack overflow。",
+      "declaration": "void vApplicationStackOverflowHook(TaskHandle_t task, char *name)",
+      "parameters": [
+        {
+          "name": "task",
+          "type": "TaskHandle_t task",
+          "description_zh": "发生溢出的任务句柄，本实现未使用"
+        },
+        {
+          "name": "name",
+          "type": "char *name",
+          "description_zh": "任务名，本实现未使用"
+        }
+      ],
+      "returns_zh": "不返回",
+      "scope": "common/platform/course_hooks.c",
+      "source": {
+        "file": "common/platform/course_hooks.c",
+        "line": 20
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "HardFault_Handler",
+      "kind": "function",
+      "name_zh": "硬故障处理",
+      "description_zh": "进入 stop，记录 HardFault 原因并停机。",
+      "declaration": "void HardFault_Handler(void)",
+      "parameters": [],
+      "returns_zh": "不返回",
+      "scope": "common/platform/course_hooks.c",
+      "source": {
+        "file": "common/platform/course_hooks.c",
+        "line": 26
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "MemManage_Handler",
+      "kind": "function",
+      "name_zh": "内存管理故障处理",
+      "description_zh": "进入 stop，记录 MemManage 原因并停机。",
+      "declaration": "void MemManage_Handler(void)",
+      "parameters": [],
+      "returns_zh": "不返回",
+      "scope": "common/platform/course_hooks.c",
+      "source": {
+        "file": "common/platform/course_hooks.c",
+        "line": 27
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "BusFault_Handler",
+      "kind": "function",
+      "name_zh": "总线故障处理",
+      "description_zh": "进入 stop，记录 BusFault 原因并停机。",
+      "declaration": "void BusFault_Handler(void)",
+      "parameters": [],
+      "returns_zh": "不返回",
+      "scope": "common/platform/course_hooks.c",
+      "source": {
+        "file": "common/platform/course_hooks.c",
+        "line": 28
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "UsageFault_Handler",
+      "kind": "function",
+      "name_zh": "用法故障处理",
+      "description_zh": "进入 stop，记录 UsageFault 原因并停机。",
+      "declaration": "void UsageFault_Handler(void)",
+      "parameters": [],
+      "returns_zh": "不返回",
+      "scope": "common/platform/course_hooks.c",
+      "source": {
+        "file": "common/platform/course_hooks.c",
+        "line": 29
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "intervals",
+      "kind": "variable",
+      "name_zh": "任务周期数组",
+      "description_zh": "保存两个任务的毫秒周期 500 和 1000，地址作为 worker 的参数传入。",
+      "declaration": "static const uint32_t intervals[2] = {500,1000}",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "05_createtask/src/main.c",
+      "source": {
+        "file": "05_createtask/src/main.c",
+        "line": 3
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "local_count",
+      "kind": "variable",
+      "name_zh": "任务局部计数",
+      "description_zh": "每个任务各自保存的循环计数，每次输出前递增。",
+      "declaration": "uint32_t local_count = 0",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "05_createtask/src/main.c::worker:L6:C5",
+      "source": {
+        "file": "05_createtask/src/main.c",
+        "line": 6
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "interval",
+      "kind": "variable",
+      "name_zh": "任务延时周期",
+      "description_zh": "从 arg 指向的 uint32_t 读取的毫秒数，循环中转换为 tick 后延时。",
+      "declaration": "uint32_t interval = *(const uint32_t *)arg",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "05_createtask/src/main.c::worker:L7:C5",
+      "source": {
+        "file": "05_createtask/src/main.c",
+        "line": 7
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "block",
+      "kind": "variable",
+      "name_zh": "演示堆块指针",
+      "description_zh": "申请 64 字节后检查非空、输出地址并释放，只在进入循环前使用。",
+      "declaration": "void *block = pvPortMalloc(64)",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "05_createtask/src/main.c::worker:L8:C5",
+      "source": {
+        "file": "05_createtask/src/main.c",
+        "line": 8
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "board_ready",
+      "kind": "variable",
+      "name_zh": "串口输出就绪标志",
+      "description_zh": "初始为 0，板级初始化后设为 1；course_uart_write 据此决定是否输出，不用于防止重复初始化。",
+      "declaration": "static int board_ready",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 24
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "buffer",
+      "kind": "variable",
+      "name_zh": "日志格式化缓冲区",
+      "description_zh": "160 字节的局部字符数组，格式化结果可能被截断，并显式保证末尾为空字符。",
+      "declaration": "char buffer[160]",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/platform/course_board.c::course_log:L52:C5",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 52
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "running",
+      "kind": "variable",
+      "name_zh": "调度器运行标志",
+      "description_zh": "标记调度器是否处于运行状态，用于成对暂停和恢复任务调度。",
+      "declaration": "BaseType_t running",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/platform/course_board.c::course_log:L54:C5",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 54
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "start",
+      "kind": "variable",
+      "name_zh": "忙等待起始周期",
+      "description_zh": "保存 DWT 周期计数器初值，用无符号差值判断经过的周期。",
+      "declaration": "uint32_t start = DWT->CYCCNT",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/platform/course_board.c::course_busy_ms:L104:C5",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 104
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "cycles",
+      "kind": "variable",
+      "name_zh": "目标等待周期数",
+      "description_zh": "将毫秒换算为核心时钟周期数，供短时忙等待判断。",
+      "declaration": "uint32_t cycles = (system_core_clock / 1000U) * ms",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/platform/course_board.c::course_busy_ms:L105:C5",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 105
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "mask",
+      "kind": "variable",
+      "name_zh": "候选按键电平位图",
+      "description_zh": "逐位记录八个候选输入当前是否为高电平，不进行消抖。",
+      "declaration": "uint32_t mask = 0",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/platform/course_board.c::course_keys_raw:L129:C5",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 129
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "timer_clock",
+      "kind": "variable",
+      "name_zh": "统计定时器输入频率",
+      "description_zh": "从 APB1 频率推导定时器频率，用于设置 10 kHz 计数分频。",
+      "declaration": "uint32_t timer_clock",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/platform/course_board.c::course_stats_init:L187:C5",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 187
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "course_last_fault",
+      "kind": "variable",
+      "name_zh": "最近故障记录",
+      "description_zh": "保存 stop 写入的原因字符串、来源文件和行号，不包含 CPU 寄存器快照。",
+      "declaration": "volatile course_fault_type course_last_fault",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/platform/course_hooks.c",
+      "source": {
+        "file": "common/platform/course_hooks.c",
+        "line": 2
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "COURSE_STACK",
+      "kind": "macro",
+      "name_zh": "课程默认栈深度",
+      "description_zh": "值为 256，作为课程任务栈深度常量；实际使用位置决定计量单位。",
+      "declaration": "#define COURSE_STACK 256U",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/include/course.h",
+      "source": {
+        "file": "common/include/course.h",
+        "line": 13
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "COURSE_LOG_STACK",
+      "kind": "macro",
+      "name_zh": "日志任务栈深度",
+      "description_zh": "值为 512，05 工程将其作为 xTaskCreate 的栈深度，单位为 StackType_t 元素数。",
+      "declaration": "#define COURSE_LOG_STACK 512U",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/include/course.h",
+      "source": {
+        "file": "common/include/course.h",
+        "line": 14
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "COURSE_CHECK",
+      "kind": "macro",
+      "name_zh": "课程断言入口",
+      "description_zh": "将条件交给 configASSERT，失败时调用课程断言处理。",
+      "declaration": "#define COURSE_CHECK(x) configASSERT(x)",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/include/course.h",
+      "source": {
+        "file": "common/include/course.h",
         "line": 15
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "COURSE_KEY_INDEX",
+      "kind": "macro",
+      "name_zh": "候选按键索引",
+      "description_zh": "值为 0 表示尚未确认；1 到 8 对应候选表，不表示板上接线已经核实。",
+      "declaration": "#define COURSE_KEY_INDEX 0",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/include/course_board_config.h",
+      "source": {
+        "file": "common/include/course_board_config.h",
+        "line": 5
+      },
+      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。"
+    },
+    {
+      "symbol": "COURSE_KEY_ACTIVE_LEVEL",
+      "kind": "macro",
+      "name_zh": "按键有效电平",
+      "description_zh": "当前为 0，用于按下状态比较；须实际确认引脚和极性后使用。",
+      "declaration": "#define COURSE_KEY_ACTIVE_LEVEL 0",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/include/course_board_config.h",
+      "source": {
+        "file": "common/include/course_board_config.h",
+        "line": 6
+      },
+      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。"
+    },
+    {
+      "symbol": "COURSE_KEY_PULL",
+      "kind": "macro",
+      "name_zh": "按键输入上下拉配置",
+      "description_zh": "当前为 GPIO_PULL_NONE，配置候选按键输入时使用。",
+      "declaration": "#define COURSE_KEY_PULL GPIO_PULL_NONE",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/include/course_board_config.h",
+      "source": {
+        "file": "common/include/course_board_config.h",
+        "line": 7
+      },
+      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。"
+    },
+    {
+      "symbol": "COURSE_IRQ_PRIORITY",
+      "kind": "macro",
+      "name_zh": "按键中断优先级",
+      "description_zh": "值为 6，传给按键外部中断的 NVIC 配置。",
+      "declaration": "#define COURSE_IRQ_PRIORITY 6",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/include/course_board_config.h",
+      "source": {
+        "file": "common/include/course_board_config.h",
+        "line": 8
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "COURSE_LED_A_PIN",
+      "kind": "macro",
+      "name_zh": "LED A 引脚掩码",
+      "description_zh": "配置为 GPIO_PINS_12，板级代码在 GPIOC 上使用。",
+      "declaration": "#define COURSE_LED_A_PIN GPIO_PINS_12",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/include/course_board_config.h",
+      "source": {
+        "file": "common/include/course_board_config.h",
+        "line": 9
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "COURSE_LED_B_PIN",
+      "kind": "macro",
+      "name_zh": "LED B 引脚掩码",
+      "description_zh": "配置为 GPIO_PINS_9，板级代码在 GPIOC 上使用。",
+      "declaration": "#define COURSE_LED_B_PIN GPIO_PINS_9",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/include/course_board_config.h",
+      "source": {
+        "file": "common/include/course_board_config.h",
+        "line": 10
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "COURSE_UART_BAUD",
+      "kind": "macro",
+      "name_zh": "调试串口波特率",
+      "description_zh": "USART1 初始化使用的波特率，值为 115200。",
+      "declaration": "#define COURSE_UART_BAUD 115200U",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/include/course_board_config.h",
+      "source": {
+        "file": "common/include/course_board_config.h",
+        "line": 11
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "configCPU_CLOCK_HZ",
+      "kind": "macro",
+      "name_zh": "RTOS 核心时钟频率",
+      "description_zh": "引用 system_core_clock，由板级初始化更新后用于 RTOS 配置。",
+      "declaration": "#define configCPU_CLOCK_HZ system_core_clock",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 8
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "configTICK_RATE_HZ",
+      "kind": "macro",
+      "name_zh": "RTOS 节拍频率",
+      "description_zh": "值为 1000 Hz，供延时与节拍换算。",
+      "declaration": "#define configTICK_RATE_HZ 1000U",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 9
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "configMAX_PRIORITIES",
+      "kind": "macro",
+      "name_zh": "任务优先级数量",
+      "description_zh": "配置为 8，任务优先级有效范围为 0 到 7。",
+      "declaration": "#define configMAX_PRIORITIES 8",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 10
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "configMINIMAL_STACK_SIZE",
+      "kind": "macro",
+      "name_zh": "最小任务栈深度",
+      "description_zh": "配置为 256 个 StackType_t 元素，供空闲任务等使用。",
+      "declaration": "#define configMINIMAL_STACK_SIZE 256U",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 11
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "configTOTAL_HEAP_SIZE",
+      "kind": "macro",
+      "name_zh": "RTOS 堆容量",
+      "description_zh": "配置为 60×1024 字节，最终行为还取决于工程所链接的堆实现。",
+      "declaration": "#define configTOTAL_HEAP_SIZE (60U * 1024U)",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 12
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "configMAX_TASK_NAME_LEN",
+      "kind": "macro",
+      "name_zh": "任务名存储长度",
+      "description_zh": "配置为 16，包含字符串结尾所需空间。",
+      "declaration": "#define configMAX_TASK_NAME_LEN 16",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 13
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "configUSE_PREEMPTION",
+      "kind": "macro",
+      "name_zh": "抢占调度开关",
+      "description_zh": "配置为 1，启用抢占式任务调度。",
+      "declaration": "#define configUSE_PREEMPTION 1",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 15
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "configUSE_TIME_SLICING",
+      "kind": "macro",
+      "name_zh": "同优先级时间片开关",
+      "description_zh": "未由外部预定义时默认为 1；05 工程配置中未覆盖此默认值。",
+      "declaration": "#define configUSE_TIME_SLICING 1",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 17
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "configSUPPORT_DYNAMIC_ALLOCATION",
+      "kind": "macro",
+      "name_zh": "动态分配开关",
+      "description_zh": "配置为 1，允许使用动态分配 API 创建任务等对象。",
+      "declaration": "#define configSUPPORT_DYNAMIC_ALLOCATION 1",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 20
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "configSUPPORT_STATIC_ALLOCATION",
+      "kind": "macro",
+      "name_zh": "静态分配开关",
+      "description_zh": "未由外部预定义时默认为 0；05 工程未覆盖，因此静态任务内存钩子分支不启用。",
+      "declaration": "#define configSUPPORT_STATIC_ALLOCATION 0",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 22
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "configCHECK_FOR_STACK_OVERFLOW",
+      "kind": "macro",
+      "name_zh": "栈溢出检查模式",
+      "description_zh": "配置为 2，启用对应的 RTOS 栈溢出检查方式。",
+      "declaration": "#define configCHECK_FOR_STACK_OVERFLOW 2",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 28
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "configUSE_MALLOC_FAILED_HOOK",
+      "kind": "macro",
+      "name_zh": "堆分配失败钩子开关",
+      "description_zh": "配置为 1，使用 vApplicationMallocFailedHook 处理 RTOS 堆分配失败。",
+      "declaration": "#define configUSE_MALLOC_FAILED_HOOK 1",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 29
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "configUSE_TIMERS",
+      "kind": "macro",
+      "name_zh": "软件定时器开关",
+      "description_zh": "未由外部预定义时默认为 0；05 工程未覆盖，定时器任务内存钩子分支不启用。",
+      "declaration": "#define configUSE_TIMERS 0",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 43
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "configGENERATE_RUN_TIME_STATS",
+      "kind": "macro",
+      "name_zh": "运行时间统计开关",
+      "description_zh": "未由外部预定义时默认为 0，05 工程未启用运行时间统计。",
+      "declaration": "#define configGENERATE_RUN_TIME_STATS 0",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 52
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY",
+      "kind": "macro",
+      "name_zh": "可调用 RTOS API 的中断优先级边界",
+      "description_zh": "配置库级优先级数值为 5；使用允许在中断中调用的 API 时还须遵循对应 FreeRTOS 端口规则。",
+      "declaration": "#define configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY 5",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 69
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "configASSERT",
+      "kind": "macro",
+      "name_zh": "RTOS 断言宏",
+      "description_zh": "条件为假时将 __FILE__ 和 __LINE__ 交给 course_assert_fail。",
+      "declaration": "#define configASSERT(x) do { if (!(x)) course_assert_fail(__FILE__, __LINE__); } while (0)",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 72
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "keys",
+      "kind": "variable",
+      "name_zh": "候选按键引脚表",
+      "description_zh": "保存八组候选 GPIO、引脚与外部中断映射；源码明确声明这不是已核实的板级原理图。",
+      "declaration": "static const key_pin_type keys[8] = {\n    {GPIOB, GPIO_PINS_13, SCFG_PORT_SOURCE_GPIOB, SCFG_PINS_SOURCE13, EXINT15_10_IRQn},\n    {GPIOB, GPIO_PINS_14, SCFG_PORT_SOURCE_GPIOB, SCFG_PINS_SOURCE14, EXINT15_10_IRQn},\n    {GPIOB, GPIO_PINS_15, SCFG_PORT_SOURCE_GPIOB, SCFG_PINS_SOURCE15, EXINT15_10_IRQn},\n    {GPIOE, GPIO_PINS_1, SCFG_PORT_SOURCE_GPIOE, SCFG_PINS_SOURCE1, EXINT1_IRQn},\n    {GPIOD, GPIO_PINS_2, SCFG_PORT_SOURCE_GPIOD, SCFG_PINS_SOURCE2, EXINT2_IRQn},\n    {GPIOD, GPIO_PINS_12, SCFG_PORT_SOURCE_GPIOD, SCFG_PINS_SOURCE12, EXINT15_10_IRQn},\n    {GPIOB, GPIO_PINS_2, SCFG_PORT_SOURCE_GPIOB, SCFG_PINS_SOURCE2, EXINT2_IRQn},\n    {GPIOE, GPIO_PINS_4, SCFG_PORT_SOURCE_GPIOE, SCFG_PINS_SOURCE4, EXINT4_IRQn}\n};",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 14
+      },
+      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。"
+    },
+    {
+      "symbol": "key_pin_type",
+      "kind": "typedef",
+      "name_zh": "候选按键引脚类型",
+      "description_zh": "保存端口、引脚、外部中断映射和中断号。",
+      "declaration": "typedef struct {\n    gpio_type *port;\n    uint16_t pin;\n    scfg_port_source_type source;\n    scfg_pins_source_type line;\n    IRQn_Type irq;\n} key_pin_type;",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 6
+      },
+      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。"
+    },
+    {
+      "symbol": "course_fault_type",
+      "kind": "typedef",
+      "name_zh": "课程故障记录类型",
+      "description_zh": "包含故障原因、文件名和行号，不包含寄存器现场。",
+      "declaration": "typedef struct {\n    const char *reason;\n    const char *file;\n    unsigned int line;\n} course_fault_type;",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/include/course_hooks.h",
+      "source": {
+        "file": "common/include/course_hooks.h",
+        "line": 3
       },
       "uncertainty": ""
     }

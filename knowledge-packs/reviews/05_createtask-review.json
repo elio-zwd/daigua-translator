@@ -1,0 +1,2108 @@
+{
+  "source_root": "freertos-learning",
+  "source_version": "2b16b3041576f4d904d7296ac00386cc289bbc53",
+  "source_sha256": {
+    "05_createtask/inc/FreeRTOSConfig.h": "d6bcbe23fd5ed4277c2cda43dd101da43c7aa981259babc760101e06b5688ffe",
+    "05_createtask/mdk_v5/course.uvprojx": "904480fb0afc80134bda293bfb0655e667dec8370ec7099bbc6d948bf0b2ac77",
+    "05_createtask/src/main.c": "f1b51faeaa470402d6093d71da4329c1eabaf0acf829e245aeba37a0467f87c1",
+    "common/include/at32f435_437_conf.h": "ce5eb5033d5407f9016c5a94ac3b44d31ff9deeadf709209ea6ece747faa6c75",
+    "common/include/course.h": "ab8d7137cc8a90faa6cbafd12150ac308ca256a2e5594438a845b8f5e1e7c06f",
+    "common/include/course_board.h": "b773c8d27248a41999ed38de1e1f78e9a7d582aaced3ded755958be42952b005",
+    "common/include/course_board_config.h": "1a739fa7d503d62a9833c6194d47f73721aa7ae78e53fd288b90ed6619aa4ecd",
+    "common/include/course_hooks.h": "d9b929cced63d19a615dac5be45cfcdf10a245d31ed7c25a55977643f29d79a0",
+    "common/include/course_rtos_config.h": "36f9add9478310c5233ef91b9c3e98bb738d98f3644bd687bdd2ace72b01917e",
+    "common/platform/at32f435_437_clock.c": "789a93fd49156c34d352e75cfec89a0fc411e023840df001f418639b213ff175",
+    "common/platform/course_board.c": "2c47ec6010d3cafb92b72366364f987f39ba77222a5fe15ae41dfe3ae05340c7",
+    "common/platform/course_hooks.c": "2e71c113c2fa2c44760dae992251edc61c8ec50c956a591b57245524180fee08",
+    "common/vendor/cmsis/device/system_at32f435_437.c": "70371dedf6eef60264b78450867c4095f2b3735ef12bfa39efff42af2183da31"
+  },
+  "human_review": "pending",
+  "candidates": [
+    {
+      "id": "C001",
+      "symbol": "worker",
+      "kind": "function",
+      "scope": "05_createtask/src/main.c",
+      "source": {
+        "file": "05_createtask/src/main.c",
+        "line": 4
+      },
+      "declaration": "static void worker(void *arg)",
+      "ai_decision": "include",
+      "reason": "应用或共享板级模块的功能入口",
+      "human_status": "pending"
+    },
+    {
+      "id": "C002",
+      "symbol": "main",
+      "kind": "function",
+      "scope": "05_createtask/src/main.c",
+      "source": {
+        "file": "05_createtask/src/main.c",
+        "line": 20
+      },
+      "declaration": "int main(void)",
+      "ai_decision": "include",
+      "reason": "应用或共享板级模块的功能入口",
+      "human_status": "pending"
+    },
+    {
+      "id": "C003",
+      "symbol": "system_clock_config",
+      "kind": "function",
+      "scope": "common/platform/at32f435_437_clock.c",
+      "source": {
+        "file": "common/platform/at32f435_437_clock.c",
+        "line": 57
+      },
+      "declaration": "void system_clock_config(void)",
+      "ai_decision": "include",
+      "reason": "应用或共享板级模块的功能入口",
+      "human_status": "pending"
+    },
+    {
+      "id": "C004",
+      "symbol": "course_board_init",
+      "kind": "function",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 68
+      },
+      "declaration": "void course_board_init(void)",
+      "ai_decision": "include",
+      "reason": "应用或共享板级模块的功能入口",
+      "human_status": "pending"
+    },
+    {
+      "id": "C005",
+      "symbol": "course_led_set",
+      "kind": "function",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 26
+      },
+      "declaration": "void course_led_set(unsigned int led, int on)",
+      "ai_decision": "include",
+      "reason": "应用或共享板级模块的功能入口",
+      "human_status": "pending"
+    },
+    {
+      "id": "C006",
+      "symbol": "course_led_toggle",
+      "kind": "function",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 31
+      },
+      "declaration": "void course_led_toggle(unsigned int led)",
+      "ai_decision": "include",
+      "reason": "应用或共享板级模块的功能入口",
+      "human_status": "pending"
+    },
+    {
+      "id": "C007",
+      "symbol": "course_uart_write",
+      "kind": "function",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 36
+      },
+      "declaration": "void course_uart_write(const char *text)",
+      "ai_decision": "include",
+      "reason": "应用或共享板级模块的功能入口",
+      "human_status": "pending"
+    },
+    {
+      "id": "C008",
+      "symbol": "course_uart_read",
+      "kind": "function",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 44
+      },
+      "declaration": "int course_uart_read(uint8_t *byte)",
+      "ai_decision": "include",
+      "reason": "应用或共享板级模块的功能入口",
+      "human_status": "pending"
+    },
+    {
+      "id": "C009",
+      "symbol": "course_log",
+      "kind": "function",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 50
+      },
+      "declaration": "void course_log(const char *format, ...)",
+      "ai_decision": "include",
+      "reason": "应用或共享板级模块的功能入口",
+      "human_status": "pending"
+    },
+    {
+      "id": "C010",
+      "symbol": "course_busy_ms",
+      "kind": "function",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 102
+      },
+      "declaration": "void course_busy_ms(uint32_t ms)",
+      "ai_decision": "include",
+      "reason": "应用或共享板级模块的功能入口",
+      "human_status": "pending"
+    },
+    {
+      "id": "C011",
+      "symbol": "course_keys_probe_init",
+      "kind": "function",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 121
+      },
+      "declaration": "void course_keys_probe_init(void)",
+      "ai_decision": "include",
+      "reason": "应用或共享板级模块的功能入口",
+      "human_status": "pending"
+    },
+    {
+      "id": "C012",
+      "symbol": "course_keys_raw",
+      "kind": "function",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 126
+      },
+      "declaration": "uint32_t course_keys_raw(void)",
+      "ai_decision": "include",
+      "reason": "应用或共享板级模块的功能入口",
+      "human_status": "pending"
+    },
+    {
+      "id": "C013",
+      "symbol": "course_key_ready",
+      "kind": "function",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 135
+      },
+      "declaration": "int course_key_ready(void)",
+      "ai_decision": "include",
+      "reason": "应用或共享板级模块的功能入口",
+      "human_status": "pending"
+    },
+    {
+      "id": "C014",
+      "symbol": "course_key_pressed",
+      "kind": "function",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 140
+      },
+      "declaration": "int course_key_pressed(void)",
+      "ai_decision": "include",
+      "reason": "应用或共享板级模块的功能入口",
+      "human_status": "pending"
+    },
+    {
+      "id": "C015",
+      "symbol": "course_key_input_init",
+      "kind": "function",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 136
+      },
+      "declaration": "void course_key_input_init(void)",
+      "ai_decision": "include",
+      "reason": "应用或共享板级模块的功能入口",
+      "human_status": "pending"
+    },
+    {
+      "id": "C016",
+      "symbol": "course_key_irq_init",
+      "kind": "function",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 149
+      },
+      "declaration": "int course_key_irq_init(void)",
+      "ai_decision": "include",
+      "reason": "应用或共享板级模块的功能入口",
+      "human_status": "pending"
+    },
+    {
+      "id": "C017",
+      "symbol": "course_key_isr",
+      "kind": "function",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 168
+      },
+      "declaration": "__weak void course_key_isr(void)",
+      "ai_decision": "include",
+      "reason": "应用或共享板级模块的功能入口",
+      "human_status": "pending"
+    },
+    {
+      "id": "C018",
+      "symbol": "course_stats_init",
+      "kind": "function",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 184
+      },
+      "declaration": "void course_stats_init(void)",
+      "ai_decision": "include",
+      "reason": "应用或共享板级模块的功能入口",
+      "human_status": "pending"
+    },
+    {
+      "id": "C019",
+      "symbol": "course_stats_counter",
+      "kind": "function",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 198
+      },
+      "declaration": "uint32_t course_stats_counter(void)",
+      "ai_decision": "include",
+      "reason": "应用或共享板级模块的功能入口",
+      "human_status": "pending"
+    },
+    {
+      "id": "C020",
+      "symbol": "course_fail",
+      "kind": "function",
+      "scope": "common/platform/course_hooks.c",
+      "source": {
+        "file": "common/platform/course_hooks.c",
+        "line": 17
+      },
+      "declaration": "void course_fail(const char *reason)",
+      "ai_decision": "include",
+      "reason": "应用或共享板级模块的功能入口",
+      "human_status": "pending"
+    },
+    {
+      "id": "C021",
+      "symbol": "course_assert_fail",
+      "kind": "function",
+      "scope": "common/platform/course_hooks.c",
+      "source": {
+        "file": "common/platform/course_hooks.c",
+        "line": 18
+      },
+      "declaration": "void course_assert_fail(const char *file, unsigned int line)",
+      "ai_decision": "include",
+      "reason": "应用或共享板级模块的功能入口",
+      "human_status": "pending"
+    },
+    {
+      "id": "C022",
+      "symbol": "key_input",
+      "kind": "function",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 109
+      },
+      "declaration": "static void key_input(const key_pin_type *key)",
+      "ai_decision": "include",
+      "reason": "应用或共享板级模块的功能入口",
+      "human_status": "pending"
+    },
+    {
+      "id": "C023",
+      "symbol": "key_irq_dispatch",
+      "kind": "function",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 169
+      },
+      "declaration": "static void key_irq_dispatch(void)",
+      "ai_decision": "include",
+      "reason": "应用或共享板级模块的功能入口",
+      "human_status": "pending"
+    },
+    {
+      "id": "C024",
+      "symbol": "EXINT1_IRQHandler",
+      "kind": "function",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 179
+      },
+      "declaration": "void EXINT1_IRQHandler(void)",
+      "ai_decision": "include",
+      "reason": "应用或共享板级模块的功能入口",
+      "human_status": "pending"
+    },
+    {
+      "id": "C025",
+      "symbol": "EXINT2_IRQHandler",
+      "kind": "function",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 180
+      },
+      "declaration": "void EXINT2_IRQHandler(void)",
+      "ai_decision": "include",
+      "reason": "应用或共享板级模块的功能入口",
+      "human_status": "pending"
+    },
+    {
+      "id": "C026",
+      "symbol": "EXINT4_IRQHandler",
+      "kind": "function",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 181
+      },
+      "declaration": "void EXINT4_IRQHandler(void)",
+      "ai_decision": "include",
+      "reason": "应用或共享板级模块的功能入口",
+      "human_status": "pending"
+    },
+    {
+      "id": "C027",
+      "symbol": "EXINT15_10_IRQHandler",
+      "kind": "function",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 182
+      },
+      "declaration": "void EXINT15_10_IRQHandler(void)",
+      "ai_decision": "include",
+      "reason": "应用或共享板级模块的功能入口",
+      "human_status": "pending"
+    },
+    {
+      "id": "C028",
+      "symbol": "stop",
+      "kind": "function",
+      "scope": "common/platform/course_hooks.c",
+      "source": {
+        "file": "common/platform/course_hooks.c",
+        "line": 3
+      },
+      "declaration": "static void stop(const char *reason, const char *file, unsigned int line)",
+      "ai_decision": "include",
+      "reason": "应用或共享板级模块的功能入口",
+      "human_status": "pending"
+    },
+    {
+      "id": "C029",
+      "symbol": "vApplicationMallocFailedHook",
+      "kind": "function",
+      "scope": "common/platform/course_hooks.c",
+      "source": {
+        "file": "common/platform/course_hooks.c",
+        "line": 19
+      },
+      "declaration": "void vApplicationMallocFailedHook(void)",
+      "ai_decision": "include",
+      "reason": "应用或共享板级模块的功能入口",
+      "human_status": "pending"
+    },
+    {
+      "id": "C030",
+      "symbol": "vApplicationStackOverflowHook",
+      "kind": "function",
+      "scope": "common/platform/course_hooks.c",
+      "source": {
+        "file": "common/platform/course_hooks.c",
+        "line": 20
+      },
+      "declaration": "void vApplicationStackOverflowHook(TaskHandle_t task, char *name)",
+      "ai_decision": "include",
+      "reason": "应用或共享板级模块的功能入口",
+      "human_status": "pending"
+    },
+    {
+      "id": "C031",
+      "symbol": "HardFault_Handler",
+      "kind": "function",
+      "scope": "common/platform/course_hooks.c",
+      "source": {
+        "file": "common/platform/course_hooks.c",
+        "line": 26
+      },
+      "declaration": "void HardFault_Handler(void)",
+      "ai_decision": "include",
+      "reason": "应用或共享板级模块的功能入口",
+      "human_status": "pending"
+    },
+    {
+      "id": "C032",
+      "symbol": "MemManage_Handler",
+      "kind": "function",
+      "scope": "common/platform/course_hooks.c",
+      "source": {
+        "file": "common/platform/course_hooks.c",
+        "line": 27
+      },
+      "declaration": "void MemManage_Handler(void)",
+      "ai_decision": "include",
+      "reason": "应用或共享板级模块的功能入口",
+      "human_status": "pending"
+    },
+    {
+      "id": "C033",
+      "symbol": "BusFault_Handler",
+      "kind": "function",
+      "scope": "common/platform/course_hooks.c",
+      "source": {
+        "file": "common/platform/course_hooks.c",
+        "line": 28
+      },
+      "declaration": "void BusFault_Handler(void)",
+      "ai_decision": "include",
+      "reason": "应用或共享板级模块的功能入口",
+      "human_status": "pending"
+    },
+    {
+      "id": "C034",
+      "symbol": "UsageFault_Handler",
+      "kind": "function",
+      "scope": "common/platform/course_hooks.c",
+      "source": {
+        "file": "common/platform/course_hooks.c",
+        "line": 29
+      },
+      "declaration": "void UsageFault_Handler(void)",
+      "ai_decision": "include",
+      "reason": "应用或共享板级模块的功能入口",
+      "human_status": "pending"
+    },
+    {
+      "id": "C035",
+      "symbol": "vApplicationGetIdleTaskMemory",
+      "kind": "function",
+      "scope": "common/platform/course_hooks.c",
+      "source": {
+        "file": "common/platform/course_hooks.c",
+        "line": 31
+      },
+      "declaration": "void vApplicationGetIdleTaskMemory(StaticTask_t **tcb, StackType_t **stack, uint32_t *size)",
+      "ai_decision": "exclude",
+      "reason": "05 配置未启用静态分配或软件定时器，该条件分支不收录",
+      "human_status": "pending"
+    },
+    {
+      "id": "C036",
+      "symbol": "vApplicationGetTimerTaskMemory",
+      "kind": "function",
+      "scope": "common/platform/course_hooks.c",
+      "source": {
+        "file": "common/platform/course_hooks.c",
+        "line": 38
+      },
+      "declaration": "void vApplicationGetTimerTaskMemory(StaticTask_t **tcb, StackType_t **stack, uint32_t *size)",
+      "ai_decision": "exclude",
+      "reason": "05 配置未启用静态分配或软件定时器，该条件分支不收录",
+      "human_status": "pending"
+    },
+    {
+      "id": "C037",
+      "symbol": "SystemInit",
+      "kind": "function",
+      "scope": "common/vendor/cmsis/device/system_at32f435_437.c",
+      "source": {
+        "file": "common/vendor/cmsis/device/system_at32f435_437.c",
+        "line": 62
+      },
+      "declaration": "void SystemInit (void)",
+      "ai_decision": "exclude",
+      "reason": "厂商实现，本轮范围排除；调用方解释保留依赖关系",
+      "human_status": "pending"
+    },
+    {
+      "id": "C038",
+      "symbol": "system_core_clock_update",
+      "kind": "function",
+      "scope": "common/vendor/cmsis/device/system_at32f435_437.c",
+      "source": {
+        "file": "common/vendor/cmsis/device/system_at32f435_437.c",
+        "line": 112
+      },
+      "declaration": "void system_core_clock_update(void)",
+      "ai_decision": "exclude",
+      "reason": "厂商实现，本轮范围排除；调用方解释保留依赖关系",
+      "human_status": "pending"
+    },
+    {
+      "id": "C039",
+      "symbol": "intervals",
+      "kind": "variable",
+      "scope": "05_createtask/src/main.c",
+      "source": {
+        "file": "05_createtask/src/main.c",
+        "line": 3
+      },
+      "declaration": "static const uint32_t intervals[2] = {500,1000}",
+      "ai_decision": "include",
+      "reason": "跨调用保存的重要状态或任务参数",
+      "human_status": "pending"
+    },
+    {
+      "id": "C040",
+      "symbol": "local_count",
+      "kind": "variable",
+      "scope": "05_createtask/src/main.c::worker:L6:C5",
+      "source": {
+        "file": "05_createtask/src/main.c",
+        "line": 6
+      },
+      "declaration": "uint32_t local_count = 0",
+      "ai_decision": "include",
+      "reason": "AI 初筛：对理解课程行为有帮助的局部状态",
+      "human_status": "pending"
+    },
+    {
+      "id": "C041",
+      "symbol": "interval",
+      "kind": "variable",
+      "scope": "05_createtask/src/main.c::worker:L7:C5",
+      "source": {
+        "file": "05_createtask/src/main.c",
+        "line": 7
+      },
+      "declaration": "uint32_t interval = *(const uint32_t *)arg",
+      "ai_decision": "include",
+      "reason": "AI 初筛：对理解课程行为有帮助的局部状态",
+      "human_status": "pending"
+    },
+    {
+      "id": "C042",
+      "symbol": "block",
+      "kind": "variable",
+      "scope": "05_createtask/src/main.c::worker:L8:C5",
+      "source": {
+        "file": "05_createtask/src/main.c",
+        "line": 8
+      },
+      "declaration": "void *block = pvPortMalloc(64)",
+      "ai_decision": "include",
+      "reason": "AI 初筛：对理解课程行为有帮助的局部状态",
+      "human_status": "pending"
+    },
+    {
+      "id": "C043",
+      "symbol": "board_ready",
+      "kind": "variable",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 24
+      },
+      "declaration": "static int board_ready",
+      "ai_decision": "include",
+      "reason": "跨调用保存的重要状态或任务参数",
+      "human_status": "pending"
+    },
+    {
+      "id": "C044",
+      "symbol": "pin",
+      "kind": "variable",
+      "scope": "common/platform/course_board.c::course_led_toggle:L33:C5",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 33
+      },
+      "declaration": "uint16_t pin = led == 0 ? COURSE_LED_A_PIN : COURSE_LED_B_PIN",
+      "ai_decision": "exclude",
+      "reason": "通用临时配置或实现中间量，可在所属函数中理解",
+      "human_status": "pending"
+    },
+    {
+      "id": "C045",
+      "symbol": "buffer",
+      "kind": "variable",
+      "scope": "common/platform/course_board.c::course_log:L52:C5",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 52
+      },
+      "declaration": "char buffer[160]",
+      "ai_decision": "include",
+      "reason": "AI 初筛：对理解课程行为有帮助的局部状态",
+      "human_status": "pending"
+    },
+    {
+      "id": "C046",
+      "symbol": "args",
+      "kind": "variable",
+      "scope": "common/platform/course_board.c::course_log:L53:C5",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 53
+      },
+      "declaration": "va_list args",
+      "ai_decision": "exclude",
+      "reason": "通用临时配置或实现中间量，可在所属函数中理解",
+      "human_status": "pending"
+    },
+    {
+      "id": "C047",
+      "symbol": "running",
+      "kind": "variable",
+      "scope": "common/platform/course_board.c::course_log:L54:C5",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 54
+      },
+      "declaration": "BaseType_t running",
+      "ai_decision": "include",
+      "reason": "AI 初筛：对理解课程行为有帮助的局部状态",
+      "human_status": "pending"
+    },
+    {
+      "id": "C048",
+      "symbol": "gpio",
+      "kind": "variable",
+      "scope": "common/platform/course_board.c::course_board_init:L70:C5",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 70
+      },
+      "declaration": "gpio_init_type gpio",
+      "ai_decision": "exclude",
+      "reason": "通用临时配置或实现中间量，可在所属函数中理解",
+      "human_status": "pending"
+    },
+    {
+      "id": "C049",
+      "symbol": "start",
+      "kind": "variable",
+      "scope": "common/platform/course_board.c::course_busy_ms:L104:C5",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 104
+      },
+      "declaration": "uint32_t start = DWT->CYCCNT",
+      "ai_decision": "include",
+      "reason": "AI 初筛：对理解课程行为有帮助的局部状态",
+      "human_status": "pending"
+    },
+    {
+      "id": "C050",
+      "symbol": "cycles",
+      "kind": "variable",
+      "scope": "common/platform/course_board.c::course_busy_ms:L105:C5",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 105
+      },
+      "declaration": "uint32_t cycles = (system_core_clock / 1000U) * ms",
+      "ai_decision": "include",
+      "reason": "AI 初筛：对理解课程行为有帮助的局部状态",
+      "human_status": "pending"
+    },
+    {
+      "id": "C051",
+      "symbol": "gpio",
+      "kind": "variable",
+      "scope": "common/platform/course_board.c::key_input:L111:C5",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 111
+      },
+      "declaration": "gpio_init_type gpio",
+      "ai_decision": "exclude",
+      "reason": "通用临时配置或实现中间量，可在所属函数中理解",
+      "human_status": "pending"
+    },
+    {
+      "id": "C052",
+      "symbol": "mask",
+      "kind": "variable",
+      "scope": "common/platform/course_board.c::course_keys_raw:L129:C5",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 129
+      },
+      "declaration": "uint32_t mask = 0",
+      "ai_decision": "include",
+      "reason": "AI 初筛：对理解课程行为有帮助的局部状态",
+      "human_status": "pending"
+    },
+    {
+      "id": "C053",
+      "symbol": "key",
+      "kind": "variable",
+      "scope": "common/platform/course_board.c::course_key_pressed:L142:C5",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 142
+      },
+      "declaration": "const key_pin_type *key",
+      "ai_decision": "exclude",
+      "reason": "通用临时配置或实现中间量，可在所属函数中理解",
+      "human_status": "pending"
+    },
+    {
+      "id": "C054",
+      "symbol": "level",
+      "kind": "variable",
+      "scope": "common/platform/course_board.c::course_key_pressed:L143:C5",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 143
+      },
+      "declaration": "int level",
+      "ai_decision": "exclude",
+      "reason": "通用临时配置或实现中间量，可在所属函数中理解",
+      "human_status": "pending"
+    },
+    {
+      "id": "C055",
+      "symbol": "key",
+      "kind": "variable",
+      "scope": "common/platform/course_board.c::course_key_irq_init:L151:C5",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 151
+      },
+      "declaration": "const key_pin_type *key",
+      "ai_decision": "exclude",
+      "reason": "通用临时配置或实现中间量，可在所属函数中理解",
+      "human_status": "pending"
+    },
+    {
+      "id": "C056",
+      "symbol": "ext",
+      "kind": "variable",
+      "scope": "common/platform/course_board.c::course_key_irq_init:L152:C5",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 152
+      },
+      "declaration": "exint_init_type ext",
+      "ai_decision": "exclude",
+      "reason": "通用临时配置或实现中间量，可在所属函数中理解",
+      "human_status": "pending"
+    },
+    {
+      "id": "C057",
+      "symbol": "line",
+      "kind": "variable",
+      "scope": "common/platform/course_board.c::key_irq_dispatch:L172:C9",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 172
+      },
+      "declaration": "uint32_t line = keys[COURSE_KEY_INDEX-1].pin",
+      "ai_decision": "exclude",
+      "reason": "通用临时配置或实现中间量，可在所属函数中理解",
+      "human_status": "pending"
+    },
+    {
+      "id": "C058",
+      "symbol": "clocks",
+      "kind": "variable",
+      "scope": "common/platform/course_board.c::course_stats_init:L186:C5",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 186
+      },
+      "declaration": "crm_clocks_freq_type clocks",
+      "ai_decision": "exclude",
+      "reason": "通用临时配置或实现中间量，可在所属函数中理解",
+      "human_status": "pending"
+    },
+    {
+      "id": "C059",
+      "symbol": "timer_clock",
+      "kind": "variable",
+      "scope": "common/platform/course_board.c::course_stats_init:L187:C5",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 187
+      },
+      "declaration": "uint32_t timer_clock",
+      "ai_decision": "include",
+      "reason": "AI 初筛：对理解课程行为有帮助的局部状态",
+      "human_status": "pending"
+    },
+    {
+      "id": "C060",
+      "symbol": "course_last_fault",
+      "kind": "variable",
+      "scope": "common/platform/course_hooks.c",
+      "source": {
+        "file": "common/platform/course_hooks.c",
+        "line": 2
+      },
+      "declaration": "volatile course_fault_type course_last_fault",
+      "ai_decision": "include",
+      "reason": "跨调用保存的重要状态或任务参数",
+      "human_status": "pending"
+    },
+    {
+      "id": "C061",
+      "symbol": "idle_tcb",
+      "kind": "variable",
+      "scope": "common/platform/course_hooks.c::vApplicationGetIdleTaskMemory:L33:C5",
+      "source": {
+        "file": "common/platform/course_hooks.c",
+        "line": 33
+      },
+      "declaration": "static StaticTask_t idle_tcb",
+      "ai_decision": "exclude",
+      "reason": "05 配置未启用静态分配或软件定时器，该条件分支不收录",
+      "human_status": "pending"
+    },
+    {
+      "id": "C062",
+      "symbol": "idle_stack",
+      "kind": "variable",
+      "scope": "common/platform/course_hooks.c::vApplicationGetIdleTaskMemory:L34:C5",
+      "source": {
+        "file": "common/platform/course_hooks.c",
+        "line": 34
+      },
+      "declaration": "static StackType_t idle_stack[configMINIMAL_STACK_SIZE]",
+      "ai_decision": "exclude",
+      "reason": "05 配置未启用静态分配或软件定时器，该条件分支不收录",
+      "human_status": "pending"
+    },
+    {
+      "id": "C063",
+      "symbol": "timer_tcb",
+      "kind": "variable",
+      "scope": "common/platform/course_hooks.c::vApplicationGetTimerTaskMemory:L40:C5",
+      "source": {
+        "file": "common/platform/course_hooks.c",
+        "line": 40
+      },
+      "declaration": "static StaticTask_t timer_tcb",
+      "ai_decision": "exclude",
+      "reason": "05 配置未启用静态分配或软件定时器，该条件分支不收录",
+      "human_status": "pending"
+    },
+    {
+      "id": "C064",
+      "symbol": "timer_stack",
+      "kind": "variable",
+      "scope": "common/platform/course_hooks.c::vApplicationGetTimerTaskMemory:L41:C5",
+      "source": {
+        "file": "common/platform/course_hooks.c",
+        "line": 41
+      },
+      "declaration": "static StackType_t timer_stack[configTIMER_TASK_STACK_DEPTH]",
+      "ai_decision": "exclude",
+      "reason": "05 配置未启用静态分配或软件定时器，该条件分支不收录",
+      "human_status": "pending"
+    },
+    {
+      "id": "C065",
+      "symbol": "system_core_clock",
+      "kind": "variable",
+      "scope": "common/vendor/cmsis/device/system_at32f435_437.c",
+      "source": {
+        "file": "common/vendor/cmsis/device/system_at32f435_437.c",
+        "line": 46
+      },
+      "declaration": "unsigned int system_core_clock           = HICK_VALUE; /*!< system clock frequency (core clock) */",
+      "ai_decision": "exclude",
+      "reason": "厂商实现，本轮范围排除；调用方解释保留依赖关系",
+      "human_status": "pending"
+    },
+    {
+      "id": "C066",
+      "symbol": "sclk_source",
+      "kind": "variable",
+      "scope": "common/vendor/cmsis/device/system_at32f435_437.c::system_core_clock_update:L116:C3",
+      "source": {
+        "file": "common/vendor/cmsis/device/system_at32f435_437.c",
+        "line": 116
+      },
+      "declaration": "crm_sclk_type sclk_source",
+      "ai_decision": "exclude",
+      "reason": "厂商实现细节，本轮不批量解释 SDK",
+      "human_status": "pending"
+    },
+    {
+      "id": "C067",
+      "symbol": "FREERTOS_CONFIG_H",
+      "kind": "macro",
+      "scope": "05_createtask/inc/FreeRTOSConfig.h",
+      "source": {
+        "file": "05_createtask/inc/FreeRTOSConfig.h",
+        "line": 2
+      },
+      "declaration": "#define FREERTOS_CONFIG_H",
+      "ai_decision": "exclude",
+      "reason": "头文件包含保护，不作为业务词条",
+      "human_status": "pending"
+    },
+    {
+      "id": "C068",
+      "symbol": "COURSE_AT32_CONF_H",
+      "kind": "macro",
+      "scope": "common/include/at32f435_437_conf.h",
+      "source": {
+        "file": "common/include/at32f435_437_conf.h",
+        "line": 2
+      },
+      "declaration": "#define COURSE_AT32_CONF_H",
+      "ai_decision": "exclude",
+      "reason": "头文件包含保护，不作为业务词条",
+      "human_status": "pending"
+    },
+    {
+      "id": "C069",
+      "symbol": "HEXT_VALUE",
+      "kind": "macro",
+      "scope": "common/include/at32f435_437_conf.h",
+      "source": {
+        "file": "common/include/at32f435_437_conf.h",
+        "line": 3
+      },
+      "declaration": "#define HEXT_VALUE 8000000U",
+      "ai_decision": "exclude",
+      "reason": "库开关、接口别名或本课不直接使用的配置，本轮不逐项解释",
+      "human_status": "pending"
+    },
+    {
+      "id": "C070",
+      "symbol": "HEXT_STARTUP_TIMEOUT",
+      "kind": "macro",
+      "scope": "common/include/at32f435_437_conf.h",
+      "source": {
+        "file": "common/include/at32f435_437_conf.h",
+        "line": 4
+      },
+      "declaration": "#define HEXT_STARTUP_TIMEOUT 0x3000U",
+      "ai_decision": "exclude",
+      "reason": "库开关、接口别名或本课不直接使用的配置，本轮不逐项解释",
+      "human_status": "pending"
+    },
+    {
+      "id": "C071",
+      "symbol": "HICK_VALUE",
+      "kind": "macro",
+      "scope": "common/include/at32f435_437_conf.h",
+      "source": {
+        "file": "common/include/at32f435_437_conf.h",
+        "line": 5
+      },
+      "declaration": "#define HICK_VALUE 8000000U",
+      "ai_decision": "exclude",
+      "reason": "库开关、接口别名或本课不直接使用的配置，本轮不逐项解释",
+      "human_status": "pending"
+    },
+    {
+      "id": "C072",
+      "symbol": "CRM_MODULE_ENABLED",
+      "kind": "macro",
+      "scope": "common/include/at32f435_437_conf.h",
+      "source": {
+        "file": "common/include/at32f435_437_conf.h",
+        "line": 6
+      },
+      "declaration": "#define CRM_MODULE_ENABLED",
+      "ai_decision": "exclude",
+      "reason": "库开关、接口别名或本课不直接使用的配置，本轮不逐项解释",
+      "human_status": "pending"
+    },
+    {
+      "id": "C073",
+      "symbol": "GPIO_MODULE_ENABLED",
+      "kind": "macro",
+      "scope": "common/include/at32f435_437_conf.h",
+      "source": {
+        "file": "common/include/at32f435_437_conf.h",
+        "line": 8
+      },
+      "declaration": "#define GPIO_MODULE_ENABLED",
+      "ai_decision": "exclude",
+      "reason": "库开关、接口别名或本课不直接使用的配置，本轮不逐项解释",
+      "human_status": "pending"
+    },
+    {
+      "id": "C074",
+      "symbol": "USART_MODULE_ENABLED",
+      "kind": "macro",
+      "scope": "common/include/at32f435_437_conf.h",
+      "source": {
+        "file": "common/include/at32f435_437_conf.h",
+        "line": 10
+      },
+      "declaration": "#define USART_MODULE_ENABLED",
+      "ai_decision": "exclude",
+      "reason": "库开关、接口别名或本课不直接使用的配置，本轮不逐项解释",
+      "human_status": "pending"
+    },
+    {
+      "id": "C075",
+      "symbol": "PWC_MODULE_ENABLED",
+      "kind": "macro",
+      "scope": "common/include/at32f435_437_conf.h",
+      "source": {
+        "file": "common/include/at32f435_437_conf.h",
+        "line": 12
+      },
+      "declaration": "#define PWC_MODULE_ENABLED",
+      "ai_decision": "exclude",
+      "reason": "库开关、接口别名或本课不直接使用的配置，本轮不逐项解释",
+      "human_status": "pending"
+    },
+    {
+      "id": "C076",
+      "symbol": "FLASH_MODULE_ENABLED",
+      "kind": "macro",
+      "scope": "common/include/at32f435_437_conf.h",
+      "source": {
+        "file": "common/include/at32f435_437_conf.h",
+        "line": 14
+      },
+      "declaration": "#define FLASH_MODULE_ENABLED",
+      "ai_decision": "exclude",
+      "reason": "库开关、接口别名或本课不直接使用的配置，本轮不逐项解释",
+      "human_status": "pending"
+    },
+    {
+      "id": "C077",
+      "symbol": "TMR_MODULE_ENABLED",
+      "kind": "macro",
+      "scope": "common/include/at32f435_437_conf.h",
+      "source": {
+        "file": "common/include/at32f435_437_conf.h",
+        "line": 16
+      },
+      "declaration": "#define TMR_MODULE_ENABLED",
+      "ai_decision": "exclude",
+      "reason": "库开关、接口别名或本课不直接使用的配置，本轮不逐项解释",
+      "human_status": "pending"
+    },
+    {
+      "id": "C078",
+      "symbol": "MISC_MODULE_ENABLED",
+      "kind": "macro",
+      "scope": "common/include/at32f435_437_conf.h",
+      "source": {
+        "file": "common/include/at32f435_437_conf.h",
+        "line": 18
+      },
+      "declaration": "#define MISC_MODULE_ENABLED",
+      "ai_decision": "exclude",
+      "reason": "库开关、接口别名或本课不直接使用的配置，本轮不逐项解释",
+      "human_status": "pending"
+    },
+    {
+      "id": "C079",
+      "symbol": "SCFG_MODULE_ENABLED",
+      "kind": "macro",
+      "scope": "common/include/at32f435_437_conf.h",
+      "source": {
+        "file": "common/include/at32f435_437_conf.h",
+        "line": 20
+      },
+      "declaration": "#define SCFG_MODULE_ENABLED",
+      "ai_decision": "exclude",
+      "reason": "库开关、接口别名或本课不直接使用的配置，本轮不逐项解释",
+      "human_status": "pending"
+    },
+    {
+      "id": "C080",
+      "symbol": "EXINT_MODULE_ENABLED",
+      "kind": "macro",
+      "scope": "common/include/at32f435_437_conf.h",
+      "source": {
+        "file": "common/include/at32f435_437_conf.h",
+        "line": 22
+      },
+      "declaration": "#define EXINT_MODULE_ENABLED",
+      "ai_decision": "exclude",
+      "reason": "库开关、接口别名或本课不直接使用的配置，本轮不逐项解释",
+      "human_status": "pending"
+    },
+    {
+      "id": "C081",
+      "symbol": "COURSE_H",
+      "kind": "macro",
+      "scope": "common/include/course.h",
+      "source": {
+        "file": "common/include/course.h",
+        "line": 2
+      },
+      "declaration": "#define COURSE_H",
+      "ai_decision": "exclude",
+      "reason": "头文件包含保护，不作为业务词条",
+      "human_status": "pending"
+    },
+    {
+      "id": "C082",
+      "symbol": "COURSE_STACK",
+      "kind": "macro",
+      "scope": "common/include/course.h",
+      "source": {
+        "file": "common/include/course.h",
+        "line": 13
+      },
+      "declaration": "#define COURSE_STACK 256U",
+      "ai_decision": "include",
+      "reason": "直接影响 05 任务或共享模块行为的配置",
+      "human_status": "pending"
+    },
+    {
+      "id": "C083",
+      "symbol": "COURSE_LOG_STACK",
+      "kind": "macro",
+      "scope": "common/include/course.h",
+      "source": {
+        "file": "common/include/course.h",
+        "line": 14
+      },
+      "declaration": "#define COURSE_LOG_STACK 512U",
+      "ai_decision": "include",
+      "reason": "直接影响 05 任务或共享模块行为的配置",
+      "human_status": "pending"
+    },
+    {
+      "id": "C084",
+      "symbol": "COURSE_CHECK",
+      "kind": "macro",
+      "scope": "common/include/course.h",
+      "source": {
+        "file": "common/include/course.h",
+        "line": 15
+      },
+      "declaration": "#define COURSE_CHECK(x) configASSERT(x)",
+      "ai_decision": "include",
+      "reason": "直接影响 05 任务或共享模块行为的配置",
+      "human_status": "pending"
+    },
+    {
+      "id": "C085",
+      "symbol": "COURSE_BOARD_H",
+      "kind": "macro",
+      "scope": "common/include/course_board.h",
+      "source": {
+        "file": "common/include/course_board.h",
+        "line": 2
+      },
+      "declaration": "#define COURSE_BOARD_H",
+      "ai_decision": "exclude",
+      "reason": "头文件包含保护，不作为业务词条",
+      "human_status": "pending"
+    },
+    {
+      "id": "C086",
+      "symbol": "COURSE_BOARD_CONFIG_H",
+      "kind": "macro",
+      "scope": "common/include/course_board_config.h",
+      "source": {
+        "file": "common/include/course_board_config.h",
+        "line": 2
+      },
+      "declaration": "#define COURSE_BOARD_CONFIG_H",
+      "ai_decision": "exclude",
+      "reason": "头文件包含保护，不作为业务词条",
+      "human_status": "pending"
+    },
+    {
+      "id": "C087",
+      "symbol": "COURSE_KEY_INDEX",
+      "kind": "macro",
+      "scope": "common/include/course_board_config.h",
+      "source": {
+        "file": "common/include/course_board_config.h",
+        "line": 5
+      },
+      "declaration": "#define COURSE_KEY_INDEX 0",
+      "ai_decision": "include",
+      "reason": "直接影响 05 任务或共享模块行为的配置",
+      "human_status": "pending"
+    },
+    {
+      "id": "C088",
+      "symbol": "COURSE_KEY_ACTIVE_LEVEL",
+      "kind": "macro",
+      "scope": "common/include/course_board_config.h",
+      "source": {
+        "file": "common/include/course_board_config.h",
+        "line": 6
+      },
+      "declaration": "#define COURSE_KEY_ACTIVE_LEVEL 0",
+      "ai_decision": "include",
+      "reason": "直接影响 05 任务或共享模块行为的配置",
+      "human_status": "pending"
+    },
+    {
+      "id": "C089",
+      "symbol": "COURSE_KEY_PULL",
+      "kind": "macro",
+      "scope": "common/include/course_board_config.h",
+      "source": {
+        "file": "common/include/course_board_config.h",
+        "line": 7
+      },
+      "declaration": "#define COURSE_KEY_PULL GPIO_PULL_NONE",
+      "ai_decision": "include",
+      "reason": "直接影响 05 任务或共享模块行为的配置",
+      "human_status": "pending"
+    },
+    {
+      "id": "C090",
+      "symbol": "COURSE_IRQ_PRIORITY",
+      "kind": "macro",
+      "scope": "common/include/course_board_config.h",
+      "source": {
+        "file": "common/include/course_board_config.h",
+        "line": 8
+      },
+      "declaration": "#define COURSE_IRQ_PRIORITY 6",
+      "ai_decision": "include",
+      "reason": "直接影响 05 任务或共享模块行为的配置",
+      "human_status": "pending"
+    },
+    {
+      "id": "C091",
+      "symbol": "COURSE_LED_A_PIN",
+      "kind": "macro",
+      "scope": "common/include/course_board_config.h",
+      "source": {
+        "file": "common/include/course_board_config.h",
+        "line": 9
+      },
+      "declaration": "#define COURSE_LED_A_PIN GPIO_PINS_12",
+      "ai_decision": "include",
+      "reason": "直接影响 05 任务或共享模块行为的配置",
+      "human_status": "pending"
+    },
+    {
+      "id": "C092",
+      "symbol": "COURSE_LED_B_PIN",
+      "kind": "macro",
+      "scope": "common/include/course_board_config.h",
+      "source": {
+        "file": "common/include/course_board_config.h",
+        "line": 10
+      },
+      "declaration": "#define COURSE_LED_B_PIN GPIO_PINS_9",
+      "ai_decision": "include",
+      "reason": "直接影响 05 任务或共享模块行为的配置",
+      "human_status": "pending"
+    },
+    {
+      "id": "C093",
+      "symbol": "COURSE_UART_BAUD",
+      "kind": "macro",
+      "scope": "common/include/course_board_config.h",
+      "source": {
+        "file": "common/include/course_board_config.h",
+        "line": 11
+      },
+      "declaration": "#define COURSE_UART_BAUD 115200U",
+      "ai_decision": "include",
+      "reason": "直接影响 05 任务或共享模块行为的配置",
+      "human_status": "pending"
+    },
+    {
+      "id": "C094",
+      "symbol": "COURSE_HOOKS_H",
+      "kind": "macro",
+      "scope": "common/include/course_hooks.h",
+      "source": {
+        "file": "common/include/course_hooks.h",
+        "line": 2
+      },
+      "declaration": "#define COURSE_HOOKS_H",
+      "ai_decision": "exclude",
+      "reason": "头文件包含保护，不作为业务词条",
+      "human_status": "pending"
+    },
+    {
+      "id": "C095",
+      "symbol": "COURSE_RTOS_CONFIG_H",
+      "kind": "macro",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 2
+      },
+      "declaration": "#define COURSE_RTOS_CONFIG_H",
+      "ai_decision": "exclude",
+      "reason": "头文件包含保护，不作为业务词条",
+      "human_status": "pending"
+    },
+    {
+      "id": "C096",
+      "symbol": "configCPU_CLOCK_HZ",
+      "kind": "macro",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 8
+      },
+      "declaration": "#define configCPU_CLOCK_HZ system_core_clock",
+      "ai_decision": "include",
+      "reason": "直接影响 05 任务或共享模块行为的配置",
+      "human_status": "pending"
+    },
+    {
+      "id": "C097",
+      "symbol": "configTICK_RATE_HZ",
+      "kind": "macro",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 9
+      },
+      "declaration": "#define configTICK_RATE_HZ 1000U",
+      "ai_decision": "include",
+      "reason": "直接影响 05 任务或共享模块行为的配置",
+      "human_status": "pending"
+    },
+    {
+      "id": "C098",
+      "symbol": "configMAX_PRIORITIES",
+      "kind": "macro",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 10
+      },
+      "declaration": "#define configMAX_PRIORITIES 8",
+      "ai_decision": "include",
+      "reason": "直接影响 05 任务或共享模块行为的配置",
+      "human_status": "pending"
+    },
+    {
+      "id": "C099",
+      "symbol": "configMINIMAL_STACK_SIZE",
+      "kind": "macro",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 11
+      },
+      "declaration": "#define configMINIMAL_STACK_SIZE 256U",
+      "ai_decision": "include",
+      "reason": "直接影响 05 任务或共享模块行为的配置",
+      "human_status": "pending"
+    },
+    {
+      "id": "C100",
+      "symbol": "configTOTAL_HEAP_SIZE",
+      "kind": "macro",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 12
+      },
+      "declaration": "#define configTOTAL_HEAP_SIZE (60U * 1024U)",
+      "ai_decision": "include",
+      "reason": "直接影响 05 任务或共享模块行为的配置",
+      "human_status": "pending"
+    },
+    {
+      "id": "C101",
+      "symbol": "configMAX_TASK_NAME_LEN",
+      "kind": "macro",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 13
+      },
+      "declaration": "#define configMAX_TASK_NAME_LEN 16",
+      "ai_decision": "include",
+      "reason": "直接影响 05 任务或共享模块行为的配置",
+      "human_status": "pending"
+    },
+    {
+      "id": "C102",
+      "symbol": "configUSE_16_BIT_TICKS",
+      "kind": "macro",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 14
+      },
+      "declaration": "#define configUSE_16_BIT_TICKS 0",
+      "ai_decision": "exclude",
+      "reason": "库开关、接口别名或本课不直接使用的配置，本轮不逐项解释",
+      "human_status": "pending"
+    },
+    {
+      "id": "C103",
+      "symbol": "configUSE_PREEMPTION",
+      "kind": "macro",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 15
+      },
+      "declaration": "#define configUSE_PREEMPTION 1",
+      "ai_decision": "include",
+      "reason": "直接影响 05 任务或共享模块行为的配置",
+      "human_status": "pending"
+    },
+    {
+      "id": "C104",
+      "symbol": "configUSE_TIME_SLICING",
+      "kind": "macro",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 17
+      },
+      "declaration": "#define configUSE_TIME_SLICING 1",
+      "ai_decision": "include",
+      "reason": "直接影响 05 任务或共享模块行为的配置",
+      "human_status": "pending"
+    },
+    {
+      "id": "C105",
+      "symbol": "configIDLE_SHOULD_YIELD",
+      "kind": "macro",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 19
+      },
+      "declaration": "#define configIDLE_SHOULD_YIELD 1",
+      "ai_decision": "exclude",
+      "reason": "库开关、接口别名或本课不直接使用的配置，本轮不逐项解释",
+      "human_status": "pending"
+    },
+    {
+      "id": "C106",
+      "symbol": "configSUPPORT_DYNAMIC_ALLOCATION",
+      "kind": "macro",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 20
+      },
+      "declaration": "#define configSUPPORT_DYNAMIC_ALLOCATION 1",
+      "ai_decision": "include",
+      "reason": "直接影响 05 任务或共享模块行为的配置",
+      "human_status": "pending"
+    },
+    {
+      "id": "C107",
+      "symbol": "configSUPPORT_STATIC_ALLOCATION",
+      "kind": "macro",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 22
+      },
+      "declaration": "#define configSUPPORT_STATIC_ALLOCATION 0",
+      "ai_decision": "include",
+      "reason": "直接影响 05 任务或共享模块行为的配置",
+      "human_status": "pending"
+    },
+    {
+      "id": "C108",
+      "symbol": "configUSE_IDLE_HOOK",
+      "kind": "macro",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 25
+      },
+      "declaration": "#define configUSE_IDLE_HOOK 0",
+      "ai_decision": "exclude",
+      "reason": "库开关、接口别名或本课不直接使用的配置，本轮不逐项解释",
+      "human_status": "pending"
+    },
+    {
+      "id": "C109",
+      "symbol": "configUSE_TICK_HOOK",
+      "kind": "macro",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 27
+      },
+      "declaration": "#define configUSE_TICK_HOOK 0",
+      "ai_decision": "exclude",
+      "reason": "库开关、接口别名或本课不直接使用的配置，本轮不逐项解释",
+      "human_status": "pending"
+    },
+    {
+      "id": "C110",
+      "symbol": "configCHECK_FOR_STACK_OVERFLOW",
+      "kind": "macro",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 28
+      },
+      "declaration": "#define configCHECK_FOR_STACK_OVERFLOW 2",
+      "ai_decision": "include",
+      "reason": "直接影响 05 任务或共享模块行为的配置",
+      "human_status": "pending"
+    },
+    {
+      "id": "C111",
+      "symbol": "configUSE_MALLOC_FAILED_HOOK",
+      "kind": "macro",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 29
+      },
+      "declaration": "#define configUSE_MALLOC_FAILED_HOOK 1",
+      "ai_decision": "include",
+      "reason": "直接影响 05 任务或共享模块行为的配置",
+      "human_status": "pending"
+    },
+    {
+      "id": "C112",
+      "symbol": "configUSE_CO_ROUTINES",
+      "kind": "macro",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 30
+      },
+      "declaration": "#define configUSE_CO_ROUTINES 0",
+      "ai_decision": "exclude",
+      "reason": "库开关、接口别名或本课不直接使用的配置，本轮不逐项解释",
+      "human_status": "pending"
+    },
+    {
+      "id": "C113",
+      "symbol": "configUSE_MUTEXES",
+      "kind": "macro",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 31
+      },
+      "declaration": "#define configUSE_MUTEXES 1",
+      "ai_decision": "exclude",
+      "reason": "库开关、接口别名或本课不直接使用的配置，本轮不逐项解释",
+      "human_status": "pending"
+    },
+    {
+      "id": "C114",
+      "symbol": "configUSE_RECURSIVE_MUTEXES",
+      "kind": "macro",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 33
+      },
+      "declaration": "#define configUSE_RECURSIVE_MUTEXES 0",
+      "ai_decision": "exclude",
+      "reason": "库开关、接口别名或本课不直接使用的配置，本轮不逐项解释",
+      "human_status": "pending"
+    },
+    {
+      "id": "C115",
+      "symbol": "configUSE_COUNTING_SEMAPHORES",
+      "kind": "macro",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 36
+      },
+      "declaration": "#define configUSE_COUNTING_SEMAPHORES 0",
+      "ai_decision": "exclude",
+      "reason": "库开关、接口别名或本课不直接使用的配置，本轮不逐项解释",
+      "human_status": "pending"
+    },
+    {
+      "id": "C116",
+      "symbol": "configUSE_QUEUE_SETS",
+      "kind": "macro",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 39
+      },
+      "declaration": "#define configUSE_QUEUE_SETS 0",
+      "ai_decision": "exclude",
+      "reason": "库开关、接口别名或本课不直接使用的配置，本轮不逐项解释",
+      "human_status": "pending"
+    },
+    {
+      "id": "C117",
+      "symbol": "configUSE_TASK_NOTIFICATIONS",
+      "kind": "macro",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 41
+      },
+      "declaration": "#define configUSE_TASK_NOTIFICATIONS 1",
+      "ai_decision": "exclude",
+      "reason": "库开关、接口别名或本课不直接使用的配置，本轮不逐项解释",
+      "human_status": "pending"
+    },
+    {
+      "id": "C118",
+      "symbol": "configUSE_TIMERS",
+      "kind": "macro",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 43
+      },
+      "declaration": "#define configUSE_TIMERS 0",
+      "ai_decision": "include",
+      "reason": "直接影响 05 任务或共享模块行为的配置",
+      "human_status": "pending"
+    },
+    {
+      "id": "C119",
+      "symbol": "configTIMER_TASK_PRIORITY",
+      "kind": "macro",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 45
+      },
+      "declaration": "#define configTIMER_TASK_PRIORITY 3",
+      "ai_decision": "exclude",
+      "reason": "库开关、接口别名或本课不直接使用的配置，本轮不逐项解释",
+      "human_status": "pending"
+    },
+    {
+      "id": "C120",
+      "symbol": "configTIMER_QUEUE_LENGTH",
+      "kind": "macro",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 46
+      },
+      "declaration": "#define configTIMER_QUEUE_LENGTH 16",
+      "ai_decision": "exclude",
+      "reason": "库开关、接口别名或本课不直接使用的配置，本轮不逐项解释",
+      "human_status": "pending"
+    },
+    {
+      "id": "C121",
+      "symbol": "configTIMER_TASK_STACK_DEPTH",
+      "kind": "macro",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 47
+      },
+      "declaration": "#define configTIMER_TASK_STACK_DEPTH 512U",
+      "ai_decision": "exclude",
+      "reason": "库开关、接口别名或本课不直接使用的配置，本轮不逐项解释",
+      "human_status": "pending"
+    },
+    {
+      "id": "C122",
+      "symbol": "configUSE_TRACE_FACILITY",
+      "kind": "macro",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 49
+      },
+      "declaration": "#define configUSE_TRACE_FACILITY 0",
+      "ai_decision": "exclude",
+      "reason": "库开关、接口别名或本课不直接使用的配置，本轮不逐项解释",
+      "human_status": "pending"
+    },
+    {
+      "id": "C123",
+      "symbol": "configGENERATE_RUN_TIME_STATS",
+      "kind": "macro",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 52
+      },
+      "declaration": "#define configGENERATE_RUN_TIME_STATS 0",
+      "ai_decision": "include",
+      "reason": "直接影响 05 任务或共享模块行为的配置",
+      "human_status": "pending"
+    },
+    {
+      "id": "C124",
+      "symbol": "configUSE_STATS_FORMATTING_FUNCTIONS",
+      "kind": "macro",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 54
+      },
+      "declaration": "#define configUSE_STATS_FORMATTING_FUNCTIONS 0",
+      "ai_decision": "exclude",
+      "reason": "库开关、接口别名或本课不直接使用的配置，本轮不逐项解释",
+      "human_status": "pending"
+    },
+    {
+      "id": "C125",
+      "symbol": "portCONFIGURE_TIMER_FOR_RUN_TIME_STATS",
+      "kind": "macro",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 55
+      },
+      "declaration": "#define portCONFIGURE_TIMER_FOR_RUN_TIME_STATS() course_stats_init()",
+      "ai_decision": "exclude",
+      "reason": "库开关、接口别名或本课不直接使用的配置，本轮不逐项解释",
+      "human_status": "pending"
+    },
+    {
+      "id": "C126",
+      "symbol": "portGET_RUN_TIME_COUNTER_VALUE",
+      "kind": "macro",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 56
+      },
+      "declaration": "#define portGET_RUN_TIME_COUNTER_VALUE() course_stats_counter()",
+      "ai_decision": "exclude",
+      "reason": "库开关、接口别名或本课不直接使用的配置，本轮不逐项解释",
+      "human_status": "pending"
+    },
+    {
+      "id": "C127",
+      "symbol": "INCLUDE_vTaskPrioritySet",
+      "kind": "macro",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 57
+      },
+      "declaration": "#define INCLUDE_vTaskPrioritySet 1",
+      "ai_decision": "exclude",
+      "reason": "库开关、接口别名或本课不直接使用的配置，本轮不逐项解释",
+      "human_status": "pending"
+    },
+    {
+      "id": "C128",
+      "symbol": "INCLUDE_uxTaskPriorityGet",
+      "kind": "macro",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 58
+      },
+      "declaration": "#define INCLUDE_uxTaskPriorityGet 1",
+      "ai_decision": "exclude",
+      "reason": "库开关、接口别名或本课不直接使用的配置，本轮不逐项解释",
+      "human_status": "pending"
+    },
+    {
+      "id": "C129",
+      "symbol": "INCLUDE_vTaskDelete",
+      "kind": "macro",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 59
+      },
+      "declaration": "#define INCLUDE_vTaskDelete 1",
+      "ai_decision": "exclude",
+      "reason": "库开关、接口别名或本课不直接使用的配置，本轮不逐项解释",
+      "human_status": "pending"
+    },
+    {
+      "id": "C130",
+      "symbol": "INCLUDE_vTaskSuspend",
+      "kind": "macro",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 60
+      },
+      "declaration": "#define INCLUDE_vTaskSuspend 1",
+      "ai_decision": "exclude",
+      "reason": "库开关、接口别名或本课不直接使用的配置，本轮不逐项解释",
+      "human_status": "pending"
+    },
+    {
+      "id": "C131",
+      "symbol": "INCLUDE_vTaskDelay",
+      "kind": "macro",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 61
+      },
+      "declaration": "#define INCLUDE_vTaskDelay 1",
+      "ai_decision": "exclude",
+      "reason": "库开关、接口别名或本课不直接使用的配置，本轮不逐项解释",
+      "human_status": "pending"
+    },
+    {
+      "id": "C132",
+      "symbol": "INCLUDE_vTaskDelayUntil",
+      "kind": "macro",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 62
+      },
+      "declaration": "#define INCLUDE_vTaskDelayUntil 1",
+      "ai_decision": "exclude",
+      "reason": "库开关、接口别名或本课不直接使用的配置，本轮不逐项解释",
+      "human_status": "pending"
+    },
+    {
+      "id": "C133",
+      "symbol": "INCLUDE_xTaskGetSchedulerState",
+      "kind": "macro",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 63
+      },
+      "declaration": "#define INCLUDE_xTaskGetSchedulerState 1",
+      "ai_decision": "exclude",
+      "reason": "库开关、接口别名或本课不直接使用的配置，本轮不逐项解释",
+      "human_status": "pending"
+    },
+    {
+      "id": "C134",
+      "symbol": "INCLUDE_xTaskGetCurrentTaskHandle",
+      "kind": "macro",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 64
+      },
+      "declaration": "#define INCLUDE_xTaskGetCurrentTaskHandle 1",
+      "ai_decision": "exclude",
+      "reason": "库开关、接口别名或本课不直接使用的配置，本轮不逐项解释",
+      "human_status": "pending"
+    },
+    {
+      "id": "C135",
+      "symbol": "INCLUDE_eTaskGetState",
+      "kind": "macro",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 65
+      },
+      "declaration": "#define INCLUDE_eTaskGetState 1",
+      "ai_decision": "exclude",
+      "reason": "库开关、接口别名或本课不直接使用的配置，本轮不逐项解释",
+      "human_status": "pending"
+    },
+    {
+      "id": "C136",
+      "symbol": "INCLUDE_uxTaskGetStackHighWaterMark",
+      "kind": "macro",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 66
+      },
+      "declaration": "#define INCLUDE_uxTaskGetStackHighWaterMark 1",
+      "ai_decision": "exclude",
+      "reason": "库开关、接口别名或本课不直接使用的配置，本轮不逐项解释",
+      "human_status": "pending"
+    },
+    {
+      "id": "C137",
+      "symbol": "configPRIO_BITS",
+      "kind": "macro",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 67
+      },
+      "declaration": "#define configPRIO_BITS 4",
+      "ai_decision": "exclude",
+      "reason": "库开关、接口别名或本课不直接使用的配置，本轮不逐项解释",
+      "human_status": "pending"
+    },
+    {
+      "id": "C138",
+      "symbol": "configLIBRARY_LOWEST_INTERRUPT_PRIORITY",
+      "kind": "macro",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 68
+      },
+      "declaration": "#define configLIBRARY_LOWEST_INTERRUPT_PRIORITY 15",
+      "ai_decision": "exclude",
+      "reason": "库开关、接口别名或本课不直接使用的配置，本轮不逐项解释",
+      "human_status": "pending"
+    },
+    {
+      "id": "C139",
+      "symbol": "configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY",
+      "kind": "macro",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 69
+      },
+      "declaration": "#define configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY 5",
+      "ai_decision": "include",
+      "reason": "直接影响 05 任务或共享模块行为的配置",
+      "human_status": "pending"
+    },
+    {
+      "id": "C140",
+      "symbol": "configKERNEL_INTERRUPT_PRIORITY",
+      "kind": "macro",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 70
+      },
+      "declaration": "#define configKERNEL_INTERRUPT_PRIORITY (15U << (8 - configPRIO_BITS))",
+      "ai_decision": "exclude",
+      "reason": "库开关、接口别名或本课不直接使用的配置，本轮不逐项解释",
+      "human_status": "pending"
+    },
+    {
+      "id": "C141",
+      "symbol": "configMAX_SYSCALL_INTERRUPT_PRIORITY",
+      "kind": "macro",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 71
+      },
+      "declaration": "#define configMAX_SYSCALL_INTERRUPT_PRIORITY (5 << (8 - configPRIO_BITS))",
+      "ai_decision": "exclude",
+      "reason": "库开关、接口别名或本课不直接使用的配置，本轮不逐项解释",
+      "human_status": "pending"
+    },
+    {
+      "id": "C142",
+      "symbol": "configASSERT",
+      "kind": "macro",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 72
+      },
+      "declaration": "#define configASSERT(x) do { if (!(x)) course_assert_fail(__FILE__, __LINE__); } while (0)",
+      "ai_decision": "include",
+      "reason": "直接影响 05 任务或共享模块行为的配置",
+      "human_status": "pending"
+    },
+    {
+      "id": "C143",
+      "symbol": "vPortSVCHandler",
+      "kind": "macro",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 73
+      },
+      "declaration": "#define vPortSVCHandler SVC_Handler",
+      "ai_decision": "exclude",
+      "reason": "库开关、接口别名或本课不直接使用的配置，本轮不逐项解释",
+      "human_status": "pending"
+    },
+    {
+      "id": "C144",
+      "symbol": "xPortPendSVHandler",
+      "kind": "macro",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 74
+      },
+      "declaration": "#define xPortPendSVHandler PendSV_Handler",
+      "ai_decision": "exclude",
+      "reason": "库开关、接口别名或本课不直接使用的配置，本轮不逐项解释",
+      "human_status": "pending"
+    },
+    {
+      "id": "C145",
+      "symbol": "xPortSysTickHandler",
+      "kind": "macro",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 75
+      },
+      "declaration": "#define xPortSysTickHandler SysTick_Handler",
+      "ai_decision": "exclude",
+      "reason": "库开关、接口别名或本课不直接使用的配置，本轮不逐项解释",
+      "human_status": "pending"
+    },
+    {
+      "id": "C146",
+      "symbol": "VECT_TAB_OFFSET",
+      "kind": "macro",
+      "scope": "common/vendor/cmsis/device/system_at32f435_437.c",
+      "source": {
+        "file": "common/vendor/cmsis/device/system_at32f435_437.c",
+        "line": 38
+      },
+      "declaration": "#define VECT_TAB_OFFSET                  0x0 /*!< vector table base offset field. this value must be a multiple of 0x400. */",
+      "ai_decision": "exclude",
+      "reason": "厂商实现，本轮范围排除；调用方解释保留依赖关系",
+      "human_status": "pending"
+    },
+    {
+      "id": "C147",
+      "symbol": "keys",
+      "kind": "variable",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 14
+      },
+      "declaration": "static const key_pin_type keys[8] = {\n    {GPIOB, GPIO_PINS_13, SCFG_PORT_SOURCE_GPIOB, SCFG_PINS_SOURCE13, EXINT15_10_IRQn},\n    {GPIOB, GPIO_PINS_14, SCFG_PORT_SOURCE_GPIOB, SCFG_PINS_SOURCE14, EXINT15_10_IRQn},\n    {GPIOB, GPIO_PINS_15, SCFG_PORT_SOURCE_GPIOB, SCFG_PINS_SOURCE15, EXINT15_10_IRQn},\n    {GPIOE, GPIO_PINS_1, SCFG_PORT_SOURCE_GPIOE, SCFG_PINS_SOURCE1, EXINT1_IRQn},\n    {GPIOD, GPIO_PINS_2, SCFG_PORT_SOURCE_GPIOD, SCFG_PINS_SOURCE2, EXINT2_IRQn},\n    {GPIOD, GPIO_PINS_12, SCFG_PORT_SOURCE_GPIOD, SCFG_PINS_SOURCE12, EXINT15_10_IRQn},\n    {GPIOB, GPIO_PINS_2, SCFG_PORT_SOURCE_GPIOB, SCFG_PINS_SOURCE2, EXINT2_IRQn},\n    {GPIOE, GPIO_PINS_4, SCFG_PORT_SOURCE_GPIOE, SCFG_PINS_SOURCE4, EXINT4_IRQn}\n};",
+      "ai_decision": "include",
+      "reason": "AI 回看源码补录提取器未覆盖的结构",
+      "human_status": "pending"
+    },
+    {
+      "id": "C148",
+      "symbol": "key_pin_type",
+      "kind": "typedef",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 6
+      },
+      "declaration": "typedef struct {\n    gpio_type *port;\n    uint16_t pin;\n    scfg_port_source_type source;\n    scfg_pins_source_type line;\n    IRQn_Type irq;\n} key_pin_type;",
+      "ai_decision": "include",
+      "reason": "AI 回看源码补录提取器未覆盖的结构",
+      "human_status": "pending"
+    },
+    {
+      "id": "C149",
+      "symbol": "course_fault_type",
+      "kind": "typedef",
+      "scope": "common/include/course_hooks.h",
+      "source": {
+        "file": "common/include/course_hooks.h",
+        "line": 3
+      },
+      "declaration": "typedef struct {\n    const char *reason;\n    const char *file;\n    unsigned int line;\n} course_fault_type;",
+      "ai_decision": "include",
+      "reason": "AI 回看源码补录提取器未覆盖的结构",
+      "human_status": "pending"
+    }
+  ]
+}
