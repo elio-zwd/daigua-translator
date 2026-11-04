@@ -12,7 +12,7 @@
 /** 词条中的参数描述 */
 export interface ParameterEntry {
   name: string;
-  description_zh: string;
+  description_zh?: string;
 }
 
 /** 词条中的来源引用 */
@@ -25,22 +25,23 @@ export interface SourceRef {
 /** 单条知识包词条（对应 entries[] 中的一个元素） */
 export interface KnowledgePackEntry {
   symbol: string;
-  kind: string;
+  kind: 'function' | 'variable' | 'macro' | 'enum' | 'typedef';
   name_zh: string;
-  description_zh: string;
-  declaration: string;
-  parameters: ParameterEntry[];
-  returns_zh: string;
-  scope: string;
+  description_zh?: string;
+  declaration?: string;
+  parameters?: ParameterEntry[];
+  returns_zh?: string;
+  scope?: string;
   source: SourceRef;
-  uncertainty: string;
+  uncertainty?: string;
 }
 
 /** 知识包顶层结构（对应一个 JSON 文件） */
 export interface KnowledgePack {
   name: string;
   version: string;
-  source_version: string;
+  source_version?: string;
+  description?: string;
   entries: KnowledgePackEntry[];
 }
 

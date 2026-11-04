@@ -2,23 +2,8 @@ import { ITranslate, ITranslateOptions, KnowledgePack } from './types';
 import { KnowledgeLoader } from './knowledge-loader';
 import { isLikelySingleSymbol, normalizeSymbol, formatEntry, formatEntries } from './symbol-matcher';
 
-// The same Bing transport library used by MTranCode's built-in Bing source.
-// MTranCode's public extension API does not expose the built-in translator instance.
-const bingTranslateApi = require('bing-translate-api');
-
-const BING_LANG_MAP: Record<string, string> = {
-  auto: 'auto-detect',
-  'zh-CN': 'zh-Hans',
-  'zh-TW': 'zh-Hant',
-  zh: 'zh-Hans',
-};
-
-export type BingTranslator = (
-  content: string, from: string, to: string
-) => Promise<{ translation?: string }>;
-
-const defaultBingTranslator: BingTranslator =
-  bingTranslateApi.translate || bingTranslateApi.default || bingTranslateApi;
+import { BingTranslator, defaultBingTranslator, translateWithBing } from './bing';
+export { BingTranslator } from './bing';
 
 /** Reads the live knowledge-pack provider on every request. */
 export class DaiguaTranslate implements ITranslate {
@@ -59,14 +44,7 @@ export class DaiguaTranslate implements ITranslate {
 
   private async bingFallback(content: string, from: string, to: string): Promise<string> {
     try {
-      const result = await this.bingTranslator(
-        content, BING_LANG_MAP[from] || from, BING_LANG_MAP[to] || to
-      );
-      // Do not return an error object/empty string as a successful translation.
-      if (typeof result?.translation !== 'string' || !result.translation.trim()) {
-        throw new Error('Bing 未返回有效译文');
-      }
-      return result.translation;
+      return await translateWithBing(content, { from, to }, this.bingTranslator);
     } catch (error) {
       console.error('[呆瓜翻译器] Bing 回退失败:', error);
       // MTranCode's TranslateManager caches only successful Promise results.

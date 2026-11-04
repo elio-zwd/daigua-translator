@@ -1,74 +1,49 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { KnowledgePack, KnowledgePackEntry } from './types';
+import { validateKnowledgePack } from './pack-validation';
 
-/**
- * 知识包加载与查询类
- */
+export interface PackLoadFailure { path: string; reason: string; retained: boolean; }
+export interface PackLoadReport {
+  byPath: Map<string, KnowledgePack>;
+  packs: KnowledgePack[];
+  loadedCount: number;
+  failures: PackLoadFailure[];
+}
+
+export function resolvePackPaths(paths: string[]): string[] {
+  return [...new Set(paths.filter(p => typeof p === 'string' && p.trim())
+    .map(p => path.resolve(p.trim())))];
+}
+
 export class KnowledgeLoader {
-  /**
-   * 从文件路径列表异步加载多个知识包
-   * @param paths 知识包 JSON 绝对路径或相对路径列表
-   */
-  async loadFromPaths(paths: string[]): Promise<KnowledgePack[]> {
-    const packs: KnowledgePack[] = [];
+  constructor(private readonly readFile: (file: string) => Promise<string> =
+    file => fs.promises.readFile(file, 'utf8')) {}
 
-    for (const rawPath of paths) {
-      if (!rawPath || typeof rawPath !== 'string') {
-        continue;
-      }
-      const trimmed = rawPath.trim();
-      if (!trimmed) {
-        continue;
-      }
-
+  /** Candidate snapshot: only the caller's latest reload may commit it. */
+  async loadWithReport(paths: string[], previous = new Map<string, KnowledgePack>()): Promise<PackLoadReport> {
+    const byPath = new Map<string, KnowledgePack>();
+    const failures: PackLoadFailure[] = [];
+    let loadedCount = 0;
+    for (const file of resolvePackPaths(paths)) {
       try {
-        const resolvedPath = path.resolve(trimmed);
-        if (!fs.existsSync(resolvedPath)) {
-          console.warn(`[呆瓜翻译器] 知识包路径不存在: ${resolvedPath}`);
-          continue;
-        }
-
-        const content = await fs.promises.readFile(resolvedPath, 'utf-8');
-        const parsed = JSON.parse(content) as KnowledgePack;
-
-        if (parsed && Array.isArray(parsed.entries)) {
-          packs.push(parsed);
-          console.log(`[呆瓜翻译器] 成功加载知识包: ${parsed.name || resolvedPath} (${parsed.entries.length} 词条)`);
-        } else {
-          console.warn(`[呆瓜翻译器] 知识包格式不合法 (缺少 entries 数组): ${resolvedPath}`);
-        }
-      } catch (err) {
-        console.error(`[呆瓜翻译器] 加载知识包失败: ${trimmed}`, err);
+        const parsed = validateKnowledgePack(JSON.parse((await this.readFile(file)).replace(/^\uFEFF/, '')));
+        byPath.set(file, parsed);
+        loadedCount++;
+      } catch (error) {
+        const old = previous.get(file);
+        if (old) byPath.set(file, old);
+        failures.push({ path: file, reason: error instanceof Error ? error.message : String(error), retained: !!old });
       }
     }
-
-    return packs;
+    return { byPath, packs: [...byPath.values()], loadedCount, failures };
   }
 
-  /**
-   * 在给定的知识包列表中按 symbol 精确匹配（大小写敏感）
-   * @param symbol 规范化后的符号名称
-   * @param packs 知识包列表
-   * @returns 所有匹配的词条
-   */
+  async loadFromPaths(paths: string[]): Promise<KnowledgePack[]> {
+    return (await this.loadWithReport(paths)).packs;
+  }
+
   findEntries(symbol: string, packs: KnowledgePack[]): KnowledgePackEntry[] {
-    const matches: KnowledgePackEntry[] = [];
-    if (!symbol) {
-      return matches;
-    }
-
-    for (const pack of packs) {
-      if (!pack.entries) {
-        continue;
-      }
-      for (const entry of pack.entries) {
-        if (entry.symbol === symbol) {
-          matches.push(entry);
-        }
-      }
-    }
-
-    return matches;
+    return symbol ? packs.flatMap(pack => pack.entries.filter(entry => entry.symbol === symbol)) : [];
   }
 }

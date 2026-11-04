@@ -87,7 +87,8 @@ test('MTranCode extension registration keeps the same translator alive across re
         return { dispose() {} };
       }
     },
-    window: { showInformationMessage: () => {} }
+    window: { showInformationMessage: () => {}, showWarningMessage: () => {},
+      createOutputChannel: () => ({ appendLine() {}, dispose() {} }) }
   };
   const originalLoad = Module._load;
   let extension;
@@ -120,5 +121,98 @@ test('MTranCode extension registration keeps the same translator alive across re
   } finally {
     extension.deactivate();
     fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+
+async function extensionHarness(paths) {
+  const messages = { info: [], warning: [], log: [] };
+  const commands = new Map();
+  let change;
+  const vscode = {
+    workspace: {
+      getConfiguration: () => ({ get: () => paths }),
+      onDidChangeConfiguration: cb => { change = cb; return { dispose() {} }; }
+    },
+    commands: { registerCommand: (name, cb) => { commands.set(name, cb); return { dispose() {} }; } },
+    window: {
+      showInformationMessage: msg => messages.info.push(msg),
+      showWarningMessage: msg => messages.warning.push(msg),
+      createOutputChannel: () => ({ appendLine: msg => messages.log.push(msg), dispose() {} })
+    }
+  };
+  const originalLoad = Module._load;
+  let extension;
+  try {
+    Module._load = function(request) {
+      if (request === 'vscode') return vscode;
+      return originalLoad.apply(this, arguments);
+    };
+    delete require.cache[require.resolve('../out/extension')];
+    extension = require('../out/extension');
+  } finally { Module._load = originalLoad; }
+  const api = await extension.activate({ subscriptions: [] });
+  let translator;
+  api.extendTranslate((id, Constructor) => { assert.equal(id, 'daigua'); translator = new Constructor(); });
+  translator.bingTranslator = async () => ({ translation: 'fallback' });
+  return { translator, messages, dispose: () => extension.deactivate(),
+    reload: () => commands.get('daiguaTranslate.reloadPacks')(),
+    paths: next => { paths = next; return change({ affectsConfiguration: () => true }); } };
+}
+
+test('bad reload warns with path, retains last valid pack, and forgets removed paths', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'daigua-errors-'));
+  const file = path.join(dir, 'a.json');
+  fs.writeFileSync(file, JSON.stringify(pack('有效旧释义')));
+  const harness = await extensionHarness([file]);
+  try {
+    fs.writeFileSync(file, '{broken');
+    await harness.reload();
+    assert.match(await harness.translator.translate('Motor_Start', {}), /有效旧释义/);
+    assert.equal(harness.messages.info.length, 0);
+    assert.match(harness.messages.warning[0], /保留旧包 1/);
+    assert.ok(harness.messages.warning[0].includes(file));
+    assert.match(harness.messages.log.join('\n'), /首次|保留上一次有效内容/);
+    await harness.paths([]);
+    assert.equal(await harness.translator.translate('Motor_Start', {}), 'fallback');
+    await harness.paths([file]);
+    assert.equal(await harness.translator.translate('Motor_Start', {}), 'fallback');
+    fs.writeFileSync(file, JSON.stringify(pack('修复的新释义')));
+    await harness.reload();
+    assert.match(await harness.translator.translate('Motor_Start', {}), /修复的新释义/);
+    assert.equal(harness.messages.info.length, 1);
+  } finally { harness.dispose(); fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('slow older reload never wins; removed packs disappear while the next read is pending', async () => {
+  const { KnowledgeLoader } = require('../out/knowledge-loader');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'daigua-race-'));
+  const file = path.join(dir, 'a.json'), other = path.join(dir, 'b.json');
+  fs.writeFileSync(file, JSON.stringify(pack('初始')));
+  fs.writeFileSync(other, JSON.stringify(pack('最新')));
+  const harness = await extensionHarness([file]);
+  const original = KnowledgeLoader.prototype.loadWithReport;
+  let release;
+  try {
+    KnowledgeLoader.prototype.loadWithReport = async function(paths, previous) {
+      const report = await original.call(this, paths, previous);
+      if (paths[0] === file) await new Promise(resolve => { release = resolve; });
+      return report;
+    };
+    fs.writeFileSync(file, JSON.stringify(pack('过期结果')));
+    const older = harness.reload();
+    while (!release) await new Promise(resolve => setImmediate(resolve));
+    // Second request prunes a synchronously, before reading b.
+    const latest = harness.paths([other]);
+    assert.equal(await harness.translator.translate('Motor_Start', {}), 'fallback');
+    await latest;
+    release();
+    await older;
+    assert.match(await harness.translator.translate('Motor_Start', {}), /最新/);
+    assert.equal(harness.messages.info.length, 0, 'obsolete reload must not display success');
+  } finally {
+    if (release) release();
+    KnowledgeLoader.prototype.loadWithReport = original;
+    harness.dispose(); fs.rmSync(dir, { recursive: true, force: true });
   }
 });
