@@ -1,34 +1,20 @@
 # 知识包校验与导出
 
-此工具校验**已经补全中文解释**的正式知识包，不直接接受从源码提取器生成的原始草稿。
-
-## 命令
+校验已编写中文的正式包，不直接接受原始提取草稿。
 
 ```powershell
 python validator/validate.py --pack knowledge-packs/05_createtask-pack.json
-python validator/validate.py --pack knowledge-packs/my-pack.json --src "D:\\MCU" --out knowledge-packs/ready.json
+python validator/validate.py --pack knowledge-packs/05_createtask-pack.json --src 'D:\FreeRtos\projects\freertos-learning' --out ready.json
 ```
 
-返回码：成功为 `0`；校验失败、输入 JSON 损坏或写入失败为 `1`。校验未通过不导出。
+成功返回 0，输入、校验或导出失败返回 1。失败不覆盖已有正式导出，成功时用目标目录内独立临时文件原子替换。
 
-## 错误（阻止导出）
+错误包括：根节点或词条类型错误，空名称/版本，`entries` 非数组，缺少合法 `symbol` 或非空 `name_zh`，非法类别，同一 `scope + symbol` 重复，参数字段类型错误或参数名重复，来源路径无效，行号不是正的安全整数。
 
-- 根节点必须是对象，`name`、`version` 非空且 `entries` 为数组。
-- 词条 `symbol`、`kind`、`name_zh`、`source.file` 必填且类型正确。
-- `kind` 仅允许 `function`、`variable`、`macro`、`enum`、`typedef`。
-- 同一 `scope + symbol` 不允许重复（不同作用域可保留同名）。
-- 源码行号必须为正整数；参数数组、参数名和常用可选字段必须类型正确。
-- 使用 `--src` 时，源文件必须存在且不能使用绝对路径/路径穿越。未传入 `--src` 时仅检查来源路径的格式，**不宣称真实文件存在**。
+类别允许 `function`、`variable`、`macro`、`enum`、`typedef`。可选文字字段允许省略，存在时必须为字符串。来源必须是兼容 Windows 的相对路径：拒绝盘符、UNC、根路径、`..` 路径段和非法字符。启用 `--src` 后检查文件存在且解析后仍在根目录内；不传 `--src` 不证明文件存在。
 
-## 警告（不会阻止导出）
+缺少函数参数数组、非空 `uncertainty` 为警告，不阻止导出。中文语义及收录决策仍须人工复核。
 
-- 可选 `parameters` 数组缺失。
-- `uncertainty` 不为空（须人工确认）。
+插件采用相同结构规则，不要求持有源码；两端用 `tests/fixtures/pack-validation.json` 检查一致性。
 
-工具只检查结构和文件来源，不检查中文释义是否与 MCU 代码语义一致。人工审阅仍然必需。
-
-## 回归测试
-
-```powershell
-python -m unittest discover -s tests -p "test_*.py" -v
-```
+05 来源快照检查：`python scripts/check-05-pack.py --src 'D:\FreeRtos\projects\freertos-learning'`。该命令额外核对逐文件 SHA-256，源码变化后须重新复核。

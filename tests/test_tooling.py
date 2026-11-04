@@ -2,6 +2,8 @@ import copy
 import json
 import tempfile
 import unittest
+import subprocess
+import sys
 from pathlib import Path
 
 from extractor.extract import MCUExtractor, mask_non_code
@@ -185,6 +187,88 @@ class ToolingTests(unittest.TestCase):
         for path in ("05_createtask-pack.json", "example/example-pack.json"):
             pack = json.loads((root / "knowledge-packs" / path).read_text(encoding="utf-8"))
             self.assertEqual(validate_data(pack)[0], [], path)
+
+    def test_shared_plugin_validation_contract(self):
+        fixtures = Path(__file__).parent / 'fixtures' / 'pack-validation.json'
+        for case in json.loads(fixtures.read_text(encoding='utf-8')):
+            with self.subTest(case=case['name']):
+                self.assertEqual(not validate_data(case['pack'])[0], case['valid'])
+
+    def test_shared_source_root_and_cli_failure_preserves_output(self):
+        lesson = self.root / 'lesson'
+        lesson.mkdir()
+        shared = self.root / 'common'
+        shared.mkdir()
+        (shared / 'board.c').write_text('int board_ready;\n', encoding='utf-8')
+        project = lesson / 'demo.uvprojx'
+        project.write_text('<Project><FilePath>../common/board.c</FilePath></Project>', encoding='utf-8')
+        with self.assertRaisesRegex(ValueError, '--root'):
+            MCUExtractor(lesson).collect_source_files(project)
+        output = self.root / 'output'
+        output.mkdir()
+        existing = output / 'variables.json'
+        existing.write_text('original', encoding='utf-8')
+        repo = Path(__file__).resolve().parents[1]
+        command = [sys.executable, str(repo / 'extractor' / 'extract.py'), '--proj', str(project), '--out', str(output)]
+        failed = subprocess.run(command, capture_output=True, encoding='utf-8')
+        self.assertEqual(failed.returncode, 1)
+        self.assertIn('--root', failed.stderr)
+        self.assertEqual(existing.read_text(encoding='utf-8'), 'original')
+        success = subprocess.run(command + ['--root', str(self.root)], capture_output=True, encoding='utf-8')
+        self.assertEqual(success.returncode, 0, success.stderr)
+        self.assertEqual(json.loads(existing.read_text(encoding='utf-8'))[0]['source']['file'], 'common/board.c')
+
+    def test_extern_variable_dedup_preserves_statics_and_incompatible_declarations(self):
+        (self.src / 'board.h').write_text('extern volatile int ready;\nextern float incompatible;\n', encoding='utf-8')
+        (self.src / 'board.c').write_text('volatile int ready;\nint incompatible;\nstatic int counter;\n', encoding='utf-8')
+        (self.src / 'other.c').write_text('static int counter;\n', encoding='utf-8')
+        ext = MCUExtractor(self.root)
+        for file in ext.collect_source_files(src_dir=self.src): ext.process_file(file)
+        ext.deduplicate()
+        ready = [v for v in ext.variables if v['symbol'] == 'ready']
+        self.assertEqual(len(ready), 1)
+        self.assertEqual(ready[0]['source']['file'], 'src/board.c')
+        self.assertEqual(sum(v['symbol'] == 'counter' for v in ext.variables), 2)
+        self.assertEqual(sum(v['symbol'] == 'incompatible' for v in ext.variables), 2)
+
+    def test_optional_locals_keep_function_and_shadowed_scope(self):
+        file = self.src / 'tasks.c'
+        file.write_text('''void worker(void) {
+    uint32_t period = get_period();
+    uint32_t tmp = 1;
+    if (period) {
+        uint32_t period = 7;
+    }
+    return;
+}
+void other(void) {
+    uint32_t period = 9;
+    uint32_t first = 0, second = 1;
+    void (*callback)(int);
+}
+''', encoding='utf-8')
+        ordinary = MCUExtractor(self.root)
+        ordinary.process_file(file)
+        self.assertEqual(ordinary.variables, [])
+        ext = MCUExtractor(self.root, include_locals=True)
+        ext.process_file(file)
+        periods = [v for v in ext.variables if v['symbol'] == 'period']
+        self.assertEqual(len(periods), 3)
+        self.assertEqual(len({v['scope'] for v in periods}), 3)
+        self.assertIn('get_period()', periods[0]['declaration'])
+        self.assertEqual(periods[0]['function'], 'worker')
+        self.assertIn('uint32_t period', periods[0]['context'])
+        self.assertNotIn('tmp', [v['symbol'] for v in ext.variables])
+        self.assertNotIn('first', [v['symbol'] for v in ext.variables])
+        self.assertTrue(any('复杂局部声明' in u['reason'] for u in ext.uncertain))
+        self.assertTrue(any('函数指针' in u['reason'] for u in ext.uncertain))
+
+    def test_invalid_pack_does_not_overwrite_existing_export(self):
+        source, output = self.root / 'pack.json', self.root / 'ready.json'
+        source.write_text('{"entries": []}', encoding='utf-8')
+        output.write_text('previous valid content', encoding='utf-8')
+        self.assertFalse(validate_pack(source, out_path=output))
+        self.assertEqual(output.read_text(encoding='utf-8'), 'previous valid content')
 
 
 if __name__ == "__main__":

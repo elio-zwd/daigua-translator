@@ -165,11 +165,21 @@ def brace_block(masked, original, start):
     return original[start:], False
 
 
+def multiple_declarators(text):
+    depth = 0
+    for char in text:
+        if char in "({[": depth += 1
+        elif char in ")}]": depth -= 1
+        elif char == "," and depth == 0: return True
+    return False
+
+
 class MCUExtractor:
-    def __init__(self, proj_root, include_drivers=False, include_freertos=False):
+    def __init__(self, proj_root, include_drivers=False, include_freertos=False, include_locals=False):
         self.proj_root = Path(proj_root).resolve()
         self.include_drivers = include_drivers
         self.include_freertos = include_freertos
+        self.include_locals = include_locals
         self.functions = []
         self.variables = []
         self.macros = []
@@ -239,10 +249,17 @@ class MCUExtractor:
                 raise FileNotFoundError("源码路径不存在: " + str(src_dir))
             candidates = [src_dir] if src_dir.is_file() else src_dir.rglob("*")
             files.update(f.resolve() for f in candidates if f.is_file() and not self.should_ignore_file(f))
-        return sorted(files, key=lambda path: path.as_posix())
+        ordered = sorted(files, key=lambda path: path.as_posix())
+        # Validate every file before processing/export, including shared headers.
+        for file in ordered:
+            self.relative(file)
+        return ordered
 
     def relative(self, path):
-        return Path(os.path.relpath(path, self.proj_root)).as_posix()
+        try:
+            return Path(path).resolve().relative_to(self.proj_root).as_posix()
+        except ValueError as error:
+            raise ValueError("源码位于根目录外，请用 --root 指定包含工程和共享源码的目录: " + str(path)) from error
 
     def add_uncertain(self, path, line, reason, sample=""):
         self.uncertain.append({
@@ -308,6 +325,7 @@ class MCUExtractor:
                     relative, {"file": relative, "line": line_at(match.start())},
                 ))
 
+        function_ranges = []
         for match in FUNC.finditer(masked):
             if depth_at(match.start()) != 0:
                 continue
@@ -322,6 +340,7 @@ class MCUExtractor:
             body = ""
             if definition:
                 body, closed = brace_block(masked, text, match.start("end"))
+                function_ranges.append((match.start("end"), match.start("end") + len(body), name))
                 if not closed:
                     self.add_uncertain(relative, source["line"], "函数大括号未闭合", signature)
                 if len(body.splitlines()) > 50:
@@ -363,10 +382,14 @@ class MCUExtractor:
                     name, "variable", original.rstrip(";"), relative,
                     {"file": relative, "line": line},
                     existing_comment=comment[:500],
+                    type=original[:found.start("name")].strip(),
                 ))
             elif (re.match(r"^(?:static|extern|volatile|const|unsigned|signed|\w+)\s+\w+", masked_line)
                   and "=" in masked_line and ";" not in masked_line):
                 self.add_uncertain(relative, line, "可能存在跨行初始化的全局变量", original)
+
+        if self.include_locals:
+            self._locals(text, masked, starts, relative, function_ranges)
 
         if path.suffix.lower() in {".cpp", ".cc", ".cxx", ".hpp", ".hh", ".hxx"}:
             if re.search(r"\b(?:namespace|template)\b", masked):
@@ -375,6 +398,43 @@ class MCUExtractor:
             self.add_uncertain(relative, 1, "含条件编译；未解析宏配置，提取内容需按目标构建复核")
         if re.search(r"\(\s*\*\s*" + IDENT + r"\s*\)\s*\(", masked):
             self.add_uncertain(relative, 1, "包含函数指针声明；正则提取可能遗漏")
+
+    def _locals(self, text, masked, starts, relative, functions):
+        """Conservative single-line declaration candidates, not an AST parser."""
+        lines = text.splitlines()
+        for begin, end, function in functions:
+            for index in range(bisect.bisect_right(starts, begin) - 1,
+                               min(bisect.bisect_right(starts, end), len(lines))):
+                offset = starts[index]
+                segment_start = max(offset, begin + 1)
+                segment_end = min(offset + len(lines[index]), end - 1)
+                raw = masked[segment_start:segment_end]
+                # Split at semicolons, but never mistake a control/return expression for a type.
+                for statement in re.finditer(r"[^;{}]+;", raw):
+                    declaration = statement.group().strip()
+                    if not declaration or re.match(r"^(?:return|goto|break|continue|if|for|while|switch|case|else|throw|delete|typedef|using)\b", declaration):
+                        continue
+                    # Calls/casts are allowed in the initializer, never in the declarator.
+                    declarator = declaration.split("=", 1)[0]
+                    found = VARIABLE.match(declaration)
+                    if found and not re.search(r"[(),]", declarator) and not multiple_declarators(declaration):
+                        name = found.group("name")
+                        if name.lower() in TRIVIAL:
+                            continue
+                        start = segment_start + statement.start()
+                        start += len(statement.group()) - len(statement.group().lstrip())
+                        original = text[start:segment_start + statement.end()].strip().rstrip(";")
+                        line = index + 1
+                        self.variables.append(self.make_entry(
+                            name, "variable", original,
+                            f"{relative}::{function}:L{line}:C{start - offset + 1}",
+                            {"file": relative, "line": line},
+                            type=declaration[:found.start("name")].strip(),
+                            function=function, local=True,
+                            context="\n".join(lines[max(0, index - 2):index + 3]),
+                        ))
+                    elif re.match(r"^(?:static\s+|const\s+|volatile\s+)*(?:[A-Za-z_]\w*)\s+[*&]?[A-Za-z_]\w*", declaration):
+                        self.add_uncertain(relative, index + 1, "复杂局部声明需人工复核", declaration)
 
     def _macros(self, lines, relative):
         index = 0
@@ -411,13 +471,13 @@ class MCUExtractor:
                 param_types.append(re.sub(r"\s+", "", token))
             key = (
                 entry["symbol"], tuple(param_types),
-                entry["scope"] if entry["_static"] else "",
+                entry["scope"] if re.search(r"\bstatic\b", entry["declaration"]) else "",
             )
             existing = chosen.get(key)
             if existing is None:
                 chosen[key] = entry
                 continue
-            preferred = entry if entry["_definition"] and not existing["_definition"] else existing
+            preferred = entry if entry.get("body") and not existing.get("body") else existing
             extra = existing if preferred is entry else entry
             for field in ("name_zh", "description_zh", "returns_zh", "existing_comment"):
                 if not preferred[field] and extra[field]:
@@ -430,6 +490,26 @@ class MCUExtractor:
         for entry in self.functions:
             entry.pop("_definition", None)
             entry.pop("_static", None)
+
+        # Merge extern declarations only when one compatible external definition exists.
+        def variable_key(entry):
+            decl = entry["declaration"].split("=", 1)[0]
+            return entry["symbol"], re.sub(r"\s+", "", re.sub(r"\bextern\b", "", decl))
+        definitions = {}
+        for entry in self.variables:
+            if entry.get("local") or re.match(r"(?:static|extern)\b", entry["declaration"]):
+                continue
+            definitions.setdefault(variable_key(entry), []).append(entry)
+        variables = []
+        for entry in self.variables:
+            if not entry.get("local") and re.match(r"extern\b", entry["declaration"]) and "=" not in entry["declaration"]:
+                matches = definitions.get(variable_key(entry), [])
+                if len(matches) == 1:
+                    if not matches[0].get("existing_comment"):
+                        matches[0]["existing_comment"] = entry.get("existing_comment", "")
+                    continue
+            variables.append(entry)
+        self.variables = variables
 
     def export(self, out_dir):
         self.deduplicate()
@@ -455,6 +535,8 @@ def main():
     parser.add_argument("--proj", help="Keil .uvprojx 工程")
     parser.add_argument("--src", help="源码目录或单个文件")
     parser.add_argument("--out", required=True, help="输出目录")
+    parser.add_argument("--root", help="来源相对路径根目录，需包含工程与共享源码")
+    parser.add_argument("--include-locals", action="store_true", help="提取局部变量候选供 AI 和人工筛选")
     parser.add_argument("--include-drivers", action="store_true")
     parser.add_argument("--include-freertos", action="store_true")
     args = parser.parse_args()
@@ -465,18 +547,26 @@ def main():
     root = proj.parent if proj else (src.parent if src and src.is_file() else src)
     if root and root.name.lower() == "mdk_v5":
         root = root.parent
-    extractor = MCUExtractor(root or Path.cwd(), args.include_drivers, args.include_freertos)
+    if args.root:
+        root = Path(args.root).resolve()
+    extractor = MCUExtractor(root or Path.cwd(), args.include_drivers, args.include_freertos, args.include_locals)
     try:
+        if not extractor.proj_root.is_dir():
+            raise ValueError("--root 必须是存在的目录")
         files = extractor.collect_source_files(proj, src)
-    except (OSError, ET.ParseError) as error:
+    except (OSError, ValueError, ET.ParseError) as error:
         print("[ERROR] " + str(error), file=sys.stderr)
         return 1
     if not files:
         print("[ERROR] 未找到支持的 C/C++ 源文件", file=sys.stderr)
         return 1
-    for file in files:
-        extractor.process_file(file)
-    extractor.export(Path(args.out).resolve())
+    try:
+        for file in files:
+            extractor.process_file(file)
+        extractor.export(Path(args.out).resolve())
+    except (OSError, ValueError) as error:
+        print("[ERROR] " + str(error), file=sys.stderr)
+        return 1
     return 0
 
 

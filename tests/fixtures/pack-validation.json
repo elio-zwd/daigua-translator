@@ -1,0 +1,578 @@
+[
+  {
+    "name": "minimal",
+    "valid": true,
+    "pack": {
+      "name": "test",
+      "version": "1",
+      "entries": [
+        {
+          "symbol": "Motor_Start",
+          "kind": "function",
+          "name_zh": "启动电机",
+          "source": {
+            "file": "src/motor.c",
+            "line": 1
+          },
+          "parameters": []
+        }
+      ]
+    }
+  },
+  {
+    "name": "optional types",
+    "valid": false,
+    "pack": {
+      "name": "test",
+      "version": "1",
+      "entries": [
+        {
+          "symbol": "Motor_Start",
+          "kind": "function",
+          "name_zh": "启动电机",
+          "source": {
+            "file": "src/motor.c",
+            "line": 1
+          },
+          "parameters": []
+        }
+      ],
+      "source_version": 3
+    }
+  },
+  {
+    "name": "null entry",
+    "valid": false,
+    "pack": {
+      "name": "test",
+      "version": "1",
+      "entries": [
+        {
+          "symbol": "Motor_Start",
+          "kind": "function",
+          "name_zh": "启动电机",
+          "source": {
+            "file": "src/motor.c",
+            "line": 1
+          },
+          "parameters": []
+        },
+        null
+      ]
+    }
+  },
+  {
+    "name": "missing Chinese name",
+    "valid": false,
+    "pack": {
+      "name": "test",
+      "version": "1",
+      "entries": [
+        {
+          "symbol": "Motor_Start",
+          "kind": "function",
+          "name_zh": " ",
+          "source": {
+            "file": "src/motor.c",
+            "line": 1
+          },
+          "parameters": []
+        }
+      ]
+    }
+  },
+  {
+    "name": "illegal kind",
+    "valid": false,
+    "pack": {
+      "name": "test",
+      "version": "1",
+      "entries": [
+        {
+          "symbol": "Motor_Start",
+          "kind": "class",
+          "name_zh": "启动电机",
+          "source": {
+            "file": "src/motor.c",
+            "line": 1
+          },
+          "parameters": []
+        }
+      ]
+    }
+  },
+  {
+    "name": "ASCII symbol",
+    "valid": false,
+    "pack": {
+      "name": "test",
+      "version": "1",
+      "entries": [
+        {
+          "symbol": "Motor_启动",
+          "kind": "function",
+          "name_zh": "启动电机",
+          "source": {
+            "file": "src/motor.c",
+            "line": 1
+          },
+          "parameters": []
+        }
+      ]
+    }
+  },
+  {
+    "name": "duplicate scope",
+    "valid": false,
+    "pack": {
+      "name": "test",
+      "version": "1",
+      "entries": [
+        {
+          "symbol": "Motor_Start",
+          "kind": "function",
+          "name_zh": "启动电机",
+          "source": {
+            "file": "src/motor.c",
+            "line": 1
+          },
+          "parameters": []
+        },
+        {
+          "symbol": "Motor_Start",
+          "kind": "function",
+          "name_zh": "启动电机",
+          "source": {
+            "file": "src/motor.c",
+            "line": 1
+          },
+          "parameters": []
+        }
+      ]
+    }
+  },
+  {
+    "name": "different scopes",
+    "valid": true,
+    "pack": {
+      "name": "test",
+      "version": "1",
+      "entries": [
+        {
+          "symbol": "Motor_Start",
+          "kind": "function",
+          "name_zh": "启动电机",
+          "source": {
+            "file": "src/motor.c",
+            "line": 1
+          },
+          "parameters": []
+        },
+        {
+          "symbol": "Motor_Start",
+          "kind": "function",
+          "name_zh": "启动电机",
+          "source": {
+            "file": "src/motor.c",
+            "line": 1
+          },
+          "parameters": [],
+          "scope": "other"
+        }
+      ]
+    }
+  },
+  {
+    "name": "bad parameters",
+    "valid": false,
+    "pack": {
+      "name": "test",
+      "version": "1",
+      "entries": [
+        {
+          "symbol": "Motor_Start",
+          "kind": "function",
+          "name_zh": "启动电机",
+          "source": {
+            "file": "src/motor.c",
+            "line": 1
+          },
+          "parameters": [
+            null
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "optional parameter description",
+    "valid": true,
+    "pack": {
+      "name": "test",
+      "version": "1",
+      "entries": [
+        {
+          "symbol": "Motor_Start",
+          "kind": "function",
+          "name_zh": "启动电机",
+          "source": {
+            "file": "src/motor.c",
+            "line": 1
+          },
+          "parameters": [
+            {
+              "name": "value"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "duplicate parameters",
+    "valid": false,
+    "pack": {
+      "name": "test",
+      "version": "1",
+      "entries": [
+        {
+          "symbol": "Motor_Start",
+          "kind": "function",
+          "name_zh": "启动电机",
+          "source": {
+            "file": "src/motor.c",
+            "line": 1
+          },
+          "parameters": [
+            {
+              "name": "x"
+            },
+            {
+              "name": "x"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "Windows drive",
+    "valid": false,
+    "pack": {
+      "name": "test",
+      "version": "1",
+      "entries": [
+        {
+          "symbol": "Motor_Start",
+          "kind": "function",
+          "name_zh": "启动电机",
+          "source": {
+            "file": "C:/src/a.c",
+            "line": 1
+          },
+          "parameters": []
+        }
+      ]
+    }
+  },
+  {
+    "name": "drive relative",
+    "valid": false,
+    "pack": {
+      "name": "test",
+      "version": "1",
+      "entries": [
+        {
+          "symbol": "Motor_Start",
+          "kind": "function",
+          "name_zh": "启动电机",
+          "source": {
+            "file": "C:a.c",
+            "line": 1
+          },
+          "parameters": []
+        }
+      ]
+    }
+  },
+  {
+    "name": "UNC",
+    "valid": false,
+    "pack": {
+      "name": "test",
+      "version": "1",
+      "entries": [
+        {
+          "symbol": "Motor_Start",
+          "kind": "function",
+          "name_zh": "启动电机",
+          "source": {
+            "file": "\\\\server\\share\\a.c",
+            "line": 1
+          },
+          "parameters": []
+        }
+      ]
+    }
+  },
+  {
+    "name": "rooted",
+    "valid": false,
+    "pack": {
+      "name": "test",
+      "version": "1",
+      "entries": [
+        {
+          "symbol": "Motor_Start",
+          "kind": "function",
+          "name_zh": "启动电机",
+          "source": {
+            "file": "\\src\\a.c",
+            "line": 1
+          },
+          "parameters": []
+        }
+      ]
+    }
+  },
+  {
+    "name": "POSIX absolute",
+    "valid": false,
+    "pack": {
+      "name": "test",
+      "version": "1",
+      "entries": [
+        {
+          "symbol": "Motor_Start",
+          "kind": "function",
+          "name_zh": "启动电机",
+          "source": {
+            "file": "/src/a.c",
+            "line": 1
+          },
+          "parameters": []
+        }
+      ]
+    }
+  },
+  {
+    "name": "traversal",
+    "valid": false,
+    "pack": {
+      "name": "test",
+      "version": "1",
+      "entries": [
+        {
+          "symbol": "Motor_Start",
+          "kind": "function",
+          "name_zh": "启动电机",
+          "source": {
+            "file": "a/../b.c",
+            "line": 1
+          },
+          "parameters": []
+        }
+      ]
+    }
+  },
+  {
+    "name": "invalid char",
+    "valid": false,
+    "pack": {
+      "name": "test",
+      "version": "1",
+      "entries": [
+        {
+          "symbol": "Motor_Start",
+          "kind": "function",
+          "name_zh": "启动电机",
+          "source": {
+            "file": "src/a?.c",
+            "line": 1
+          },
+          "parameters": []
+        }
+      ]
+    }
+  },
+  {
+    "name": "null byte",
+    "valid": false,
+    "pack": {
+      "name": "test",
+      "version": "1",
+      "entries": [
+        {
+          "symbol": "Motor_Start",
+          "kind": "function",
+          "name_zh": "启动电机",
+          "source": {
+            "file": "src/a\u0000.c",
+            "line": 1
+          },
+          "parameters": []
+        }
+      ]
+    }
+  },
+  {
+    "name": "bad line 0",
+    "valid": false,
+    "pack": {
+      "name": "test",
+      "version": "1",
+      "entries": [
+        {
+          "symbol": "Motor_Start",
+          "kind": "function",
+          "name_zh": "启动电机",
+          "source": {
+            "file": "src/motor.c",
+            "line": 0
+          },
+          "parameters": []
+        }
+      ]
+    }
+  },
+  {
+    "name": "bad line -1",
+    "valid": false,
+    "pack": {
+      "name": "test",
+      "version": "1",
+      "entries": [
+        {
+          "symbol": "Motor_Start",
+          "kind": "function",
+          "name_zh": "启动电机",
+          "source": {
+            "file": "src/motor.c",
+            "line": -1
+          },
+          "parameters": []
+        }
+      ]
+    }
+  },
+  {
+    "name": "bad line True",
+    "valid": false,
+    "pack": {
+      "name": "test",
+      "version": "1",
+      "entries": [
+        {
+          "symbol": "Motor_Start",
+          "kind": "function",
+          "name_zh": "启动电机",
+          "source": {
+            "file": "src/motor.c",
+            "line": true
+          },
+          "parameters": []
+        }
+      ]
+    }
+  },
+  {
+    "name": "bad line 1.5",
+    "valid": false,
+    "pack": {
+      "name": "test",
+      "version": "1",
+      "entries": [
+        {
+          "symbol": "Motor_Start",
+          "kind": "function",
+          "name_zh": "启动电机",
+          "source": {
+            "file": "src/motor.c",
+            "line": 1.5
+          },
+          "parameters": []
+        }
+      ]
+    }
+  },
+  {
+    "name": "bad line 9007199254740992",
+    "valid": false,
+    "pack": {
+      "name": "test",
+      "version": "1",
+      "entries": [
+        {
+          "symbol": "Motor_Start",
+          "kind": "function",
+          "name_zh": "启动电机",
+          "source": {
+            "file": "src/motor.c",
+            "line": 9007199254740992
+          },
+          "parameters": []
+        }
+      ]
+    }
+  },
+  {
+    "name": "backslash relative",
+    "valid": true,
+    "pack": {
+      "name": "test",
+      "version": "1",
+      "entries": [
+        {
+          "symbol": "Motor_Start",
+          "kind": "function",
+          "name_zh": "启动电机",
+          "source": {
+            "file": "src\\motor.c",
+            "line": 1
+          },
+          "parameters": []
+        }
+      ]
+    }
+  },
+  {
+    "name": "JSON integer written as float",
+    "valid": true,
+    "pack": {
+      "name": "test",
+      "version": "1",
+      "entries": [
+        {
+          "symbol": "Motor_Start",
+          "kind": "function",
+          "name_zh": "启动电机",
+          "source": {
+            "file": "src/motor.c",
+            "line": 1.0
+          },
+          "parameters": []
+        }
+      ]
+    }
+  },
+  {
+    "name": "symbol with trailing newline",
+    "valid": false,
+    "pack": {
+      "name": "test",
+      "version": "1",
+      "entries": [
+        {
+          "symbol": "Motor_Start\n",
+          "kind": "function",
+          "name_zh": "启动电机",
+          "source": {
+            "file": "src/motor.c",
+            "line": 1
+          },
+          "parameters": []
+        }
+      ]
+    }
+  }
+]

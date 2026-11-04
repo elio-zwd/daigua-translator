@@ -3,9 +3,9 @@
 """Validate and export MCU knowledge-pack JSON without silent partial success."""
 import argparse
 import json
-import os
 import re
 import sys
+import tempfile
 from pathlib import Path, PureWindowsPath
 
 # GitHub Actions and some Windows shells default to a non-Unicode console code page.
@@ -14,7 +14,7 @@ for stream in (sys.stdout, sys.stderr):
         stream.reconfigure(encoding='utf-8', errors='replace')
 
 VALID_KINDS = {"function", "variable", "macro", "enum", "typedef"}
-SYMBOL_RE = re.compile(r"^[A-Za-z_]\w*$")
+SYMBOL_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 OPTIONAL_TEXT = ("description_zh", "declaration", "returns_zh", "scope", "uncertainty")
 
 
@@ -34,21 +34,33 @@ def check_source(source, location, root, errors):
     file_value = check_text(source.get("file"), location + ".source.file", errors, True)
     if "project" in source:
         check_text(source["project"], location + ".source.project", errors)
-    if "line" in source and (type(source["line"]) is not int or source["line"] <= 0):
-        errors.append(location + ".source.line 必须是正整数")
+    if "line" in source:
+        line = source["line"]
+        # JSON numbers such as 1 and 1.0 must agree with Number.isSafeInteger in JS.
+        if (type(line) not in (int, float) or not 0 < line <= 9007199254740991 or int(line) != line):
+            errors.append(location + ".source.line 必须是正整数")
     if not file_value:
         return
     # Reject Windows drive paths even when running validation on POSIX.
     path = Path(file_value.replace("\\", "/"))
-    if path.is_absolute() or PureWindowsPath(file_value).is_absolute():
+    if path.is_absolute() or PureWindowsPath(file_value).root or PureWindowsPath(file_value).drive:
         errors.append(location + ": source.file 必须是相对于 --src 的路径")
         return
+    if ".." in path.parts:
+        errors.append(location + ": source.file 不允许越过源码根目录")
+        return
+    if re.search(r'[\x00-\x1f<>:"|?*]', file_value):
+        errors.append(location + ": source.file 含有 Windows 非法路径字符")
+        return
     if root is not None:
-        resolved = (root / path).resolve()
-        if os.path.commonpath((str(root), str(resolved))) != str(root):
-            errors.append(location + ": source.file 不允许越过源码根目录")
-        elif not resolved.is_file():
-            errors.append(location + ": 来源文件不存在: " + file_value)
+        try:
+            resolved = (root / path).resolve()
+            if not resolved.is_relative_to(root):
+                errors.append(location + ": source.file 不允许越过源码根目录")
+            elif not resolved.is_file():
+                errors.append(location + ": 来源文件不存在: " + file_value)
+        except (OSError, ValueError, RuntimeError) as error:
+            errors.append(location + ": 无法检查来源路径: " + str(error))
 
 
 def check_parameters(parameters, location, errors):
@@ -88,7 +100,10 @@ def validate_data(data, src_root=None):
         errors.append("根节点.entries 必须是数组")
         return errors, warnings
 
-    root = Path(src_root).resolve() if src_root is not None else None
+    try:
+        root = Path(src_root).resolve() if src_root is not None else None
+    except (OSError, ValueError, RuntimeError) as error:
+        return ["--src 路径无效: " + str(error)], warnings
     if root is not None and not root.is_dir():
         errors.append("--src 必须是存在的源码目录")
         return errors, warnings
@@ -130,9 +145,9 @@ def validate_data(data, src_root=None):
 
 def validate_pack(pack_path, src_root=None, out_path=None):
     try:
-        with open(pack_path, encoding="utf-8") as handle:
+        with open(pack_path, encoding="utf-8-sig") as handle:
             data = json.load(handle)
-    except (OSError, UnicodeError, json.JSONDecodeError) as error:
+    except (OSError, ValueError, UnicodeError) as error:
         print("[ERROR] 无法读取知识包: " + str(error))
         return False
     errors, warnings = validate_data(data, src_root)
@@ -149,14 +164,15 @@ def validate_pack(pack_path, src_root=None, out_path=None):
             target = Path(out_path)
             target.parent.mkdir(parents=True, exist_ok=True)
             # Write atomically in the destination directory.
-            temp = target.with_name(target.name + ".tmp")
+            with tempfile.NamedTemporaryFile(dir=target.parent, prefix=target.name + ".", suffix=".tmp", delete=False) as handle:
+                temp = Path(handle.name)
             try:
                 temp.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
                 temp.replace(target)
             finally:
                 if temp.exists():
                     temp.unlink()
-        except OSError as error:
+        except (OSError, ValueError) as error:
             print("[ERROR] 导出失败: " + str(error))
             return False
         print("[OK] 导出: " + str(out_path))
