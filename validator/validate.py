@@ -1,166 +1,178 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
-"""
-validate.py
-呆瓜翻译器 - 知识包校验与导出工具
-
-用于检查知识包 JSON 文件的结构规范性、必填字段、符号重复性及源文件引用，
-支持格式化并导出标准化知识包。
-"""
-
+"""Validate and export MCU knowledge-pack JSON without silent partial success."""
 import argparse
 import json
 import os
+import re
 import sys
-from collections import defaultdict
+from pathlib import Path, PureWindowsPath
 
-# 针对 Windows 控制台编码保护
-if hasattr(sys.stdout, "reconfigure"):
-    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-if hasattr(sys.stderr, "reconfigure"):
-    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+# GitHub Actions and some Windows shells default to a non-Unicode console code page.
+for stream in (sys.stdout, sys.stderr):
+    if hasattr(stream, 'reconfigure'):
+        stream.reconfigure(encoding='utf-8', errors='replace')
 
-# 合法的符号类别
 VALID_KINDS = {"function", "variable", "macro", "enum", "typedef"}
+SYMBOL_RE = re.compile(r"^[A-Za-z_]\w*$")
+OPTIONAL_TEXT = ("description_zh", "declaration", "returns_zh", "scope", "uncertainty")
 
 
-def validate_pack(pack_path: str, src_root: str = None, out_path: str = None) -> bool:
-    """
-    校验知识包文件
-    :param pack_path: 知识包 JSON 路径
-    :param src_root: 可选，源代码根目录，用于校验 source.file 是否真实存在
-    :param out_path: 可选，导出标准化格式的路径
-    :return: 校验是否通过（True 为成功，False 为发现致命错误）
-    """
-    print(f"正在校验知识包: {pack_path}")
-    if not os.path.exists(pack_path):
-        print(f"[错误] 知识包文件不存在: {pack_path}")
-        return False
+def check_text(value, field, errors, required=False):
+    if not isinstance(value, str):
+        errors.append(field + " 必须是字符串")
+        return ""
+    if required and not value.strip():
+        errors.append(field + " 不能为空")
+    return value
 
-    try:
-        with open(pack_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-    except Exception as e:
-        print(f"[错误] 解析 JSON 文件失败: {e}")
-        return False
 
-    errors = []
-    warnings = []
+def check_source(source, location, root, errors):
+    if not isinstance(source, dict):
+        errors.append(location + ": source 必须是对象")
+        return
+    file_value = check_text(source.get("file"), location + ".source.file", errors, True)
+    if "project" in source:
+        check_text(source["project"], location + ".source.project", errors)
+    if "line" in source and (type(source["line"]) is not int or source["line"] <= 0):
+        errors.append(location + ".source.line 必须是正整数")
+    if not file_value:
+        return
+    # Reject Windows drive paths even when running validation on POSIX.
+    path = Path(file_value.replace("\\", "/"))
+    if path.is_absolute() or PureWindowsPath(file_value).is_absolute():
+        errors.append(location + ": source.file 必须是相对于 --src 的路径")
+        return
+    if root is not None:
+        resolved = (root / path).resolve()
+        if os.path.commonpath((str(root), str(resolved))) != str(root):
+            errors.append(location + ": source.file 不允许越过源码根目录")
+        elif not resolved.is_file():
+            errors.append(location + ": 来源文件不存在: " + file_value)
 
-    # 1. 检查根级必填字段
-    for req_field in ["name", "version", "entries"]:
-        if req_field not in data:
-            errors.append(f"根节点缺少必填字段: '{req_field}'")
 
-    entries = data.get("entries", [])
-    if not isinstance(entries, list):
-        errors.append("根节点字段 'entries' 必须是数组列表")
-        entries = []
-
-    print(f"  包含词条总数: {len(entries)}")
-
-    # 2. 检查词条字段与符号重复情况
-    # 统计 (symbol, scope) 的出现次数
-    scope_symbol_count = defaultdict(list)
-
-    for idx, entry in enumerate(entries):
-        entry_loc = f"词条 #{idx + 1}"
-        if not isinstance(entry, dict):
-            errors.append(f"{entry_loc} 格式非法，必须为 JSON 对象")
+def check_parameters(parameters, location, errors):
+    if not isinstance(parameters, list):
+        errors.append(location + ".parameters 必须是数组")
+        return
+    seen = set()
+    for index, param in enumerate(parameters, 1):
+        label = f"{location}.parameters[{index}]"
+        if not isinstance(param, dict):
+            errors.append(label + " 必须是对象")
             continue
+        name = check_text(param.get("name"), label + ".name", errors, True)
+        if "description_zh" in param:
+            check_text(param["description_zh"], label + ".description_zh", errors)
+        if "type" in param:
+            check_text(param["type"], label + ".type", errors)
+        if name and name in seen:
+            errors.append(label + ": 重复参数名 " + name)
+        seen.add(name)
 
-        symbol = entry.get("symbol", "").strip()
-        kind = entry.get("kind", "").strip()
-        name_zh = entry.get("name_zh", "").strip()
-        source = entry.get("source")
-        scope = entry.get("scope", "").strip()
 
-        if not symbol:
-            errors.append(f"{entry_loc}: 'symbol' 不能为空")
-        else:
-            scope_symbol_count[(scope, symbol)].append(idx + 1)
+def validate_data(data, src_root=None):
+    """Return (errors, warnings) for one parsed JSON document."""
+    errors, warnings = [], []
+    if not isinstance(data, dict):
+        return ["知识包根节点必须是对象"], warnings
 
-        if not kind:
-            errors.append(f"{entry_loc} ({symbol}): 'kind' 不能为空")
-        elif kind not in VALID_KINDS:
-            warnings.append(
-                f"{entry_loc} ({symbol}): 'kind'='{kind}' 不在标准类别列表 {list(VALID_KINDS)} 中"
-            )
+    for field in ("name", "version"):
+        check_text(data.get(field), "根节点." + field, errors, True)
+    if "source_version" in data:
+        check_text(data["source_version"], "根节点.source_version", errors)
+    if "description" in data:
+        check_text(data["description"], "根节点.description", errors)
+    entries = data.get("entries")
+    if not isinstance(entries, list):
+        errors.append("根节点.entries 必须是数组")
+        return errors, warnings
 
-        if not name_zh:
-            warnings.append(f"{entry_loc} ({symbol}): 'name_zh' 中文名称为空")
+    root = Path(src_root).resolve() if src_root is not None else None
+    if root is not None and not root.is_dir():
+        errors.append("--src 必须是存在的源码目录")
+        return errors, warnings
 
-        if not source or not isinstance(source, dict):
-            errors.append(f"{entry_loc} ({symbol}): 缺少 'source' 对象字段")
-        else:
-            file_path = source.get("file", "").strip()
-            if not file_path:
-                warnings.append(f"{entry_loc} ({symbol}): source.file 路径未填写")
-            elif src_root:
-                # 校验文件在源码目录中是否存在
-                abs_file_path = os.path.normpath(os.path.join(src_root, file_path))
-                if not os.path.exists(abs_file_path):
-                    warnings.append(
-                        f"{entry_loc} ({symbol}): 源码引用文件不存在: {file_path}"
-                    )
+    duplicates = {}
+    for index, entry in enumerate(entries, 1):
+        label = f"词条 #{index}"
+        if not isinstance(entry, dict):
+            errors.append(label + " 必须是对象")
+            continue
+        symbol = check_text(entry.get("symbol"), label + ".symbol", errors, True)
+        kind = check_text(entry.get("kind"), label + ".kind", errors, True)
+        check_text(entry.get("name_zh"), label + ".name_zh", errors, True)
+        if symbol and not SYMBOL_RE.fullmatch(symbol):
+            errors.append(label + ": symbol 不是合法的 C/C++ 标识符")
+        if kind and kind not in VALID_KINDS:
+            errors.append(label + ": 非法 kind " + kind)
+        for field in OPTIONAL_TEXT:
+            if field in entry:
+                check_text(entry[field], label + "." + field, errors)
+        scope = entry.get("scope", "")
+        if isinstance(scope, str) and symbol:
+            key = (scope, symbol)
+            if key in duplicates:
+                errors.append(
+                    f"{label}: 重复词条 ({scope}, {symbol})，首次出现于词条 #{duplicates[key]}"
+                )
+            else:
+                duplicates[key] = index
+        check_source(entry.get("source"), label, root, errors)
+        if "parameters" in entry:
+            check_parameters(entry["parameters"], label, errors)
+        elif kind == "function":
+            warnings.append(label + ": 缺少 parameters 数组")
+        if isinstance(entry.get("uncertainty"), str) and entry["uncertainty"].strip():
+            warnings.append(label + ": 含有待确认说明，建议人工复核")
+    return errors, warnings
 
-    # 3. 重复符号检查
-    for (scope, symbol), idx_list in scope_symbol_count.items():
-        if len(idx_list) > 1:
-            scope_desc = f"在作用域 '{scope}' 下" if scope else "在全局作用域下"
-            warnings.append(
-                f"符号 '{symbol}' {scope_desc} 重复出现 {len(idx_list)} 次（词条序号: {idx_list}）"
-            )
 
-    # 输出校验结果
-    print("\n--- 校验结果汇总 ---")
+def validate_pack(pack_path, src_root=None, out_path=None):
+    try:
+        with open(pack_path, encoding="utf-8") as handle:
+            data = json.load(handle)
+    except (OSError, UnicodeError, json.JSONDecodeError) as error:
+        print("[ERROR] 无法读取知识包: " + str(error))
+        return False
+    errors, warnings = validate_data(data, src_root)
+    print(f"校验: {pack_path}; 错误 {len(errors)} 项，警告 {len(warnings)} 项")
+    for message in errors:
+        print("[ERROR] " + message)
+    for message in warnings:
+        print("[WARN] " + message)
     if errors:
-        print(f"[ERROR] 发现 {len(errors)} 个致命错误:")
-        for err in errors:
-            print(f"  - {err}")
-    else:
-        print("[OK] 必填项与结构结构格式检查通过")
-
-    if warnings:
-        print(f"[WARN] 发现 {len(warnings)} 个警告项:")
-        for warn in warnings:
-            print(f"  - {warn}")
-    else:
-        print("[OK] 没有警告项")
-
-    is_valid = len(errors) == 0
-
-    # 4. 导出标准化知识包
-    if is_valid and out_path:
+        print("[FAIL] 拒绝导出未通过校验的知识包")
+        return False
+    if out_path is not None:
         try:
-            out_dir = os.path.dirname(os.path.abspath(out_path))
-            if out_dir and not os.path.exists(out_dir):
-                os.makedirs(out_dir, exist_ok=True)
-            with open(out_path, "w", encoding="utf-8") as f:
-                json.dump(data, f, ensure_ascii=False, indent=2)
-            print(f"\n[导出] 已成功保存规范化知识包至: {out_path}")
-        except Exception as e:
-            print(f"\n[导出错误] 写入导出文件失败: {e}")
+            target = Path(out_path)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            # Write atomically in the destination directory.
+            temp = target.with_name(target.name + ".tmp")
+            try:
+                temp.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+                temp.replace(target)
+            finally:
+                if temp.exists():
+                    temp.unlink()
+        except OSError as error:
+            print("[ERROR] 导出失败: " + str(error))
             return False
-
-    return is_valid
+        print("[OK] 导出: " + str(out_path))
+    else:
+        print("[OK] 知识包通过校验")
+    return True
 
 
 def main():
-    parser = argparse.ArgumentParser(description="呆瓜翻译器 - 知识包格式校验与导出工具")
-    parser.add_argument("--pack", required=True, help="待校验的知识包 JSON 文件路径")
-    parser.add_argument(
-        "--src", default=None, help="可选：MCU 源码根目录，用于核对 source.file 是否真实存在"
-    )
-    parser.add_argument(
-        "--out", default=None, help="可选：校验通过后导出规范化知识包的目标路径"
-    )
-
+    parser = argparse.ArgumentParser(description="校验并导出 MCU 知识包")
+    parser.add_argument("--pack", required=True, help="知识包 JSON")
+    parser.add_argument("--src", help="真实源码根目录，用于检查源文件")
+    parser.add_argument("--out", help="成功后导出标准 JSON")
     args = parser.parse_args()
-    success = validate_pack(args.pack, args.src, args.out)
-    sys.exit(0 if success else 1)
+    return 0 if validate_pack(args.pack, args.src, args.out) else 1
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

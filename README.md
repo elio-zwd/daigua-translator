@@ -96,7 +96,15 @@ python validator\validate.py --pack "knowledge-packs\05_createtask-pack.json"
 
 可选参数：
 - `--src <源码目录>`：检查词条中引用的源文件是否真实存在
-- `--out <导出路径>`：校验通过后导出格式化压缩的 JSON
+- `--out <导出路径>`：校验通过后导出格式化 JSON（未通过则拒绝导出）
+
+### 4. 运行 MCU 工具回归测试
+
+```powershell
+python -m unittest discover -s tests -p "test_*.py" -v
+```
+
+源码提取输出属于需要 AI / 人工复核的事实草稿，不是保证准确的 C/C++ 完整语法树；`uncertain.json` 记录已发现的复杂结构，不能保证覆盖全部漏提取项。严格校验器需要中文名称等字段已补齐。`--src` 指向真实源码根目录时会检查来源文件存在性。详见 [提取工具说明](extractor/README.md)、[校验工具说明](validator/README.md)。
 
 ---
 
