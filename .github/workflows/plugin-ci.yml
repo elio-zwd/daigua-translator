@@ -1,0 +1,36 @@
+name: Plugin CI
+on:
+  push:
+    branches: [main, fix/mtrancode-integration]
+  pull_request:
+jobs:
+  plugin:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: plugin
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: plugin/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - name: Build installable VSIX
+        run: npx --yes @vscode/vsce package --out daigua-translator.vsix
+      - name: Check runtime assets in VSIX
+        run: |
+          python - <<'PY'
+          import zipfile
+          with zipfile.ZipFile('daigua-translator.vsix') as z:
+              files = z.namelist()
+              assert 'extension/out/extension.js' in files, 'compiled entry missing'
+              assert any(p.startswith('extension/node_modules/bing-translate-api/') for p in files), 'Bing dependency missing'
+          print('VSIX compiled entry and Bing dependency verified')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: daigua-translator-vsix
+          path: plugin/daigua-translator.vsix
