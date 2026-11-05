@@ -12,6 +12,7 @@
 /** 词条中的参数描述 */
 export interface ParameterEntry {
   name: string;
+  type?: string;
   description_zh?: string;
 }
 
