@@ -2,16 +2,18 @@
 
 ![呆瓜翻译器 MCU 代码翻译形象](docs/assets/daigua-mcu-illustration.png)
 
-面向 MCU C/C++ 的 MTranCode 翻译源：优先查询本地知识包，未命中时使用与 MTranCode 相同的 `bing-translate-api` 库请求 Bing。运行时不调用 AI，不需要模型地址或 API Key。
+面向 MCU C/C++ 的本地知识包插件，提供直接符号悬停和 MTranCode 翻译源。未命中且开启回退时使用 `bing-translate-api` 请求 Bing。运行时不调用 AI，不需要模型地址或 API Key。
 
 当前为首版候选实现，自动验证已具备。真实 VS Code/MTranCode、实际断网和硬件行为由用户手动验收，知识包中文仍待人工复核。已查询文本可能受宿主持久化缓存影响，详见[验收步骤与记录](docs/mtrancode-integration.md)。
 
 ## 安装与使用
 
-1. 在 VS Code 安装 MTranCode，再选择“从 VSIX 安装”安装本插件。
-2. 将 `daiguaTranslate.packPaths` 设为知识包 JSON **绝对路径**数组。
-3. 从 MTranCode 的 Change translation source 选择“呆瓜翻译器（本地知识包）”。
-4. 查询 `worker()`、`intervals` 或 `local_count`，查看中文、参数和来源。未收录内容完整回退 Bing。
+1. 在 VS Code 选择“从 VSIX 安装”安装本插件，更新后重新加载窗口。使用普通文本翻译时另需 MTranCode。
+2. 运行“呆瓜翻译器：选择知识包文件”选择 JSON，状态栏显示已加载词条数量。
+3. 在 C/C++ 符号上悬停，查看“呆瓜 · 本地知识包”说明；也可通过编辑器右键的“本地查询”直接检查词条。两个入口不经过 MTranCode 缓存。
+4. 点击状态栏打开快捷设置，可开关 Bing、检查加载诊断，或将 MTranCode 翻译源设为呆瓜。
+
+0.3.0 的 [完整设置说明](plugin/README.md)及[安装和验证步骤](docs/acceptance-2026-11-05.md)。默认启用保存后自动重载及函数参数查询，不修改原知识包。只读本地代码说明时可关闭 Bing，未命中立即结束。
 
 “呆瓜翻译器：重新加载知识包”更新活动翻译器，路径配置变化也会重载。坏包整体拒绝；重载失败保留该路径上一次有效内容，移除路径立即移除该包。提示显示成功包数、有效词条数和失败路径，详细原因见“呆瓜翻译器”输出通道。
 
