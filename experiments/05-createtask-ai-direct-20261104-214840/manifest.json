@@ -1,0 +1,224 @@
+{
+  "experiment": {
+    "name": "05_createtask AI 直接阅读源码制作知识包试验",
+    "description": "验证取消专门符号提取脚本前置环节、由 AI 直接阅读 C/H 源码生成中文知识包的完整流程与质量。",
+    "output_directory": "experiments/05-createtask-ai-direct-20261104-214840",
+    "start_time": "2026-11-04T21:45:00+08:00",
+    "end_time": "2026-11-04T22:15:00+08:00",
+    "ai_model": "Gemini 3.8 Flash (High)",
+    "host_os": "Windows 10 x64",
+    "powershell_shell": "pwsh.exe (PowerShell 7.5.x)"
+  },
+  "source_environment": {
+    "source_root": "M:\\005869\\FreeRtos\\projects\\freertos-learning",
+    "course_project": "05_createtask",
+    "keil_project": "05_createtask/mdk_v5/course.uvprojx",
+    "target_name": "course_05",
+    "device": "AT32F435VGT7",
+    "git_status": {
+      "translator_repo_commit": "0522496921589d6e60daabf482fa810bec4d3ca4",
+      "source_repo_git": "源码根目录未发现独立 .git 目录；版本背景为上游 2b16b3041576f4d904d7296ac00386cc289bbc53，实际读取内容由 SHA-256 哈希完整固化"
+    },
+    "confirmed_macro_configs": {
+      "system_core_clock": "288000000U (288 MHz)",
+      "configTICK_RATE_HZ": 1000,
+      "configTOTAL_HEAP_SIZE": "60 * 1024 (60 KiB, heap_4)",
+      "configMAX_PRIORITIES": 8,
+      "COURSE_STACK": 256,
+      "COURSE_LOG_STACK": 512,
+      "COURSE_KEY_INDEX": 0,
+      "COURSE_KEY_ACTIVE_LEVEL": 0,
+      "COURSE_KEY_PULL": "GPIO_PULL_NONE",
+      "COURSE_IRQ_PRIORITY": 6,
+      "COURSE_LED_A_PIN": "GPIO_PINS_12 (PC12, active low)",
+      "COURSE_LED_B_PIN": "GPIO_PINS_9 (PC9, active low)",
+      "COURSE_UART_BAUD": 115200,
+      "configPRIO_BITS": 4,
+      "configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY": 5,
+      "configLIBRARY_LOWEST_INTERRUPT_PRIORITY": 15
+    }
+  },
+  "prior_exposure": {
+    "contacted_prior_results": false,
+    "disclosure": "在初稿 pack-initial.json 生成与结构校验完成前，AI 完全独立直接阅读 C/H 源码，未读取 05_createtask-pack.json 或任何旧复核记录；在 Phase D 初稿冻结并通过结构校验后，进入 Phase E 阶段才读取旧知识包与复核记录进行逐项差异比对与源码复查。"
+  },
+  "files": [
+    {
+      "relative_path": "05_createtask/mdk_v5/course.uvprojx",
+      "role": "工程配置",
+      "reason": "确定 Target 名称 (course_05)、预处理器宏、包含路径及工程源码组构成",
+      "read_status": "complete",
+      "lines_read": "1-538",
+      "bytes": 19373,
+      "sha256": "a5c9bfd739b0401db8f431f68e1454db01caf2969652b88d3f2349d28b218ad1"
+    },
+    {
+      "relative_path": "05_createtask/src/main.c",
+      "role": "制作词条",
+      "reason": "05 实验核心业务源码，定义任务周期配置、worker 任务函数及 main 入口",
+      "read_status": "complete",
+      "lines_read": "1-29",
+      "bytes": 1078,
+      "sha256": "46e923fac4bb06c614efcb02bd77ab34266c085c9552e48ff20d28d087111437"
+    },
+    {
+      "relative_path": "05_createtask/inc/FreeRTOSConfig.h",
+      "role": "制作词条",
+      "reason": "实验自有 FreeRTOS 配置头文件，引入公共 RTOS 配置",
+      "read_status": "complete",
+      "lines_read": "1-5",
+      "bytes": 92,
+      "sha256": "4fb81f20699935804c0a1e13c50957601b541b96414e7442037af8e5d69abcb1"
+    },
+    {
+      "relative_path": "common/platform/course_board.c",
+      "role": "制作词条",
+      "reason": "共享板级支持模块实现，包含 LED、串口、日志、忙等待、按键探测及统计定时器",
+      "read_status": "complete",
+      "lines_read": "1-198",
+      "bytes": 7050,
+      "sha256": "99f81be446d81b4e57b83d54636e9a346041cf56526cb4379b231c2d1f48e0ba"
+    },
+    {
+      "relative_path": "common/platform/course_hooks.c",
+      "role": "制作词条",
+      "reason": "共享故障与钩子处理模块，定义 fault 记录变量、停机处理、断言、内存失败及异常向量",
+      "read_status": "complete",
+      "lines_read": "1-45",
+      "bytes": 1780,
+      "sha256": "b374e771bb627a3c526fee1535ee3a415381c286c96de029b266b88502032a22"
+    },
+    {
+      "relative_path": "common/platform/at32f435_437_clock.c",
+      "role": "制作词条",
+      "reason": "芯片系统时钟初始化实现，配置 PLL 288MHz、LDO 电压及总线分频",
+      "read_status": "complete",
+      "lines_read": "1-123",
+      "bytes": 3726,
+      "sha256": "789a93fd49156c34d352e75cfec89a0fc411e023840df001f418639b213ff175"
+    },
+    {
+      "relative_path": "common/include/course.h",
+      "role": "制作词条",
+      "reason": "课程全局公共头文件，定义栈常量 COURSE_STACK、COURSE_LOG_STACK 及断言宏 COURSE_CHECK",
+      "read_status": "complete",
+      "lines_read": "1-18",
+      "bytes": 413,
+      "sha256": "c4d41fb186c9540242e10f26309a2901bda5c234990be2de77f17de45816c516"
+    },
+    {
+      "relative_path": "common/include/course_board.h",
+      "role": "制作词条",
+      "reason": "板级支持接口声明头文件，函数声明与 course_board.c 定义合并后优先引用实现位置",
+      "read_status": "complete",
+      "lines_read": "1-20",
+      "bytes": 631,
+      "sha256": "4f21b6523609e56dded8409f1c2b28ec6dda1b017f23e0f24e76a1154cad37f2"
+    },
+    {
+      "relative_path": "common/include/course_board_config.h",
+      "role": "制作词条",
+      "reason": "硬件接线与配置参数宏定义，包含 LED、串口、中断优先级及按键候选配置",
+      "read_status": "complete",
+      "lines_read": "1-18",
+      "bytes": 666,
+      "sha256": "e5821a8487f4175f65447d7a1ba4f63211d0121f5ffbdac64cb35180882754b1"
+    },
+    {
+      "relative_path": "common/include/course_hooks.h",
+      "role": "制作词条",
+      "reason": "故障钩子接口与结构体类型声明，定义 course_fault_type 及停机接口声明",
+      "read_status": "complete",
+      "lines_read": "1-11",
+      "bytes": 313,
+      "sha256": "63e600e400c4755d3561264890d20240dd85c8da1e4a11bed20506f16aa95928"
+    },
+    {
+      "relative_path": "common/include/course_rtos_config.h",
+      "role": "制作词条",
+      "reason": "课程通用 FreeRTOS 内核配置头文件，定义调度、堆栈、优先级、裁剪宏及中断映射",
+      "read_status": "complete",
+      "lines_read": "1-76",
+      "bytes": 2648,
+      "sha256": "a6d980f80b038c219231e838cfc7c4433053b85ef5226c602da36503a16a6168"
+    },
+    {
+      "relative_path": "common/include/at32f435_437_clock.h",
+      "role": "制作词条",
+      "reason": "时钟配置函数接口声明头文件，函数与 at32f435_437_clock.c 实现合并",
+      "read_status": "complete",
+      "lines_read": "1-38",
+      "bytes": 1704,
+      "sha256": "525acd48eebebfc305bd8980fb20eea54e927f25bc61476f6d9ed2a0efc817ad"
+    },
+    {
+      "relative_path": "common/include/at32f435_437_conf.h",
+      "role": "制作词条",
+      "reason": "芯片外设使能及晶振频率配置头文件，定义 HEXT/HICK 频率及超时阈值",
+      "read_status": "complete",
+      "lines_read": "1-24",
+      "bytes": 685,
+      "sha256": "0288ee925a8d6c8809fdedf7eef93e6007c82240080883a2dd3d1702785bec35"
+    },
+    {
+      "relative_path": "05_createtask/README.md",
+      "role": "参考读取",
+      "reason": "了解 05 实验设计目标、任务预期行为、内存预算及验证状态",
+      "read_status": "complete",
+      "lines_read": "1-37",
+      "bytes": 2586,
+      "sha256": "b86b8414b7c969a9bc0554e0c4f8d4ff40a0261915667797f90f5c9103c03be3"
+    },
+    {
+      "relative_path": "common/README.md",
+      "role": "参考读取",
+      "reason": "了解课程公共底层架构约定、板级硬件接线约定、调用限制及失败停机设计",
+      "read_status": "complete",
+      "lines_read": "1-45",
+      "bytes": 4392,
+      "sha256": "447bd7a6fce3dc6e8eb0f65ab7f3adc48825fdb11e230d1c55b5a8e019138e3a"
+    }
+  ],
+  "exclusions": [
+    {
+      "path": "05_createtask/mdk_v5/objects/",
+      "reason": "Keil 构建产物目录（.o, .crf, .d, .axf, .hex），非源码"
+    },
+    {
+      "path": "05_createtask/mdk_v5/listings/",
+      "reason": "Keil 链接映射与列表文件目录（.map, .lst），非源码"
+    },
+    {
+      "path": "common/vendor/cmsis/",
+      "reason": "ARM CMSIS 官方标准库文件，遵循原则不批量制作词条，解释时按需查阅"
+    },
+    {
+      "path": "common/vendor/drivers/",
+      "reason": "雅特力官方固件驱动库（at32f435_437_*.c/.h），第三方 SDK 驱动默认不批量制作词条"
+    },
+    {
+      "path": "common/vendor/freertos/",
+      "reason": "FreeRTOS 10.4.3 官方内核及 ARM_CM4F 移植层源码，遵循原则不批量制作词条"
+    },
+    {
+      "path": "00_board_check/ ~ 29_resource_management/ (除 05 外)",
+      "reason": "其余 27 个独立课程工程，不属于 05_createtask 构建 Target"
+    }
+  ],
+  "deliverables": {
+    "pack_initial": {
+      "file": "pack-initial.json",
+      "entries_count": 120,
+      "validation_result": "0 errors, 6 warnings"
+    },
+    "pack_revised": {
+      "file": "pack-revised.json",
+      "entries_count": 122,
+      "validation_result": "0 errors, 6 warnings",
+      "revisions_summary": "基于旧知识包比对结果，补充纳入局部变量 mask 与 timer_clock，微调 typedef 结构体起始行号对齐声明首行。"
+    },
+    "review_report": {
+      "file": "review.md"
+    }
+  }
+}
