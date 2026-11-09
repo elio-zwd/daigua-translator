@@ -51,7 +51,7 @@ test('offline dictionary shows component meanings, preserved IPA and source, not
 test('model-like fragments touching digits do not inherit ordinary-word IPA', async t => {
   const { offline } = fixture(t);
   const result = await offline.explain('Motor32');
-  assert.match(result, /读法待确认/);
+  assert.match(result, /读音暂缺/);
   assert.ok(!result.includes("'mәutә"));
 });
 
@@ -62,9 +62,32 @@ test('technical terms override false dictionary meanings and prefixes are positi
   assert.match(text, /不发音/);
   assert.match(text, /拼字母/);
   assert.match(text, /毫秒/);
-  assert.match(text, /待人工复核/);
+  assert.doesNotMatch(text, /人工复核|已复核读法/);
+  assert.match(text, /AI-initial/);
   const lone = await offline.explain('x');
   assert.doesNotMatch(lone, /不发音/);
+});
+
+test('fixed-width integer types match the complete name without unrelated suffix definitions', async t => {
+  const { offline } = fixture(t);
+  for (const [name, meaning] of [['uint16_t', '16 位无符号整数类型'], ['int32_t', '32 位有符号整数类型']]) {
+    const result = await offline.explain(name);
+    assert.ok(result.includes(`${name}：${meaning}`));
+    assert.doesNotMatch(result, /\nt：|\n16：|\n32：|人工复核|待确认/);
+    assert.match(result, /读音暂缺/);
+  }
+  assert.doesNotMatch(await offline.explain('my_uint16_t'), /16 位无符号整数类型/);
+  assert.doesNotMatch(await offline.explain('t'), /类型后缀/);
+});
+
+test('a project complete-name convention overrides the bundled type convention', async t => {
+  const { offline, directory, write, setPaths } = fixture(t);
+  write('terms.json', { format_version: 1, entries: [{ token: 'uint16_t', match: 'identifier', translation: '项目类型说明',
+    reading: 'letters', phonetic: 'test', source: 'external-ai:project', review_status: 'unreviewed' }] });
+  setPaths([path.join(directory, 'terms.json')]);
+  const result = await offline.explain('uint16_t');
+  assert.match(result, /项目类型说明/);
+  assert.doesNotMatch(result, /16 位无符号整数类型|人工复核/);
 });
 
 test('project supplementary terms take precedence and remain limited to the specified symbol', async t => {

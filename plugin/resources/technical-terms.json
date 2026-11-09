@@ -1,7 +1,7 @@
 {
   "format_version": 1,
-  "version": "0.1.0",
-  "description": "MCU/C/C++ 常见约定；AI 初稿，待人工复核；读法不代表源码用途已确认",
+  "version": "0.1.1",
+  "description": "MCU/C/C++ 常见约定，保留来源；默认直接使用，按反馈改进",
   "entries": [
     {
       "token": "LED",
@@ -352,6 +352,78 @@
       "translation": "FreeRTOS unsigned char 前缀",
       "reading": "silent",
       "source": "AI-initial:2026-11-09",
+      "review_status": "unreviewed"
+    },
+    {
+      "token": "int8_t",
+      "match": "identifier",
+      "expansion": "signed 8-bit integer type",
+      "translation": "8 位有符号整数类型",
+      "reading": "unknown",
+      "source": "AI-type-convention:2026-11-09",
+      "review_status": "unreviewed"
+    },
+    {
+      "token": "int16_t",
+      "match": "identifier",
+      "expansion": "signed 16-bit integer type",
+      "translation": "16 位有符号整数类型",
+      "reading": "unknown",
+      "source": "AI-type-convention:2026-11-09",
+      "review_status": "unreviewed"
+    },
+    {
+      "token": "int32_t",
+      "match": "identifier",
+      "expansion": "signed 32-bit integer type",
+      "translation": "32 位有符号整数类型",
+      "reading": "unknown",
+      "source": "AI-type-convention:2026-11-09",
+      "review_status": "unreviewed"
+    },
+    {
+      "token": "int64_t",
+      "match": "identifier",
+      "expansion": "signed 64-bit integer type",
+      "translation": "64 位有符号整数类型",
+      "reading": "unknown",
+      "source": "AI-type-convention:2026-11-09",
+      "review_status": "unreviewed"
+    },
+    {
+      "token": "uint8_t",
+      "match": "identifier",
+      "expansion": "unsigned 8-bit integer type",
+      "translation": "8 位无符号整数类型",
+      "reading": "unknown",
+      "source": "AI-type-convention:2026-11-09",
+      "review_status": "unreviewed"
+    },
+    {
+      "token": "uint16_t",
+      "match": "identifier",
+      "expansion": "unsigned 16-bit integer type",
+      "translation": "16 位无符号整数类型",
+      "reading": "unknown",
+      "source": "AI-type-convention:2026-11-09",
+      "review_status": "unreviewed"
+    },
+    {
+      "token": "uint32_t",
+      "match": "identifier",
+      "expansion": "unsigned 32-bit integer type",
+      "translation": "32 位无符号整数类型",
+      "reading": "unknown",
+      "source": "AI-type-convention:2026-11-09",
+      "review_status": "unreviewed"
+    },
+    {
+      "token": "uint64_t",
+      "match": "identifier",
+      "expansion": "unsigned 64-bit integer type",
+      "translation": "64 位无符号整数类型",
+      "reading": "unknown",
+      "source": "AI-type-convention:2026-11-09",
       "review_status": "unreviewed"
     }
   ]

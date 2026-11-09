@@ -14,7 +14,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from phonetics.model import split_identifier, is_prefix, validate_terms, sanitize_pronunciation
+from phonetics.model import split_identifier, find_terms, validate_terms
 from validator.validate import validate_data
 
 
@@ -157,7 +157,8 @@ def enrich(pack_file, dictionary_dir, output, missing_file, extra_terms=(), supp
     def pronunciation(symbol, context):
         segments = []
         cursor = 0
-        for index, token in enumerate(split_identifier(symbol)):
+        whole = find_terms(libraries, symbol, symbol, 0, whole=True)
+        for index, token in enumerate([symbol] if whole else split_identifier(symbol)):
             start = symbol.index(token, cursor)
             cursor = start + len(token)
             numeric_adjacent = (start > 0 and symbol[start - 1].isdigit()) or (cursor < len(symbol) and symbol[cursor].isdigit())
@@ -166,15 +167,7 @@ def enrich(pack_file, dictionary_dir, output, missing_file, extra_terms=(), supp
             if token.isdigit():
                 segment.update(source="identifier:number", status="skipped")
             else:
-                matches = []
-                for library in libraries:
-                    matches = [t for t in library if (not t.get("symbol") or t["symbol"] == symbol)
-                               and (t["token"].lower() == token.lower() if t["match"] == "insensitive" else t["token"] == token)
-                               and (t["match"] != "prefix" or is_prefix(symbol, token, index))]
-                    if any(t.get("symbol") == symbol for t in matches):
-                        matches = [t for t in matches if t.get("symbol") == symbol]
-                    if matches:
-                        break
+                matches = whole or find_terms(libraries, symbol, token, index)
                 if matches:
                     distinct = {(t["reading"], t.get("phonetic", "")) for t in matches}
                     if len(distinct) == 1:
@@ -202,7 +195,7 @@ def enrich(pack_file, dictionary_dir, output, missing_file, extra_terms=(), supp
                 # Deduplicate tokens, retaining all usage contexts. AI may add `symbol` to narrow a row.
                 key = token
                 if key not in pending:
-                    pending[key] = dict(token=token, match="exact", translation="", reading="unknown",
+                    pending[key] = dict(token=token, match="identifier" if whole else "exact", translation="", reading="unknown",
                                         source="external-ai:待填写", review_status="unreviewed", reason=reason, occurrences=[])
                 if context not in pending[key]["occurrences"]:
                     pending[key]["occurrences"].append(context)

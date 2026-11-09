@@ -28,8 +28,8 @@ export function formatPronunciation(value?: Pronunciation): string {
   const valid = value && sanitizePronunciation(value);
   if (!valid) return '';
   return '音标（英式优先）：' + valid.segments.map(item => {
-    const reading = item.status === 'pending' ? '待确认' : item.reading === 'silent' ? '命名前缀，不发音' :
+    const reading = item.status === 'pending' ? '读音暂缺' : item.reading === 'silent' ? '命名前缀，不发音' :
       item.status === 'skipped' ? '未标注读音' : `${item.reading === 'letters' ? '拼字母 ' : ''}/${item.phonetic}/`;
-    return `${item.text} ${reading} [${item.source}${item.review_status === 'unreviewed' ? '；待人工复核' : ''}]`;
+    return `${item.text} ${reading} [${item.source}]`;
   }).join('；');
 }

@@ -12,6 +12,19 @@ def is_prefix(symbol, token, index):
     return index == 0 and symbol.startswith(token) and bool(re.match(r"[A-Z]", symbol[len(token):]))
 
 
+def find_terms(libraries, symbol, token, index, whole=False):
+    for library in libraries:
+        matches = [t for t in library if (t["match"] == "identifier") == whole
+                   and (not t.get("symbol") or t["symbol"] == symbol)
+                   and (t["token"].lower() == token.lower() if t["match"] == "insensitive" else t["token"] == token)
+                   and (t["match"] != "prefix" or is_prefix(symbol, token, index))]
+        if any(t.get("symbol") == symbol for t in matches):
+            matches = [t for t in matches if t.get("symbol") == symbol]
+        if matches:
+            return matches
+    return []
+
+
 def sanitize_pronunciation(value, warn=lambda message: None):
     if not isinstance(value, dict) or not isinstance(value.get("segments"), list):
         warn("忽略无效 pronunciation：segments 必须是数组")
@@ -38,8 +51,8 @@ def validate_terms(data):
         raise ValueError("技术库格式不兼容")
     for t in data["entries"]:
         if (not isinstance(t, dict) or not isinstance(t.get("token"), str)
-                or not re.fullmatch(r"[A-Za-z]+", t["token"])
-                or t.get("match") not in ("exact", "insensitive", "prefix")
+                or not re.fullmatch(r"[A-Za-z_]\w*" if t.get("match") == "identifier" else r"[A-Za-z]+", t["token"], re.ASCII)
+                or t.get("match") not in ("exact", "insensitive", "prefix", "identifier")
                 or t.get("reading") not in ("word", "letters", "silent", "unknown")
                 or not isinstance(t.get("translation"), str)
                 or not isinstance(t.get("source"), str) or not t["source"].strip()

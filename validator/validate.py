@@ -148,7 +148,7 @@ def validate_data(data, src_root=None):
         elif kind == "function":
             warnings.append(label + ": 缺少 parameters 数组")
         if isinstance(entry.get("uncertainty"), str) and entry["uncertainty"].strip():
-            warnings.append(label + ": 含有待确认说明，建议人工复核")
+            warnings.append(label + ": 含有原始不确定性说明，仅记录，不阻止使用")
     return errors, warnings
 
 

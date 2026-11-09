@@ -14,7 +14,7 @@ exports.run = async function () {
     socket.on('error', reject);
   });
   const config = vscode.workspace.getConfiguration('daiguaTranslate');
-  const textOf = hovers => hovers.flatMap(h => h.contents.map(c => typeof c === 'string' ? c : c.value)).join('\n');
+  const textOf = hovers => hovers.flatMap(h => h.contents.map(c => typeof c === 'string' ? c : c.value)).join('\n').replace(/&nbsp;/g, ' ');
   const hoverAt = async (doc, position) => textOf(await vscode.commands.executeCommand('vscode.executeHoverProvider', doc.uri, position));
   try {
     await config.update('bingEnabled', false, vscode.ConfigurationTarget.Workspace);
@@ -27,7 +27,7 @@ exports.run = async function () {
     await vscode.commands.executeCommand('daiguaTranslate.reloadPacks');
     checks.push('independent activation without MTranCode');
 
-    let document = await vscode.workspace.openTextDocument({ language: 'c', content: 'worker\nLED\narg\nMotor_Start' });
+    let document = await vscode.workspace.openTextDocument({ language: 'c', content: 'worker\nLED\narg\nMotor_Start\nuint16_t' });
     let editor = await vscode.window.showTextDocument(document);
     let result = await hoverAt(document, new vscode.Position(0, 2));
     assert.match(result, /动态工作任务/); assert.match(result, /音标（英式优先）/);
@@ -37,6 +37,11 @@ exports.run = async function () {
 
     result = await hoverAt(document, new vscode.Position(1, 1));
     assert.match(result, /发光二极管/); assert.match(result, /用途未核对/);
+    assert.doesNotMatch(result, /待人工复核/);
+    result = await hoverAt(document, new vscode.Position(4, 2));
+    assert.match(result, /16 位无符号整数类型/);
+    assert.doesNotMatch(result, /\nt：|待人工复核|待确认/);
+    checks.push('complete fixed-width type lookup without suffix definitions or review prompts');
     await config.update('hoverFallback', 'off', vscode.ConfigurationTarget.Workspace);
     result = await hoverAt(document, new vscode.Position(1, 1));
     assert.doesNotMatch(result, /发光二极管/);

@@ -80,7 +80,7 @@ export function formatEntry(entry: KnowledgePackEntry): string {
 
   // 待确认说明
   if (entry.uncertainty) {
-    lines.push(`（⚠️ 待确认：${entry.uncertainty}）`);
+    lines.push(`说明：${entry.uncertainty}`);
   }
 
   return lines.join('\n');

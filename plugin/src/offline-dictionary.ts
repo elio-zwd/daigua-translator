@@ -6,7 +6,7 @@ import { formatPronunciation } from './pronunciation';
 
 export interface TechnicalTerm {
   token: string;
-  match: 'exact' | 'insensitive' | 'prefix';
+  match: 'exact' | 'insensitive' | 'prefix' | 'identifier';
   symbol?: string;
   expansion?: string;
   translation: string;
@@ -23,8 +23,8 @@ export function validateTerms(value: unknown): TechnicalTerm[] {
   const data = value as { format_version?: number; entries?: TechnicalTerm[] };
   if (!data || data.format_version !== 1 || !Array.isArray(data.entries)) throw Error('技术库格式不兼容');
   for (const t of data.entries) {
-    if (!t || typeof t.token !== 'string' || !/^[A-Za-z]+$/.test(t.token) ||
-        !['exact', 'insensitive', 'prefix'].includes(t.match) ||
+    if (!t || typeof t.token !== 'string' || !(t.match === 'identifier' ? /^[A-Za-z_]\w*$/ : /^[A-Za-z]+$/).test(t.token) ||
+        !['exact', 'insensitive', 'prefix', 'identifier'].includes(t.match) ||
         !['word', 'letters', 'silent', 'unknown'].includes(t.reading) ||
         typeof t.translation !== 'string' || typeof t.source !== 'string' || !t.source.trim() ||
         !['unreviewed', 'confirmed'].includes(t.review_status) ||
@@ -34,6 +34,18 @@ export function validateTerms(value: unknown): TechnicalTerm[] {
         (['word', 'letters'].includes(t.reading) && !t.phonetic?.trim())) throw Error('无效技术库词条');
   }
   return data.entries;
+}
+
+/** Complete-name conventions must not leak into fragments or unrelated single-letter names. */
+function findTerms(libraries: TechnicalTerm[][], symbol: string, token: string, index: number, whole = false): TechnicalTerm[] {
+  for (const library of libraries) {
+    let matches = library.filter(t => (t.match === 'identifier') === whole && (!t.symbol || t.symbol === symbol) &&
+      (t.match === 'insensitive' ? t.token.toLowerCase() === token.toLowerCase() : t.token === token) &&
+      (t.match !== 'prefix' || isNamingPrefix(symbol, token, index)));
+    if (matches.some(t => t.symbol === symbol)) matches = matches.filter(t => t.symbol === symbol);
+    if (matches.length) return matches;
+  }
+  return [];
 }
 
 /** No native dependencies. Immutable shards are read lazily, with at most eight cached. */
@@ -101,7 +113,8 @@ export class OfflineDictionary {
     const generation = this.generation;
     const libraries = await this.libraries(settings.technicalLibraryPaths);
     if (generation !== this.generation) throw Error('词典配置已变化，请重新查询');
-    const parts = splitIdentifier(symbol);
+    const whole = findTerms(libraries, symbol, symbol, 0, true);
+    const parts = whole.length ? [symbol] : splitIdentifier(symbol);
     const lines = ['普通名称释义，用途未核对（离线词典）'];
     let cursor = 0;
     for (const [index, token] of parts.entries()) {
@@ -109,17 +122,10 @@ export class OfflineDictionary {
       cursor = start + token.length;
       const numericAdjacent = /[0-9]/.test(symbol[start - 1] || '') || /[0-9]/.test(symbol[cursor] || '');
       if (/^\d+$/.test(token)) { lines.push(`${token}：数字，未标注读音`); continue; }
-      let matches: TechnicalTerm[] = [];
-      for (const library of libraries) {
-        matches = library.filter(t => (!t.symbol || t.symbol === symbol) &&
-          (t.match === 'insensitive' ? t.token.toLowerCase() === token.toLowerCase() : t.token === token) &&
-          (t.match !== 'prefix' || isNamingPrefix(symbol, token, index)));
-        if (matches.some(t => t.symbol === symbol)) matches = matches.filter(t => t.symbol === symbol);
-        if (matches.length) break;
-      }
+      const matches = whole.length ? whole : findTerms(libraries, symbol, token, index);
       if (matches.length) {
         for (const term of matches) {
-          lines.push(`${token}：${term.translation || '含义待确认'}${term.expansion ? `（${term.expansion}）` : ''} [技术库：${term.source}；${term.review_status === 'confirmed' ? '已复核读法' : '待人工复核'}]`);
+          lines.push(`${token}：${term.translation || '释义暂缺'}${term.expansion ? `（${term.expansion}）` : ''} [技术库：${term.source}]`);
           lines.push(formatPronunciation({ segments: [{ text: token, reading: term.reading, phonetic: term.phonetic,
             source: term.source, status: term.reading === 'unknown' ? 'pending' : 'resolved', review_status: term.review_status }] }));
         }
@@ -136,7 +142,7 @@ export class OfflineDictionary {
             lines.push(formatPronunciation({ segments: [{ text: token, reading: 'word', phonetic: row.phonetic, source, status: 'resolved' }] }));
           }
         }
-        if (numericAdjacent) lines.push(`${token}：与数字相邻，可能是型号或宽度标记，读法待确认`);
+        if (numericAdjacent) lines.push(`${token}：与数字相邻，可能是型号或宽度标记，读音暂缺`);
       } catch (error) {
         if (generation !== this.generation) throw error;
         const message = String(error); this.report(message); lines.push(`${token}：${message}`);

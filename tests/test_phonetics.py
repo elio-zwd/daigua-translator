@@ -129,6 +129,28 @@ class PhoneticTests(unittest.TestCase):
         self.assertEqual(len(remaining["entries"]), 2)
         self.assertIn("occurrences", remaining["entries"][0])
 
+    def test_complete_type_convention_and_ai_roundtrip(self):
+        self.original["entries"][0]["symbol"] = "uint16_t"
+        write_json(self.pack, self.original)
+        enhanced, missing = self.run_enrich()
+        self.assertEqual([s["text"] for s in enhanced["entries"][0]["pronunciation"]["segments"]], ["uint16_t"])
+        item = next(e for e in missing["entries"] if e["token"] == "uint16_t")
+        self.assertEqual(item["match"], "identifier")
+        item.update(reading="letters", phonetic="test", source="external-ai:test")
+        supplement = self.root / "完整名称补充.json"
+        write_json(supplement, missing)
+        enhanced, remaining = self.run_enrich(supplement=supplement)
+        self.assertEqual(remaining["entries"], [])
+        segment = enhanced["entries"][0]["pronunciation"]["segments"][0]
+        self.assertEqual(segment["phonetic"], "test")
+        self.assertEqual(segment["review_status"], "unreviewed")
+
+    def test_complete_type_convention_does_not_match_fragments(self):
+        self.original["entries"][0]["symbol"] = "my_uint16_t"
+        write_json(self.pack, self.original)
+        enhanced, _ = self.run_enrich()
+        self.assertEqual([s["text"] for s in enhanced["entries"][0]["pronunciation"]["segments"]], ["my", "uint", "16", "t"])
+
     def test_model_fragment_does_not_inherit_an_ordinary_word_pronunciation(self):
         self.original["entries"][0]["symbol"] = "Motor32_Start"
         write_json(self.pack, self.original)
