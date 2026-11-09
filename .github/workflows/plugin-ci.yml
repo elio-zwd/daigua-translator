@@ -24,6 +24,7 @@ jobs:
       - run: python -m unittest discover -s tests -p "test_*.py" -v
       - run: python validator/validate.py --pack examples/mcu-demo/demo-pack.json --src examples/mcu-demo
       - run: python validator/validate.py --pack examples/mcu-demo/ambiguity-pack.json --src examples/mcu-demo
+      - run: python validator/validate.py --pack knowledge-packs/enhanced/05_createtask-pack.phonetic.json
       - run: node scripts/test-plugin.js
   package:
     needs: verify

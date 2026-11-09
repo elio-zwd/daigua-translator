@@ -21,3 +21,4 @@ jobs:
         run: |
           python validator/validate.py --pack knowledge-packs/05_createtask-pack.json
           python validator/validate.py --pack knowledge-packs/example/example-pack.json
+          python validator/validate.py --pack knowledge-packs/enhanced/05_createtask-pack.phonetic.json
