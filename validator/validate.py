@@ -18,7 +18,7 @@ for stream in (sys.stdout, sys.stderr):
 
 VALID_KINDS = {"function", "variable", "macro", "enum", "typedef"}
 SYMBOL_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
-OPTIONAL_TEXT = ("description_zh", "declaration", "returns_zh", "scope", "uncertainty")
+OPTIONAL_TEXT = ("description_zh", "summary_zh", "declaration", "returns_zh", "scope", "uncertainty")
 
 
 def check_text(value, field, errors, required=False):
@@ -79,6 +79,8 @@ def check_parameters(parameters, location, errors):
         name = check_text(param.get("name"), label + ".name", errors, True)
         if "description_zh" in param:
             check_text(param["description_zh"], label + ".description_zh", errors)
+        if "summary_zh" in param:
+            check_text(param["summary_zh"], label + ".summary_zh", errors)
         if "type" in param:
             check_text(param["type"], label + ".type", errors)
         if name and name in seen:

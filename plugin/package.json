@@ -2,7 +2,7 @@
   "name": "daigua-translator",
   "displayName": "呆瓜翻译器",
   "description": "独立 MCU C/C++ 代码知识查询、文本翻译、离线词典与音标学习。",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "icon": "./images/icon.png",
   "engines": {
     "vscode": "^1.85.0"
@@ -22,98 +22,120 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
-    "configuration": {
-      "title": "呆瓜翻译器",
-      "properties": {
-        "daiguaTranslate.packPaths": {
-          "type": "array",
-          "items": {
-            "type": "string"
+    "configuration": [
+      {
+        "title": "呆瓜翻译器 · 日常使用",
+        "order": 0,
+        "properties": {
+          "daiguaTranslate.localHover": {
+            "type": "boolean",
+            "default": true,
+            "description": "在 C/C++ 名称上显示呆瓜悬停。本地知识包优先，未收录名称按悬停模式处理。其他插件的悬停可能同时显示。",
+            "scope": "window",
+            "order": 6
           },
-          "default": [],
-          "description": "知识包 JSON 绝对路径列表。同名候选全部显示。可运行“呆瓜翻译器：选择知识包文件”免手写配置。",
-          "scope": "window"
-        },
-        "daiguaTranslate.bingEnabled": {
-          "type": "boolean",
-          "default": true,
-          "description": "允许 Bing 联网翻译。关闭后不发起新的联网请求；名称改查离线词典，普通句子无法联网翻译。",
-          "scope": "window",
-          "order": 2
-        },
-        "daiguaTranslate.bingTimeoutMs": {
-          "type": "number",
-          "default": 5000,
-          "minimum": 100,
-          "maximum": 30000,
-          "description": "每次等待 Bing 结果的上限（毫秒）。超时后停止等待；底层翻译库不提供请求取消接口，已发起请求可能继续执行。",
-          "scope": "window",
-          "order": 3
-        },
-        "daiguaTranslate.autoReload": {
-          "type": "boolean",
-          "default": true,
-          "description": "知识包文件保存后自动重新加载（合并 250 毫秒内的连续文件事件）。加载失败保留上次有效内容。",
-          "scope": "window",
-          "order": 4
-        },
-        "daiguaTranslate.includeParameters": {
-          "type": "boolean",
-          "default": true,
-          "description": "将函数 parameters 中已有中文说明的参数加入本地查询，例如 arg；同名参数全部显示并标注所属函数。不会修改知识包文件。",
-          "scope": "window",
-          "order": 5
-        },
-        "daiguaTranslate.localHover": {
-          "type": "boolean",
-          "default": true,
-          "description": "在 C/C++ 名称上显示呆瓜悬停。本地知识包优先，未收录名称按悬停模式处理。其他插件的悬停可能同时显示。",
-          "scope": "window",
-          "order": 6
-        },
-        "daiguaTranslate.showStatusBar": {
-          "type": "boolean",
-          "default": true,
-          "description": "在状态栏显示有效词条数和 Bing 状态；点击打开快捷设置。",
-          "scope": "window",
-          "order": 7
-        },
-        "daiguaTranslate.hoverFallback": {
-          "type": "string",
-          "enum": [
-            "online",
-            "ecdict",
-            "off"
-          ],
-          "enumDescriptions": [
-            "自动联网释义，失败后回退离线词典",
-            "仅使用离线技术库和 ECDICT",
-            "关闭未收录名称的自动释义"
-          ],
-          "default": "online",
-          "description": "未收录名称的自动悬停模式；只影响悬停，主动翻译仍受 Bing 总开关约束。",
-          "scope": "window",
-          "order": 8
-        },
-        "daiguaTranslate.dictionaryPath": {
-          "type": "string",
-          "default": "",
-          "description": "由 phonetics/tool.py index 生成、包含 manifest.json 的本地 ECDICT 索引目录。运行时不读取 CSV。",
-          "scope": "window",
-          "order": 9
-        },
-        "daiguaTranslate.technicalLibraryPaths": {
-          "type": "array",
-          "items": {
-            "type": "string"
+          "daiguaTranslate.hoverFallback": {
+            "type": "string",
+            "enum": [
+              "online",
+              "ecdict",
+              "off"
+            ],
+            "enumDescriptions": [
+              "先查通用词库，再联网翻译，失败后回退离线词典",
+              "仅使用通用技术库与离线词典",
+              "只显示项目知识包中已收录的名称"
+            ],
+            "default": "online",
+            "description": "未收录名称的自动悬停模式；只影响悬停，主动翻译仍受 Bing 总开关约束。",
+            "scope": "window",
+            "order": 8
           },
-          "default": [],
-          "description": "额外技术库或项目补充 JSON 的绝对路径。后者优先于前者，均优先于内置技术库和 ECDICT。修改后运行重新加载知识包以刷新。",
-          "scope": "window",
-          "order": 10
+          "daiguaTranslate.bingEnabled": {
+            "type": "boolean",
+            "default": true,
+            "description": "允许 Bing 联网翻译。关闭后不发起新的联网请求；名称改查离线词典，普通句子无法联网翻译。",
+            "scope": "window",
+            "order": 2
+          },
+          "daiguaTranslate.showStatusBar": {
+            "type": "boolean",
+            "default": true,
+            "description": "在状态栏显示有效词条数和 Bing 状态；点击打开快捷设置。",
+            "scope": "window",
+            "order": 7
+          }
+        }
+      },
+      {
+        "title": "呆瓜翻译器 · 词库管理",
+        "order": 1,
+        "properties": {
+          "daiguaTranslate.packPaths": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": [],
+            "description": "知识包 JSON 绝对路径列表。同名候选全部显示。可运行“呆瓜翻译器：选择知识包文件”免手写配置。",
+            "scope": "window"
+          },
+          "daiguaTranslate.technicalLibraryPaths": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": [],
+            "description": "额外通用技术库 JSON 路径。后添加的库优先；修改配置立即生效，修改文件后可重新加载。",
+            "scope": "window",
+            "order": 10
+          },
+          "daiguaTranslate.dictionaryPath": {
+            "type": "string",
+            "default": "",
+            "description": "由 phonetics/tool.py index 生成、包含 manifest.json 的本地 ECDICT 索引目录。运行时不读取 CSV。",
+            "scope": "window",
+            "order": 9
+          },
+          "daiguaTranslate.autoReload": {
+            "type": "boolean",
+            "default": true,
+            "description": "知识包文件保存后自动重新加载（合并 250 毫秒内的连续文件事件）。加载失败保留上次有效内容。",
+            "scope": "window",
+            "order": 4
+          },
+          "daiguaTranslate.includeParameters": {
+            "type": "boolean",
+            "default": true,
+            "description": "将函数 parameters 中已有中文说明的参数加入本地查询，例如 arg；同名参数全部显示并标注所属函数。不会修改知识包文件。",
+            "scope": "window",
+            "order": 5
+          }
+        }
+      },
+      {
+        "title": "呆瓜翻译器 · 调试与诊断",
+        "order": 2,
+        "properties": {
+          "daiguaTranslate.debugMode": {
+            "type": "boolean",
+            "default": false,
+            "description": "在结果末尾显示原始详细说明、来源、文件位置和匹配诊断。日常查词建议关闭。",
+            "scope": "window",
+            "order": 20
+          },
+          "daiguaTranslate.bingTimeoutMs": {
+            "type": "number",
+            "default": 5000,
+            "minimum": 100,
+            "maximum": 30000,
+            "description": "每次等待 Bing 结果的上限（毫秒）。超时后停止等待；底层翻译库不提供请求取消接口，已发起请求可能继续执行。",
+            "scope": "window",
+            "order": 3
+          }
         }
       }
-    },
+    ],
     "commands": [
       {
         "command": "daiguaTranslate.reloadPacks",
@@ -142,6 +164,14 @@
       {
         "command": "daiguaTranslate.translateText",
         "title": "呆瓜翻译器：输入文本翻译"
+      },
+      {
+        "command": "daiguaTranslate.openDetails",
+        "title": "呆瓜翻译器：在面板中查看"
+      },
+      {
+        "command": "daiguaTranslate.openSettings",
+        "title": "呆瓜翻译器：打开设置"
       }
     ],
     "menus": {
@@ -154,6 +184,11 @@
         {
           "command": "daiguaTranslate.translateSelection",
           "group": "navigation@19",
+          "when": "editorTextFocus"
+        },
+        {
+          "command": "daiguaTranslate.openDetails",
+          "group": "navigation@18",
           "when": "editorTextFocus"
         }
       ]

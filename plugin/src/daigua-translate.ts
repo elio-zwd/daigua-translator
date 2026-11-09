@@ -2,6 +2,7 @@ import { ITranslateOptions, KnowledgePack } from './types';
 import { OfflineDictionary } from './offline-dictionary';
 import { splitIdentifier } from './identifier-words';
 import { KnowledgeIndex } from './knowledge-index';
+import { QueryResult, projectResult, legacyResult } from './query-result';
 import { isLikelySingleSymbol, normalizeSymbol, formatEntries } from './symbol-matcher';
 
 import { BingTranslator, defaultBingTranslator, translateWithBing } from './bing';
@@ -41,26 +42,37 @@ export class DaiguaTranslate {
     return this.index.find(normalizeSymbol(content), this.getPacks(), this.getSettings().includeParameters);
   }
 
-  /** Shared entry point for automatic hovers and explicit commands. */
-  async query(content: string, mode: 'online' | 'ecdict' | 'off', offline: OfflineDictionary): Promise<string> {
-    if (!content.trim()) return '';
+  /** Structured data shared by hover, commands and the fixed reader. */
+  async queryResult(content: string, mode: 'online' | 'ecdict' | 'off', offline: OfflineDictionary): Promise<QueryResult | undefined> {
+    if (!content.trim()) return;
     if (content.length > this.maxLen) throw Error(`单次最多 ${this.maxLen} 字符，请缩小选区；原文未被截断。`);
     const matches = this.findLocalEntries(content);
-    if (matches.length) return '呆瓜 · 本地知识包\n' + formatEntries(matches);
-    if (mode === 'off') return '';
+    if (matches.length) return projectResult(normalizeSymbol(content), matches);
+    if (mode === 'off') return;
     const symbol = isLikelySingleSymbol(content) ? normalizeSymbol(content) : undefined;
+    if (symbol) {
+      const general = await offline.generalResult(symbol);
+      if (general) return general;
+    }
     if (mode === 'ecdict' || !this.getSettings().bingEnabled) {
       if (!symbol) throw Error('联网翻译已关闭，无法提供整句译文；可查询单个名称的离线词典释义。');
-      return offline.explain(symbol);
+      return offline.explainResult(symbol);
     }
     try {
       const text = symbol ? splitIdentifier(symbol).join(' ') : content;
       const result = await this.bingFallback(text, 'auto', 'zh-CN', this.getSettings().bingTimeoutMs);
-      return `呆瓜 · Bing 联网翻译${symbol ? ' · 普通名称释义，用途未核对' : ''}\n${result}`;
+      return { text: symbol || content, kind: 'online', match: 'none', candidates: [{ name: result }], diagnostics: [] };
     } catch (error) {
       if (!symbol) throw error;
-      return `联网失败：${error instanceof Error ? error.message : String(error)}\n` + await offline.explain(symbol);
+      const result = await offline.explainResult(symbol);
+      result.diagnostics.unshift(`联网失败：${error instanceof Error ? error.message : String(error)}`);
+      return result;
     }
+  }
+
+  async query(content: string, mode: 'online' | 'ecdict' | 'off', offline: OfflineDictionary): Promise<string> {
+    const result = await this.queryResult(content, mode, offline);
+    return result ? legacyResult(result) : '';
   }
 
   async translate(content: string, { from = 'auto', to = 'zh-CN' }: ITranslateOptions): Promise<string> {

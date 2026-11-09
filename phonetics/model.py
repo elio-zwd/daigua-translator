@@ -59,6 +59,7 @@ def validate_terms(data):
                 or t.get("review_status") not in ("unreviewed", "confirmed")
                 or ("symbol" in t and (not isinstance(t["symbol"], str) or not re.fullmatch(r"[A-Za-z_]\w*", t["symbol"], re.ASCII)))
                 or ("expansion" in t and not isinstance(t["expansion"], str))
+                or ("summary_zh" in t and not isinstance(t["summary_zh"], str))
                 or ("phonetic" in t and not isinstance(t["phonetic"], str))
                 or (t.get("reading") in ("word", "letters") and not t.get("phonetic", "").strip())):
             raise ValueError("无效技术库词条")

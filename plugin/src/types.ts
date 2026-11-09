@@ -19,6 +19,7 @@ export interface ParameterEntry {
   name: string;
   type?: string;
   description_zh?: string;
+  summary_zh?: string;
   pronunciation?: Pronunciation;
 }
 
@@ -35,6 +36,9 @@ export interface KnowledgePackEntry {
   kind: 'function' | 'variable' | 'macro' | 'enum' | 'typedef';
   name_zh: string;
   description_zh?: string;
+  summary_zh?: string;
+  /** Runtime-only context for indexed parameters. */
+  owner?: string;
   declaration?: string;
   parameters?: ParameterEntry[];
   returns_zh?: string;

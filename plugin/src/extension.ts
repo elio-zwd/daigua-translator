@@ -1,7 +1,11 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import { KnowledgePack } from './types';
-import { OfflineDictionary } from './offline-dictionary';
+import * as fs from 'fs';
+import { QueryResult, projectResult, errorResult } from './query-result';
+import { hoverMarkdown } from './result-renderer';
+import { ReaderPanels } from './webviews';
+import { OfflineDictionary, validateTerms } from './offline-dictionary';
 import { DaiguaTranslate, TranslatorSettings } from './daigua-translate';
 import { KnowledgeLoader, PackLoadReport, resolvePackPaths } from './knowledge-loader';
 import { formatEntries } from './symbol-matcher';
@@ -35,15 +39,16 @@ export async function activate(context: vscode.ExtensionContext) {
   let hoverSequence = 0;
   let commandSequence = 0;
   let manual: { document: vscode.TextDocument; version: number; anchor: vscode.Position;
-    range: vscode.Range; text: string; epoch: number } | undefined;
+    range: vscode.Range; result: QueryResult; epoch: number } | undefined;
   const invalidate = () => { ++epoch; ++hoverSequence; ++commandSequence; manual = undefined; };
   const hoverMode = (): 'online' | 'ecdict' | 'off' => {
     const mode = config().get<string>('hoverFallback', 'online');
     return mode === 'ecdict' || mode === 'off' ? mode : 'online';
   };
-  const asHover = (text: string, range: vscode.Range) => {
+  const asHover = (result: QueryResult, range: vscode.Range) => {
     const markdown = new vscode.MarkdownString();
-    markdown.appendText(text); // Untrusted pack/dictionary/Bing text must never execute Markdown commands.
+    markdown.appendMarkdown(hoverMarkdown(result, config().get<boolean>('debugMode', false)));
+    markdown.isTrusted = { enabledCommands: ['daiguaTranslate.openDetails', 'daiguaTranslate.openSettings'] };
     return new vscode.Hover(markdown, range);
   };
   function selectedText(editor = vscode.window.activeTextEditor) {
@@ -52,14 +57,15 @@ export async function activate(context: vscode.ExtensionContext) {
     const word = editor.document.getWordRangeAtPosition(editor.selection.active, /[A-Za-z_]\w*/);
     return word ? editor.document.getText(word) : '';
   }
-  async function display(text: string, editor: vscode.TextEditor | undefined,
+  async function display(result: QueryResult, editor: vscode.TextEditor | undefined,
     snapshot: { version: number; anchor: vscode.Position; epoch: number; request: number }) {
     if (disposed || snapshot.epoch !== epoch || snapshot.request !== commandSequence) return;
-    if (!editor) { output.appendLine('\n' + text); output.show(true); return; }
+    if (!editor) { panels.showReader(result); return; }
     if (vscode.window.activeTextEditor !== editor || editor.document.version !== snapshot.version ||
         !editor.selection.active.isEqual(snapshot.anchor)) return;
     const range = editor.document.getWordRangeAtPosition(snapshot.anchor) || new vscode.Range(snapshot.anchor, snapshot.anchor);
-    manual = { document: editor.document, version: snapshot.version, anchor: snapshot.anchor, range, text, epoch };
+    manual = { document: editor.document, version: snapshot.version, anchor: snapshot.anchor, range, result, epoch };
+    if (panels.follows) panels.setResult(result);
     await vscode.commands.executeCommand('editor.action.showHover');
   }
   async function translateInput(input: boolean) {
@@ -70,12 +76,109 @@ export async function activate(context: vscode.ExtensionContext) {
     const editor = vscode.window.activeTextEditor;
     const snapshot = { version: editor?.document.version || 0, anchor: editor?.selection.active!, epoch, request: ++commandSequence };
     manual = undefined;
-    try { await display('原文：' + content + '\n\n' + await local.query(content, 'online', offline), editor, snapshot); }
-    catch (error) { await display('翻译失败：' + String(error), editor, snapshot); }
+    try {
+      const result = await local.queryResult(content, 'online', offline);
+      if (result) { logResult(result); await display(result, editor, snapshot); }
+    } catch (error) { output.appendLine(String(error)); await display(errorResult(content, error), editor, snapshot); }
   }
   const settingTarget = () => vscode.workspace.workspaceFolders?.length
     ? vscode.ConfigurationTarget.Workspace : vscode.ConfigurationTarget.Global;
   const countEntries = () => loadedPacks.reduce((sum, pack) => sum + pack.entries.length, 0);
+
+  let panelSequence = 0;
+  let panelTimer: ReturnType<typeof setTimeout> | undefined;
+  const debugMode = () => config().get<boolean>('debugMode', false);
+  const defaultValues: Record<string, unknown> = { localHover: true, bingEnabled: true, hoverFallback: 'online',
+    showStatusBar: true, autoReload: true, includeParameters: true, debugMode: false,
+    bingTimeoutMs: 5000, packPaths: [], technicalLibraryPaths: [], dictionaryPath: '' };
+  const panels = new ReaderPanels(debugMode, () => ({
+    values: Object.fromEntries(Object.entries(defaultValues).map(([k, v]) => [k, config().get(k, v)])),
+    scope: vscode.workspace.workspaceFolders?.length ? '当前工作区' : '用户设置', count: countEntries(),
+    packs: config().get<string[]>('packPaths', []).map(file => ({ path: file,
+      status: report?.failures.some(f => f.path === path.resolve(file))
+        ? (report.failures.find(f => f.path === path.resolve(file))!.retained ? '加载失败，保留上次内容' : '加载失败，查看诊断')
+        : loadedByPath.has(path.resolve(file)) ? '已加载' : '等待加载' })),
+  }), settingsAction, schedulePanel);
+  context.subscriptions.push(panels);
+  function logResult(result: QueryResult) {
+    for (const message of result.diagnostics) output.appendLine('[查询诊断] ' + message);
+  }
+  function schedulePanel() {
+    const sequence = ++panelSequence;
+    if (panelTimer) clearTimeout(panelTimer);
+    if (!panels.follows || disposed) return;
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) return; // Moving focus into a webview retains the current word.
+    if (!['c', 'cpp'].includes(editor.document.languageId)) { panels.setResult(); return; }
+    const word = editor.document.getWordRangeAtPosition(editor.selection.active, /[A-Za-z_]\w*/);
+    if (!word) { panels.setResult(); return; }
+    const value = editor.document.getText(word), version = editor.document.version, currentEpoch = epoch;
+    panelTimer = setTimeout(async () => {
+      if (!panels.follows || disposed || sequence !== panelSequence) return;
+      let result: QueryResult | undefined;
+      try { result = await local.queryResult(value, hoverMode(), offline); }
+      catch (error) { output.appendLine(String(error)); result = errorResult(value, error); }
+      if (disposed || !panels.follows || sequence !== panelSequence || currentEpoch !== epoch ||
+        editor.document.version !== version || vscode.window.activeTextEditor !== editor) return;
+      if (result) logResult(result);
+      panels.setResult(result);
+    }, 350);
+  }
+  async function openDetails(content?: unknown) {
+    const text = typeof content === 'string' ? content : selectedText();
+    if (typeof content === 'string' && content.length > 1000) return;
+    panels.showReader();
+    if (!text.trim()) { schedulePanel(); return; }
+    const sequence = ++panelSequence, currentEpoch = epoch;
+    if (panelTimer) clearTimeout(panelTimer);
+    try {
+      const result = await local.queryResult(text, 'online', offline);
+      if (result && !disposed && panels.isOpen && sequence === panelSequence && currentEpoch === epoch) {
+        logResult(result); panels.setResult(result);
+      }
+    } catch (error) {
+      output.appendLine(String(error));
+      if (!disposed && panels.isOpen && sequence === panelSequence && currentEpoch === epoch) panels.setResult(errorResult(text, error));
+    }
+  }
+  async function settingsAction(message: Record<string, unknown>) {
+    const key = message.key;
+    if (message.action === 'set' && typeof key === 'string') {
+      const value = message.value;
+      const bools = ['localHover', 'bingEnabled', 'showStatusBar', 'autoReload', 'includeParameters', 'debugMode'];
+      if (bools.includes(key) && typeof value === 'boolean' || key === 'hoverFallback' && ['online','ecdict','off'].includes(value as string) ||
+          key === 'bingTimeoutMs' && typeof value === 'number' && Number.isFinite(value) && value >= 100 && value <= 30000) {
+        await config().update(key, value, settingTarget());
+      } else throw Error('设置值无效');
+    } else if ((message.action === 'choose' || message.action === 'remove') &&
+        typeof key === 'string' && ['packPaths','technicalLibraryPaths','dictionaryPath'].includes(key)) {
+      if (message.action === 'remove') {
+        if (!Number.isSafeInteger(message.index) || (message.index as number) < 0) return;
+        if (key === 'dictionaryPath') await config().update(key, '', settingTarget());
+        else await config().update(key, config().get<string[]>(key, []).filter((_, i) => i !== message.index), settingTarget());
+      } else {
+        const files = await vscode.window.showOpenDialog({ canSelectFolders: key === 'dictionaryPath',
+          canSelectFiles: key !== 'dictionaryPath', canSelectMany: key !== 'dictionaryPath',
+          title: key === 'dictionaryPath' ? '选择含 manifest.json 的词典目录' : '添加词库 JSON',
+          filters: key === 'dictionaryPath' ? undefined : { '词库 JSON': ['json'] } });
+        if (!files?.length) return;
+        if (key === 'dictionaryPath') {
+          const manifest = JSON.parse((await fs.promises.readFile(path.join(files[0].fsPath, 'manifest.json'), 'utf8')).replace(/^\uFEFF/, ''));
+          if (manifest.format_version !== 1 || !manifest.shards || !/^[a-f0-9]{64}$/i.test(manifest.source_sha256)) throw Error('词典索引格式不兼容');
+          await config().update(key, files[0].fsPath, settingTarget());
+        } else {
+          if (key === 'packPaths') {
+            const next = await new KnowledgeLoader().loadWithReport(files.map(f => f.fsPath));
+            if (next.failures.length) throw Error('所选知识包无效，当前配置未修改');
+          } else for (const file of files) validateTerms(JSON.parse((await fs.promises.readFile(file.fsPath, 'utf8')).replace(/^\uFEFF/, '')));
+          await config().update(key, [...new Set([...config().get<string[]>(key, []), ...files.map(f => f.fsPath)])], settingTarget());
+        }
+      }
+    } else if (message.action === 'reload') await reloadPacks(true);
+    else if (message.action === 'diagnostics') showStatus();
+    else if (message.action === 'nativeSettings') await vscode.commands.executeCommand('workbench.action.openSettings', '@ext:elio-zwd.daigua-translator');
+    panels.refresh();
+  }
 
   function refreshStatus() {
     const errors = report?.failures.length || 0;
@@ -84,6 +187,7 @@ export async function activate(context: vscode.ExtensionContext) {
       `悬停模式：${hoverMode()}；词典：${config().get<string>('dictionaryPath', '') || '未配置'}\n` +
       `最近加载：${loadedAt || '尚未完成'}${errors ? `\n加载失败 ${errors} 项（点击查看诊断）` : ''}\n点击打开快捷设置`;
     if (config().get<boolean>('showStatusBar', true)) status.show(); else status.hide();
+    panels.refresh();
   }
 
   function showStatus() {
@@ -127,8 +231,9 @@ export async function activate(context: vscode.ExtensionContext) {
     for (const [file, pack] of loadedByPath) output.appendLine(`  ${pack.name} v${pack.version} | ${pack.entries.length} 条 | ${file}`);
     for (const failure of next.failures) output.appendLine(`[失败] ${failure.path}\n${failure.reason}\n${failure.retained ? '保留上一次有效内容' : '首次加载失败，已跳过'}`);
     refreshStatus();
+    schedulePanel();
     if (next.failures.length) {
-      void vscode.window.showWarningMessage(`${summary} 失败路径：${next.failures.map(f => f.path).join('；')}。详情见“呆瓜翻译器”输出。`);
+      void vscode.window.showWarningMessage(`${summary} 部分知识包加载失败，详情见设置中的“查看加载诊断”。`);
     } else if (notify) void vscode.window.showInformationMessage(summary);
     return next;
   }
@@ -186,43 +291,22 @@ export async function activate(context: vscode.ExtensionContext) {
     const entries = local.findLocalEntries(symbol);
     output.appendLine(`\n[本地查询] ${symbol.trim()} | ${loadedPacks.length} 个包，${countEntries()} 条词条 | ${new Date().toLocaleString()}`);
     output.appendLine(entries.length ? `[本地命中 ${entries.length} 项]\n${formatEntries(entries)}` : '本地未命中。请检查生效路径、加载诊断及名称大小写；参数查询需在设置中开启。');
-    const text = entries.length ? '呆瓜 · 本地知识包\n' + formatEntries(entries) : '本地未命中。';
-    if (editorNow) await display(text, editorNow, snapshot); else output.show(true);
+    const result = entries.length ? projectResult(symbol.trim(), entries) : { text: symbol.trim(), kind: 'error' as const, match: 'none' as const, candidates: [], diagnostics: [], message: '本地知识包未收录此名称。' };
+    await display(result, editorNow, snapshot);
   }
 
-  async function quickSettings() {
-    const items = [
-      { label: '$(folder-opened) 选择知识包文件', description: '可多选；在当前工作区保存路径，无需手写 JSON', action: choosePacks },
-      { label: `$(globe) Bing 回退：${settings().bingEnabled ? '开启 → 关闭' : '关闭 → 开启'}`, description: '关闭后不发起联网请求，名称可查询离线词典', action: async () => { await config().update('bingEnabled', !settings().bingEnabled, settingTarget()); } },
-      { label: '$(symbol-text) 悬停释义模式', description: hoverMode(), action: async () => {
-        const mode = await vscode.window.showQuickPick([{ label: '自动联网释义', value: 'online' }, { label: 'ECDICT 词典释义', value: 'ecdict' }, { label: '关闭未收录名称释义', value: 'off' }], { title: '未收录名称的悬停处理' });
-        if (mode) await config().update('hoverFallback', mode.value, settingTarget());
-      } },
-      { label: '$(folder) 选择 ECDICT 索引目录', action: async () => {
-        const files = await vscode.window.showOpenDialog({ canSelectFolders: true, canSelectFiles: false, canSelectMany: false, title: '选择含 manifest.json 的 ECDICT 索引目录' });
-        if (files?.length) await config().update('dictionaryPath', files[0].fsPath, settingTarget());
-      } },
-      { label: '$(search) 本地查询', description: '直接检查本地知识包，不联网', action: queryLocal },
-      { label: '$(info) 查看加载诊断', description: '包名、路径、数量、设置来源和错误原因', action: showStatus },
-      { label: '$(refresh) 重新加载知识包', action: () => reloadPacks(true) },
-      { label: '$(settings-gear) 打开全部设置', action: () => vscode.commands.executeCommand('workbench.action.openSettings', '@ext:elio-zwd.daigua-translator') },
-    ];
-    const selected = await vscode.window.showQuickPick(items, { title: '呆瓜翻译器快捷设置', placeHolder: `当前有效 ${countEntries()} 条；设置保存到${vscode.workspace.workspaceFolders?.length ? '当前工作区' : '用户'}` });
-    if (selected) await selected.action();
-  }
-
-  for (const [name, callback] of Object.entries({ reloadPacks: () => reloadPacks(true), choosePacks, queryLocal, showStatus, quickSettings, translateSelection: () => translateInput(false), translateText: () => translateInput(true) })) {
+  for (const [name, callback] of Object.entries({ reloadPacks: () => reloadPacks(true), choosePacks, queryLocal, showStatus, quickSettings: () => panels.showSettings(), openSettings: () => panels.showSettings(), openDetails, translateSelection: () => translateInput(false), translateText: () => translateInput(true) })) {
     context.subscriptions.push(vscode.commands.registerCommand(`daiguaTranslate.${name}`, callback));
   }
   context.subscriptions.push(output, status, vscode.workspace.onDidChangeConfiguration(async event => {
-    if (event.affectsConfiguration('daiguaTranslate')) { invalidate(); offline.reset(); }
+    if (Object.keys(defaultValues).filter(key => key !== 'debugMode').some(key => event.affectsConfiguration('daiguaTranslate.' + key))) { invalidate(); offline.reset(); schedulePanel(); }
     if (event.affectsConfiguration('daiguaTranslate.packPaths') || event.affectsConfiguration('daiguaTranslate.autoReload')) watchPacks();
     if (event.affectsConfiguration('daiguaTranslate.packPaths')) await reloadPacks();
     refreshStatus();
   }));
-  context.subscriptions.push(vscode.window.onDidChangeTextEditorSelection(invalidate),
-    vscode.window.onDidChangeActiveTextEditor(invalidate),
-    vscode.workspace.onDidChangeTextDocument(invalidate));
+  context.subscriptions.push(vscode.window.onDidChangeTextEditorSelection(() => { invalidate(); schedulePanel(); }),
+    vscode.window.onDidChangeActiveTextEditor(() => { invalidate(); schedulePanel(); }),
+    vscode.workspace.onDidChangeTextDocument(() => { invalidate(); schedulePanel(); }));
   // One provider owns explicit results in every language and automatic results in C/C++ only.
   context.subscriptions.push(vscode.languages.registerHoverProvider('*', {
     provideHover(document, position, token) {
@@ -230,23 +314,25 @@ export async function activate(context: vscode.ExtensionContext) {
       if (disposed) return;
       if (manual && manual.document === document && manual.version === document.version &&
           manual.epoch === epoch && (manual.range.contains(position) || manual.anchor.isEqual(position))) {
-        return asHover(manual.text, manual.range);
+        return asHover(manual.result, manual.range);
       }
       if (!config().get<boolean>('localHover', true) || !['c', 'cpp'].includes(document.languageId)) return;
       const range = document.getWordRangeAtPosition(position, /[A-Za-z_]\w*/);
       if (!range) return;
       const value = document.getText(range);
       const entries = local.findLocalEntries(value);
-      if (entries.length) return asHover('呆瓜 · 本地知识包\n' + formatEntries(entries), range);
+      if (entries.length) return asHover(projectResult(value, entries), range);
       if (hoverMode() === 'off' || token.isCancellationRequested) return;
       const snapshot = { epoch, version: document.version };
-      return local.query(value, hoverMode(), offline).then(text => {
-        if (!text || disposed || token.isCancellationRequested || sequence !== hoverSequence ||
+      return local.queryResult(value, hoverMode(), offline).then(result => {
+        if (!result || disposed || token.isCancellationRequested || sequence !== hoverSequence ||
             snapshot.epoch !== epoch || snapshot.version !== document.version) return;
-        return asHover(text.startsWith('呆瓜 · ') ? text : '呆瓜 · ' + text, range);
+        logResult(result);
+        return asHover(result, range);
       }).catch(error => {
         if (!disposed && !token.isCancellationRequested && sequence === hoverSequence && snapshot.epoch === epoch && snapshot.version === document.version) {
-          return asHover('呆瓜 · 翻译失败：' + String(error), range);
+          output.appendLine(String(error));
+          return asHover(errorResult(value, error), range);
         }
       });
     },
@@ -255,16 +341,19 @@ export async function activate(context: vscode.ExtensionContext) {
     disposed = true;
     invalidate();
     ++reloadRequestId;
+    ++panelSequence;
+    if (panelTimer) clearTimeout(panelTimer);
     if (debounce) clearTimeout(debounce);
     for (const watcher of watchers) watcher.dispose();
     watchers = [];
+    panels.dispose();
     loadedByPath.clear();
     loadedPacks = [];
   };
   context.subscriptions.push({ dispose: stop });
   watchPacks();
   await reloadPacks();
-  return { translator: local };
+  return { translator: local, panels };
 }
 
 export function deactivate() { stop?.(); stop = undefined; }

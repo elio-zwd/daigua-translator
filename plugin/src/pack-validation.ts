@@ -33,7 +33,7 @@ export function validateKnowledgePack(value: unknown, warn: (message: string) =>
       errors.push(`${label}.symbol 不是合法的 C/C++ 标识符`);
     }
     if (!kinds.has(entry.kind as string)) errors.push(`${label}: 非法 kind`);
-    optionalText(entry, ['description_zh', 'declaration', 'returns_zh', 'scope', 'uncertainty'], label);
+    optionalText(entry, ['description_zh', 'summary_zh', 'declaration', 'returns_zh', 'scope', 'uncertainty'], label);
     const key = JSON.stringify([entry.scope ?? '', entry.symbol]);
     if (seen.has(key)) errors.push(`${label}: 重复词条`);
     seen.add(key);
@@ -62,7 +62,7 @@ export function validateKnowledgePack(value: unknown, warn: (message: string) =>
           if (!isObject(param)) { errors.push(`${pLabel} 必须是对象`); return; }
           if ('pronunciation' in param) param.pronunciation = sanitizePronunciation(param.pronunciation, message => warn(`${pLabel}: ${message}`));
           text(param.name, `${pLabel}.name`, true);
-          optionalText(param, ['description_zh', 'type'], pLabel);
+          optionalText(param, ['description_zh', 'summary_zh', 'type'], pLabel);
           if (typeof param.name === 'string') {
             if (names.has(param.name)) errors.push(`${pLabel}: 重复参数名`);
             names.add(param.name);

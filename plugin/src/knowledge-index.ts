@@ -24,6 +24,8 @@ export class KnowledgeIndex {
                 symbol: parameter.name, kind: 'variable',
                 name_zh: `${entry.symbol} 的参数 ${parameter.name}`,
                 description_zh: parameter.description_zh,
+                summary_zh: parameter.summary_zh,
+                owner: entry.symbol,
                 declaration: parameter.type,
                 scope: `${entry.scope || entry.source.file}::${entry.symbol}::参数`,
                 source: entry.source,

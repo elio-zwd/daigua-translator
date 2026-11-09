@@ -1,8 +1,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { splitIdentifier, isNamingPrefix } from './identifier-words';
-import { PronunciationSegment } from './types';
-import { formatPronunciation } from './pronunciation';
+import { Pronunciation, PronunciationSegment } from './types';
+import { QueryResult, Meaning, legacyResult } from './query-result';
 
 export interface TechnicalTerm {
   token: string;
@@ -10,6 +10,7 @@ export interface TechnicalTerm {
   symbol?: string;
   expansion?: string;
   translation: string;
+  summary_zh?: string;
   reading: PronunciationSegment['reading'];
   phonetic?: string;
   source: string;
@@ -30,6 +31,7 @@ export function validateTerms(value: unknown): TechnicalTerm[] {
         !['unreviewed', 'confirmed'].includes(t.review_status) ||
         (t.symbol !== undefined && (typeof t.symbol !== 'string' || !/^[A-Za-z_]\w*$/.test(t.symbol))) ||
         (t.expansion !== undefined && typeof t.expansion !== 'string') ||
+        (t.summary_zh !== undefined && typeof t.summary_zh !== 'string') ||
         (t.phonetic !== undefined && typeof t.phonetic !== 'string') ||
         (['word', 'letters'].includes(t.reading) && !t.phonetic?.trim())) throw Error('无效技术库词条');
   }
@@ -108,48 +110,105 @@ export class OfflineDictionary {
     return { rows, source: `ECDICT:${manifest.source_sha256.slice(0, 12)}` };
   }
 
-  async explain(symbol: string): Promise<string> {
-    const settings = this.configure();
-    const generation = this.generation;
+  private termPronunciation(term: TechnicalTerm, text: string): Pronunciation {
+    return { segments: [{ text, reading: term.reading, phonetic: term.phonetic, source: term.source,
+      status: term.reading === 'unknown' ? 'pending' : 'resolved', review_status: term.review_status }] };
+  }
+
+  /** Only entries with an authored summary opt into cross-project normalization/inference. */
+  async generalResult(symbol: string): Promise<QueryResult | undefined> {
+    const settings = this.configure(), generation = this.generation;
     const libraries = await this.libraries(settings.technicalLibraryPaths);
     if (generation !== this.generation) throw Error('词典配置已变化，请重新查询');
-    const whole = findTerms(libraries, symbol, symbol, 0, true);
-    const parts = whole.length ? [symbol] : splitIdentifier(symbol);
-    const lines = ['普通名称释义，用途未核对（离线词典）'];
-    let cursor = 0;
-    for (const [index, token] of parts.entries()) {
-      const start = symbol.indexOf(token, cursor);
-      cursor = start + token.length;
-      const numericAdjacent = /[0-9]/.test(symbol[start - 1] || '') || /[0-9]/.test(symbol[cursor] || '');
-      if (/^\d+$/.test(token)) { lines.push(`${token}：数字，未标注读音`); continue; }
-      const matches = whole.length ? whole : findTerms(libraries, symbol, token, index);
-      if (matches.length) {
-        for (const term of matches) {
-          lines.push(`${token}：${term.translation || '释义暂缺'}${term.expansion ? `（${term.expansion}）` : ''} [技术库：${term.source}]`);
-          lines.push(formatPronunciation({ segments: [{ text: token, reading: term.reading, phonetic: term.phonetic,
-            source: term.source, status: term.reading === 'unknown' ? 'pending' : 'resolved', review_status: term.review_status }] }));
+    let matches = findTerms(libraries, symbol, symbol, 0, true);
+    let inferred = false;
+    const normalize = (s: string) => splitIdentifier(s).map(t => t.toLowerCase()).join('_');
+    const words = splitIdentifier(symbol);
+    if (!matches.length) {
+      const normalized = normalize(symbol);
+      // Prefer an exact normalized name across all libraries before considering any suffix.
+      for (let removed = 0; removed <= words.length - 2 && !matches.length; removed++) {
+        const suffix = normalize(words.slice(removed).join('_'));
+        for (const library of libraries) {
+          matches = library.filter(t => t.match === 'identifier' && !t.symbol && !!t.summary_zh?.trim() &&
+            !/\d/.test(t.token) && normalize(t.token) === (removed ? suffix : normalized));
+          if (matches.length) { inferred = removed > 0; break; }
         }
+      }
+    }
+    if (!matches.length) return;
+    const pronunciation = inferred || matches[0].token !== symbol || !!matches[0].summary_zh
+      ? await this.pronunciationFor(symbol, settings, libraries, generation) : undefined;
+    return { text: symbol, kind: 'general', match: inferred ? 'inferred' : 'exact', matchedName: matches[0].token,
+      candidates: matches.map(t => ({ name: t.translation, summary: t.summary_zh, source: t.source,
+        pronunciation: pronunciation || this.termPronunciation(t, symbol) })), diagnostics: [...this.diagnostics] };
+  }
+
+  private async pronunciationFor(symbol: string, settings: OfflineSettings, libraries: TechnicalTerm[][],
+    generation: number): Promise<Pronunciation> {
+    const segments: PronunciationSegment[] = [];
+    let cursor = 0;
+    for (const [index, token] of splitIdentifier(symbol).entries()) {
+      const start = symbol.indexOf(token, cursor); cursor = start + token.length;
+      const term = findTerms(libraries, symbol, token, index)[0];
+      if (term) { segments.push(...this.termPronunciation(term, token).segments); continue; }
+      let phonetic: string | undefined, source = 'unavailable';
+      if (!/[0-9]/.test(symbol[start - 1] || '') && !/[0-9]/.test(symbol[cursor] || '') && token.length > 1) {
+        try {
+          const found = await this.words(token, settings.dictionaryPath, generation);
+          source = found.source;
+          phonetic = found.rows.find(r => r.word === token.toLowerCase() && r.phonetic)?.phonetic;
+        } catch (error) {
+          if (generation !== this.generation) throw error;
+          this.report(String(error));
+        }
+      }
+      segments.push({ text: token, reading: phonetic ? 'word' : 'unknown', phonetic,
+        source, status: phonetic ? 'resolved' : 'pending' });
+    }
+    if (generation !== this.generation) throw Error('词典配置已变化，请重新查询');
+    return { segments };
+  }
+
+  async explainResult(symbol: string): Promise<QueryResult> {
+    const general = await this.generalResult(symbol);
+    if (general) return general;
+    const settings = this.configure(), generation = this.generation;
+    const libraries = await this.libraries(settings.technicalLibraryPaths);
+    const components: Meaning[] = [];
+    let cursor = 0;
+    for (const [index, token] of splitIdentifier(symbol).entries()) {
+      const start = symbol.indexOf(token, cursor); cursor = start + token.length;
+      const numericAdjacent = /[0-9]/.test(symbol[start - 1] || '') || /[0-9]/.test(symbol[cursor] || '');
+      if (/^\d+$/.test(token)) {
+        components.push({ text: token, meanings: ['数字，未标注读音'], source: 'identifier' }); continue;
+      }
+      const matches = findTerms(libraries, symbol, token, index);
+      if (matches.length) {
+        components.push({ text: token, meanings: matches.map(t => t.translation || '释义暂缺'),
+          source: matches.map(t => t.source).join('；'), pronunciation: this.termPronunciation(matches[0], token) });
         continue;
       }
       try {
         const { rows, source } = await this.words(token, settings.dictionaryPath, generation);
         if (generation !== this.generation) throw Error('词典配置已变化，请重新查询');
-        if (!rows.length) lines.push(`${token}：未找到词典释义`);
-        for (const row of rows) {
-          lines.push(`${token}：${row.translation.replace(/\\n/g, '\n') || '中文释义缺失'} [${source}]`);
-          // Single letters and all-uppercase unknowns may be units/models/acronyms.
-          if (row.phonetic && !numericAdjacent && token.length > 1 && row.word === token.toLowerCase()) {
-            lines.push(formatPronunciation({ segments: [{ text: token, reading: 'word', phonetic: row.phonetic, source, status: 'resolved' }] }));
-          }
-        }
-        if (numericAdjacent) lines.push(`${token}：与数字相邻，可能是型号或宽度标记，读音暂缺`);
+        const meanings = [...new Set(rows.flatMap(r => r.translation.replace(/\\n/g, '\n').split(/\r?\n/)).map(s => s.trim()).filter(Boolean))];
+        const row = rows.find(r => r.phonetic && token.length > 1 && r.word === token.toLowerCase());
+        components.push({ text: token, meanings: meanings.length ? meanings : ['未找到词典释义'], source,
+          pronunciation: !numericAdjacent && row ? { segments: [{ text: token, reading: 'word',
+            phonetic: row.phonetic, source, status: 'resolved' }] } : undefined });
+        if (numericAdjacent) components[components.length - 1].pronunciation = { segments: [{ text: token,
+          reading: 'unknown', source, status: 'pending' }] };
       } catch (error) {
         if (generation !== this.generation) throw error;
-        const message = String(error); this.report(message); lines.push(`${token}：${message}`);
+        this.report(String(error));
+        components.push({ text: token, meanings: ['暂时无法查询词典释义'], source: 'unavailable' });
       }
     }
-    const notices = [...this.diagnostics];
-    if (notices.length) lines.push('词典诊断：' + notices.join('；'));
-    return lines.join('\n');
+    if (generation !== this.generation) throw Error('词典配置已变化，请重新查询');
+    return { text: symbol, kind: 'dictionary', match: 'components', candidates: [], components,
+      diagnostics: [...this.diagnostics] };
   }
+
+  async explain(symbol: string): Promise<string> { return legacyResult(await this.explainResult(symbol)); }
 }
