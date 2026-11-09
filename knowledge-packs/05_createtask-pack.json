@@ -14,7 +14,8 @@
         {
           "name": "arg",
           "type": "void *arg",
-          "description_zh": "指向 uint32_t 毫秒周期的指针"
+          "description_zh": "指向 uint32_t 毫秒周期的指针",
+          "summary_zh": "指向任务运行周期的参数。"
         }
       ],
       "returns_zh": "任务循环不返回",
@@ -23,7 +24,8 @@
         "file": "05_createtask/src/main.c",
         "line": 4
       },
-      "uncertainty": ""
+      "uncertainty": "",
+      "summary_zh": "按指定周期执行工作并记录运行情况。"
     },
     {
       "symbol": "main",
@@ -38,7 +40,8 @@
         "file": "05_createtask/src/main.c",
         "line": 20
       },
-      "uncertainty": ""
+      "uncertainty": "",
+      "summary_zh": "初始化运行环境，创建任务并启动调度器。"
     },
     {
       "symbol": "system_clock_config",
@@ -53,7 +56,8 @@
         "file": "common/platform/at32f435_437_clock.c",
         "line": 57
       },
-      "uncertainty": ""
+      "uncertainty": "",
+      "summary_zh": "配置系统时钟，为处理器和外设提供运行时基准。"
     },
     {
       "symbol": "course_board_init",
@@ -68,7 +72,8 @@
         "file": "common/platform/course_board.c",
         "line": 68
       },
-      "uncertainty": ""
+      "uncertainty": "",
+      "summary_zh": "配置开发板的时钟和基础外设，为程序运行做好准备。"
     },
     {
       "symbol": "course_led_set",
@@ -80,12 +85,14 @@
         {
           "name": "led",
           "type": "unsigned int led",
-          "description_zh": "0 选择 LED A，其他值选择 LED B"
+          "description_zh": "0 选择 LED A，其他值选择 LED B",
+          "summary_zh": "指定要操作的 LED。"
         },
         {
           "name": "on",
           "type": "int on",
-          "description_zh": "非零点亮，0 熄灭"
+          "description_zh": "非零点亮，0 熄灭",
+          "summary_zh": "指定 LED 应点亮还是熄灭。"
         }
       ],
       "returns_zh": "无返回值",
@@ -94,7 +101,8 @@
         "file": "common/platform/course_board.c",
         "line": 26
       },
-      "uncertainty": ""
+      "uncertainty": "",
+      "summary_zh": "设置指定 LED 的亮灭状态。"
     },
     {
       "symbol": "course_led_toggle",
@@ -106,7 +114,8 @@
         {
           "name": "led",
           "type": "unsigned int led",
-          "description_zh": "0 选择 LED A，其他值选择 LED B"
+          "description_zh": "0 选择 LED A，其他值选择 LED B",
+          "summary_zh": "指定要操作的 LED。"
         }
       ],
       "returns_zh": "无返回值",
@@ -115,7 +124,8 @@
         "file": "common/platform/course_board.c",
         "line": 31
       },
-      "uncertainty": ""
+      "uncertainty": "",
+      "summary_zh": "将指定 LED 的亮灭状态反转。"
     },
     {
       "symbol": "course_uart_write",
@@ -127,7 +137,8 @@
         {
           "name": "text",
           "type": "const char *text",
-          "description_zh": "以空字符结尾的文本指针"
+          "description_zh": "以空字符结尾的文本指针",
+          "summary_zh": "要通过串口发送的文本。"
         }
       ],
       "returns_zh": "无返回值",
@@ -136,7 +147,8 @@
         "file": "common/platform/course_board.c",
         "line": 36
       },
-      "uncertainty": ""
+      "uncertainty": "",
+      "summary_zh": "通过串口发送文本。"
     },
     {
       "symbol": "course_uart_read",
@@ -148,7 +160,8 @@
         {
           "name": "byte",
           "type": "uint8_t *byte",
-          "description_zh": "接收字节的目标指针"
+          "description_zh": "接收字节的目标指针",
+          "summary_zh": "用于接收串口数据的目标位置。"
         }
       ],
       "returns_zh": "有数据返回 1，否则返回 0",
@@ -157,7 +170,8 @@
         "file": "common/platform/course_board.c",
         "line": 44
       },
-      "uncertainty": ""
+      "uncertainty": "",
+      "summary_zh": "尝试从串口读取接收到的数据。"
     },
     {
       "symbol": "course_log",
@@ -169,12 +183,14 @@
         {
           "name": "format",
           "type": "const char *format",
-          "description_zh": "printf 格式字符串"
+          "description_zh": "printf 格式字符串",
+          "summary_zh": "指定日志文本的格式。"
         },
         {
           "name": "...",
           "type": "...",
-          "description_zh": "与格式字符串对应的可变参数"
+          "description_zh": "与格式字符串对应的可变参数",
+          "summary_zh": "与格式字符串对应的可变参数。"
         }
       ],
       "returns_zh": "无返回值",
@@ -183,7 +199,8 @@
         "file": "common/platform/course_board.c",
         "line": 50
       },
-      "uncertainty": ""
+      "uncertainty": "",
+      "summary_zh": "将格式化的日志文本输出到串口。"
     },
     {
       "symbol": "course_busy_ms",
@@ -195,7 +212,8 @@
         {
           "name": "ms",
           "type": "uint32_t ms",
-          "description_zh": "忙等待毫秒数"
+          "description_zh": "忙等待毫秒数",
+          "summary_zh": "指定忙等待的毫秒数。"
         }
       ],
       "returns_zh": "无返回值",
@@ -204,7 +222,8 @@
         "file": "common/platform/course_board.c",
         "line": 102
       },
-      "uncertainty": ""
+      "uncertainty": "",
+      "summary_zh": "通过持续等待模拟指定时长的处理负载。"
     },
     {
       "symbol": "course_keys_probe_init",
@@ -219,7 +238,8 @@
         "file": "common/platform/course_board.c",
         "line": 121
       },
-      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。"
+      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。",
+      "summary_zh": "将候选按键引脚配置为可读取的输入。"
     },
     {
       "symbol": "course_keys_raw",
@@ -234,7 +254,8 @@
         "file": "common/platform/course_board.c",
         "line": 126
       },
-      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。"
+      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。",
+      "summary_zh": "读取候选按键的原始电平状态。"
     },
     {
       "symbol": "course_key_ready",
@@ -249,7 +270,8 @@
         "file": "common/platform/course_board.c",
         "line": 135
       },
-      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。"
+      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。",
+      "summary_zh": "判断所选按键配置是否可用。"
     },
     {
       "symbol": "course_key_pressed",
@@ -264,7 +286,8 @@
         "file": "common/platform/course_board.c",
         "line": 140
       },
-      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。"
+      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。",
+      "summary_zh": "判断所选按键是否处于按下状态。"
     },
     {
       "symbol": "course_key_input_init",
@@ -279,7 +302,8 @@
         "file": "common/platform/course_board.c",
         "line": 136
       },
-      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。"
+      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。",
+      "summary_zh": "初始化所选按键的输入引脚。"
     },
     {
       "symbol": "course_key_irq_init",
@@ -294,7 +318,8 @@
         "file": "common/platform/course_board.c",
         "line": 149
       },
-      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。"
+      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。",
+      "summary_zh": "初始化所选按键的外部中断。"
     },
     {
       "symbol": "course_key_isr",
@@ -309,7 +334,8 @@
         "file": "common/platform/course_board.c",
         "line": 168
       },
-      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。"
+      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。",
+      "summary_zh": "处理按键触发的中断回调。"
     },
     {
       "symbol": "course_stats_init",
@@ -324,7 +350,8 @@
         "file": "common/platform/course_board.c",
         "line": 184
       },
-      "uncertainty": ""
+      "uncertainty": "",
+      "summary_zh": "初始化用于运行时间统计的计数器。"
     },
     {
       "symbol": "course_stats_counter",
@@ -339,7 +366,8 @@
         "file": "common/platform/course_board.c",
         "line": 198
       },
-      "uncertainty": ""
+      "uncertainty": "",
+      "summary_zh": "读取运行时间统计所用的计数值。"
     },
     {
       "symbol": "course_fail",
@@ -351,7 +379,8 @@
         {
           "name": "reason",
           "type": "const char *reason",
-          "description_zh": "故障原因字符串"
+          "description_zh": "故障原因字符串",
+          "summary_zh": "描述故障原因的文本。"
         }
       ],
       "returns_zh": "不返回",
@@ -360,7 +389,8 @@
         "file": "common/platform/course_hooks.c",
         "line": 17
       },
-      "uncertainty": ""
+      "uncertainty": "",
+      "summary_zh": "报告运行失败原因并停止程序。"
     },
     {
       "symbol": "course_assert_fail",
@@ -372,12 +402,14 @@
         {
           "name": "file",
           "type": "const char *file",
-          "description_zh": "断言发生的文件名"
+          "description_zh": "断言发生的文件名",
+          "summary_zh": "标识故障发生位置的文件名。"
         },
         {
           "name": "line",
           "type": "unsigned int line",
-          "description_zh": "断言行号"
+          "description_zh": "断言行号",
+          "summary_zh": "标识故障发生位置的行号。"
         }
       ],
       "returns_zh": "不返回",
@@ -386,7 +418,8 @@
         "file": "common/platform/course_hooks.c",
         "line": 18
       },
-      "uncertainty": ""
+      "uncertainty": "",
+      "summary_zh": "报告断言失败并进入故障处理。"
     },
     {
       "symbol": "key_input",
@@ -398,7 +431,8 @@
         {
           "name": "key",
           "type": "const key_pin_type *key",
-          "description_zh": "候选引脚表项指针"
+          "description_zh": "候选引脚表项指针",
+          "summary_zh": "指向要配置的按键引脚信息。"
         }
       ],
       "returns_zh": "无返回值",
@@ -407,7 +441,8 @@
         "file": "common/platform/course_board.c",
         "line": 109
       },
-      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。"
+      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。",
+      "summary_zh": "将指定按键引脚配置为输入。"
     },
     {
       "symbol": "key_irq_dispatch",
@@ -422,7 +457,8 @@
         "file": "common/platform/course_board.c",
         "line": 169
       },
-      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。"
+      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。",
+      "summary_zh": "将按键中断分发给对应的处理函数。"
     },
     {
       "symbol": "EXINT1_IRQHandler",
@@ -437,7 +473,8 @@
         "file": "common/platform/course_board.c",
         "line": 179
       },
-      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。"
+      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。",
+      "summary_zh": "响应并处理对应的外部中断。"
     },
     {
       "symbol": "EXINT2_IRQHandler",
@@ -452,7 +489,8 @@
         "file": "common/platform/course_board.c",
         "line": 180
       },
-      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。"
+      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。",
+      "summary_zh": "响应并处理对应的外部中断。"
     },
     {
       "symbol": "EXINT4_IRQHandler",
@@ -467,7 +505,8 @@
         "file": "common/platform/course_board.c",
         "line": 181
       },
-      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。"
+      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。",
+      "summary_zh": "响应并处理对应的外部中断。"
     },
     {
       "symbol": "EXINT15_10_IRQHandler",
@@ -482,7 +521,8 @@
         "file": "common/platform/course_board.c",
         "line": 182
       },
-      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。"
+      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。",
+      "summary_zh": "响应并处理对应分组的外部中断。"
     },
     {
       "symbol": "stop",
@@ -494,17 +534,20 @@
         {
           "name": "reason",
           "type": "const char *reason",
-          "description_zh": "故障原因"
+          "description_zh": "故障原因",
+          "summary_zh": "描述故障原因的文本。"
         },
         {
           "name": "file",
           "type": "const char *file",
-          "description_zh": "来源文件，可为空指针"
+          "description_zh": "来源文件，可为空指针",
+          "summary_zh": "标识故障发生位置的文件名。"
         },
         {
           "name": "line",
           "type": "unsigned int line",
-          "description_zh": "来源行号，可为 0"
+          "description_zh": "来源行号，可为 0",
+          "summary_zh": "标识故障发生位置的行号。"
         }
       ],
       "returns_zh": "不返回",
@@ -513,7 +556,8 @@
         "file": "common/platform/course_hooks.c",
         "line": 3
       },
-      "uncertainty": ""
+      "uncertainty": "",
+      "summary_zh": "记录故障原因并停止程序运行。"
     },
     {
       "symbol": "vApplicationMallocFailedHook",
@@ -528,7 +572,8 @@
         "file": "common/platform/course_hooks.c",
         "line": 19
       },
-      "uncertainty": ""
+      "uncertainty": "",
+      "summary_zh": "在动态内存分配失败时执行故障处理。"
     },
     {
       "symbol": "vApplicationStackOverflowHook",
@@ -540,12 +585,14 @@
         {
           "name": "task",
           "type": "TaskHandle_t task",
-          "description_zh": "发生溢出的任务句柄，本实现未使用"
+          "description_zh": "发生溢出的任务句柄，本实现未使用",
+          "summary_zh": "发生栈溢出的任务句柄。"
         },
         {
           "name": "name",
           "type": "char *name",
-          "description_zh": "任务名，本实现未使用"
+          "description_zh": "任务名，本实现未使用",
+          "summary_zh": "发生栈溢出的任务名称。"
         }
       ],
       "returns_zh": "不返回",
@@ -554,7 +601,8 @@
         "file": "common/platform/course_hooks.c",
         "line": 20
       },
-      "uncertainty": ""
+      "uncertainty": "",
+      "summary_zh": "在检测到任务栈溢出时执行故障处理。"
     },
     {
       "symbol": "HardFault_Handler",
@@ -569,7 +617,8 @@
         "file": "common/platform/course_hooks.c",
         "line": 26
       },
-      "uncertainty": ""
+      "uncertainty": "",
+      "summary_zh": "处理处理器发生的硬故障。"
     },
     {
       "symbol": "MemManage_Handler",
@@ -584,7 +633,8 @@
         "file": "common/platform/course_hooks.c",
         "line": 27
       },
-      "uncertainty": ""
+      "uncertainty": "",
+      "summary_zh": "处理内存访问或保护相关故障。"
     },
     {
       "symbol": "BusFault_Handler",
@@ -599,7 +649,8 @@
         "file": "common/platform/course_hooks.c",
         "line": 28
       },
-      "uncertainty": ""
+      "uncertainty": "",
+      "summary_zh": "处理总线访问故障。"
     },
     {
       "symbol": "UsageFault_Handler",
@@ -614,7 +665,8 @@
         "file": "common/platform/course_hooks.c",
         "line": 29
       },
-      "uncertainty": ""
+      "uncertainty": "",
+      "summary_zh": "处理指令使用或运行状态相关故障。"
     },
     {
       "symbol": "intervals",
@@ -629,7 +681,8 @@
         "file": "05_createtask/src/main.c",
         "line": 3
       },
-      "uncertainty": ""
+      "uncertainty": "",
+      "summary_zh": "保存各任务使用的运行周期。"
     },
     {
       "symbol": "local_count",
@@ -644,7 +697,8 @@
         "file": "05_createtask/src/main.c",
         "line": 6
       },
-      "uncertainty": ""
+      "uncertainty": "",
+      "summary_zh": "记录当前任务的执行次数。"
     },
     {
       "symbol": "interval",
@@ -659,7 +713,8 @@
         "file": "05_createtask/src/main.c",
         "line": 7
       },
-      "uncertainty": ""
+      "uncertainty": "",
+      "summary_zh": "保存任务使用的延时周期。"
     },
     {
       "symbol": "block",
@@ -674,7 +729,8 @@
         "file": "05_createtask/src/main.c",
         "line": 8
       },
-      "uncertainty": ""
+      "uncertainty": "",
+      "summary_zh": "指向动态申请的演示内存块。"
     },
     {
       "symbol": "board_ready",
@@ -689,7 +745,8 @@
         "file": "common/platform/course_board.c",
         "line": 24
       },
-      "uncertainty": ""
+      "uncertainty": "",
+      "summary_zh": "标记板级资源是否已准备好进行串口输出。"
     },
     {
       "symbol": "buffer",
@@ -704,7 +761,8 @@
         "file": "common/platform/course_board.c",
         "line": 52
       },
-      "uncertainty": ""
+      "uncertainty": "",
+      "summary_zh": "暂存格式化后的日志文本。"
     },
     {
       "symbol": "running",
@@ -719,7 +777,8 @@
         "file": "common/platform/course_board.c",
         "line": 54
       },
-      "uncertainty": ""
+      "uncertainty": "",
+      "summary_zh": "标记任务调度器是否正在运行。"
     },
     {
       "symbol": "start",
@@ -734,7 +793,8 @@
         "file": "common/platform/course_board.c",
         "line": 104
       },
-      "uncertainty": ""
+      "uncertainty": "",
+      "summary_zh": "保存本次忙等待开始时的计数值。"
     },
     {
       "symbol": "cycles",
@@ -749,7 +809,8 @@
         "file": "common/platform/course_board.c",
         "line": 105
       },
-      "uncertainty": ""
+      "uncertainty": "",
+      "summary_zh": "保存达到目标等待时长所需的周期数。"
     },
     {
       "symbol": "mask",
@@ -764,7 +825,8 @@
         "file": "common/platform/course_board.c",
         "line": 129
       },
-      "uncertainty": ""
+      "uncertainty": "",
+      "summary_zh": "用各个位记录候选按键的电平状态。"
     },
     {
       "symbol": "timer_clock",
@@ -779,7 +841,8 @@
         "file": "common/platform/course_board.c",
         "line": 187
       },
-      "uncertainty": ""
+      "uncertainty": "",
+      "summary_zh": "保存运行统计定时器的输入时钟频率。"
     },
     {
       "symbol": "course_last_fault",
@@ -794,7 +857,8 @@
         "file": "common/platform/course_hooks.c",
         "line": 2
       },
-      "uncertainty": ""
+      "uncertainty": "",
+      "summary_zh": "保存最近一次故障的相关信息。"
     },
     {
       "symbol": "COURSE_STACK",
@@ -809,7 +873,8 @@
         "file": "common/include/course.h",
         "line": 13
       },
-      "uncertainty": ""
+      "uncertainty": "",
+      "summary_zh": "设置课程示例任务默认使用的栈深度。"
     },
     {
       "symbol": "COURSE_LOG_STACK",
@@ -824,7 +889,8 @@
         "file": "common/include/course.h",
         "line": 14
       },
-      "uncertainty": ""
+      "uncertainty": "",
+      "summary_zh": "设置日志任务使用的栈深度。"
     },
     {
       "symbol": "COURSE_CHECK",
@@ -839,7 +905,8 @@
         "file": "common/include/course.h",
         "line": 15
       },
-      "uncertainty": ""
+      "uncertainty": "",
+      "summary_zh": "检查运行条件，在条件不满足时报告断言失败。"
     },
     {
       "symbol": "COURSE_KEY_INDEX",
@@ -854,7 +921,8 @@
         "file": "common/include/course_board_config.h",
         "line": 5
       },
-      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。"
+      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。",
+      "summary_zh": "指定使用哪个候选按键。"
     },
     {
       "symbol": "COURSE_KEY_ACTIVE_LEVEL",
@@ -869,7 +937,8 @@
         "file": "common/include/course_board_config.h",
         "line": 6
       },
-      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。"
+      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。",
+      "summary_zh": "指定按键按下时对应的有效电平。"
     },
     {
       "symbol": "COURSE_KEY_PULL",
@@ -884,7 +953,8 @@
         "file": "common/include/course_board_config.h",
         "line": 7
       },
-      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。"
+      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。",
+      "summary_zh": "指定按键输入引脚的上拉或下拉方式。"
     },
     {
       "symbol": "COURSE_IRQ_PRIORITY",
@@ -899,7 +969,8 @@
         "file": "common/include/course_board_config.h",
         "line": 8
       },
-      "uncertainty": ""
+      "uncertainty": "",
+      "summary_zh": "指定按键中断的优先级。"
     },
     {
       "symbol": "COURSE_LED_A_PIN",
@@ -914,7 +985,8 @@
         "file": "common/include/course_board_config.h",
         "line": 9
       },
-      "uncertainty": ""
+      "uncertainty": "",
+      "summary_zh": "标识 LED A 使用的引脚。"
     },
     {
       "symbol": "COURSE_LED_B_PIN",
@@ -929,7 +1001,8 @@
         "file": "common/include/course_board_config.h",
         "line": 10
       },
-      "uncertainty": ""
+      "uncertainty": "",
+      "summary_zh": "标识 LED B 使用的引脚。"
     },
     {
       "symbol": "COURSE_UART_BAUD",
@@ -944,7 +1017,8 @@
         "file": "common/include/course_board_config.h",
         "line": 11
       },
-      "uncertainty": ""
+      "uncertainty": "",
+      "summary_zh": "设置调试串口的数据传输速率。"
     },
     {
       "symbol": "configCPU_CLOCK_HZ",
@@ -959,7 +1033,8 @@
         "file": "common/include/course_rtos_config.h",
         "line": 8
       },
-      "uncertainty": ""
+      "uncertainty": "",
+      "summary_zh": "配置 RTOS 使用的处理器时钟频率。"
     },
     {
       "symbol": "configTICK_RATE_HZ",
@@ -974,7 +1049,8 @@
         "file": "common/include/course_rtos_config.h",
         "line": 9
       },
-      "uncertainty": ""
+      "uncertainty": "",
+      "summary_zh": "配置 RTOS 每秒产生的系统节拍数。"
     },
     {
       "symbol": "configMAX_PRIORITIES",
@@ -989,7 +1065,8 @@
         "file": "common/include/course_rtos_config.h",
         "line": 10
       },
-      "uncertainty": ""
+      "uncertainty": "",
+      "summary_zh": "配置任务可使用的优先级数量。"
     },
     {
       "symbol": "configMINIMAL_STACK_SIZE",
@@ -1004,7 +1081,8 @@
         "file": "common/include/course_rtos_config.h",
         "line": 11
       },
-      "uncertainty": ""
+      "uncertainty": "",
+      "summary_zh": "配置最小任务栈深度。"
     },
     {
       "symbol": "configTOTAL_HEAP_SIZE",
@@ -1019,7 +1097,8 @@
         "file": "common/include/course_rtos_config.h",
         "line": 12
       },
-      "uncertainty": ""
+      "uncertainty": "",
+      "summary_zh": "配置 RTOS 可用于动态分配的堆容量。"
     },
     {
       "symbol": "configMAX_TASK_NAME_LEN",
@@ -1034,7 +1113,8 @@
         "file": "common/include/course_rtos_config.h",
         "line": 13
       },
-      "uncertainty": ""
+      "uncertainty": "",
+      "summary_zh": "配置任务名称可占用的最大存储长度。"
     },
     {
       "symbol": "configUSE_PREEMPTION",
@@ -1049,7 +1129,8 @@
         "file": "common/include/course_rtos_config.h",
         "line": 15
       },
-      "uncertainty": ""
+      "uncertainty": "",
+      "summary_zh": "配置是否启用抢占式任务调度。"
     },
     {
       "symbol": "configUSE_TIME_SLICING",
@@ -1064,7 +1145,8 @@
         "file": "common/include/course_rtos_config.h",
         "line": 17
       },
-      "uncertainty": ""
+      "uncertainty": "",
+      "summary_zh": "配置同优先级任务是否轮流使用时间片。"
     },
     {
       "symbol": "configSUPPORT_DYNAMIC_ALLOCATION",
@@ -1079,7 +1161,8 @@
         "file": "common/include/course_rtos_config.h",
         "line": 20
       },
-      "uncertainty": ""
+      "uncertainty": "",
+      "summary_zh": "配置是否允许动态分配 RTOS 对象所需的内存。"
     },
     {
       "symbol": "configSUPPORT_STATIC_ALLOCATION",
@@ -1094,7 +1177,8 @@
         "file": "common/include/course_rtos_config.h",
         "line": 22
       },
-      "uncertainty": ""
+      "uncertainty": "",
+      "summary_zh": "配置是否支持由调用者提供 RTOS 对象所需的内存。"
     },
     {
       "symbol": "configCHECK_FOR_STACK_OVERFLOW",
@@ -1109,7 +1193,8 @@
         "file": "common/include/course_rtos_config.h",
         "line": 28
       },
-      "uncertainty": ""
+      "uncertainty": "",
+      "summary_zh": "配置任务栈溢出检查方式。"
     },
     {
       "symbol": "configUSE_MALLOC_FAILED_HOOK",
@@ -1124,7 +1209,8 @@
         "file": "common/include/course_rtos_config.h",
         "line": 29
       },
-      "uncertainty": ""
+      "uncertainty": "",
+      "summary_zh": "配置是否启用内存分配失败回调。"
     },
     {
       "symbol": "configUSE_TIMERS",
@@ -1139,7 +1225,8 @@
         "file": "common/include/course_rtos_config.h",
         "line": 43
       },
-      "uncertainty": ""
+      "uncertainty": "",
+      "summary_zh": "配置是否启用软件定时器。"
     },
     {
       "symbol": "configGENERATE_RUN_TIME_STATS",
@@ -1154,7 +1241,8 @@
         "file": "common/include/course_rtos_config.h",
         "line": 52
       },
-      "uncertainty": ""
+      "uncertainty": "",
+      "summary_zh": "配置是否统计任务运行时间。"
     },
     {
       "symbol": "configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY",
@@ -1169,7 +1257,8 @@
         "file": "common/include/course_rtos_config.h",
         "line": 69
       },
-      "uncertainty": ""
+      "uncertainty": "",
+      "summary_zh": "配置允许调用 RTOS API 的中断优先级边界。"
     },
     {
       "symbol": "configASSERT",
@@ -1184,7 +1273,8 @@
         "file": "common/include/course_rtos_config.h",
         "line": 72
       },
-      "uncertainty": ""
+      "uncertainty": "",
+      "summary_zh": "检查 RTOS 内部条件并在异常时触发断言处理。"
     },
     {
       "symbol": "keys",
@@ -1199,7 +1289,8 @@
         "file": "common/platform/course_board.c",
         "line": 14
       },
-      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。"
+      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。",
+      "summary_zh": "保存候选按键的引脚配置信息。"
     },
     {
       "symbol": "key_pin_type",
@@ -1214,7 +1305,8 @@
         "file": "common/platform/course_board.c",
         "line": 6
       },
-      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。"
+      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。",
+      "summary_zh": "描述一个候选按键使用的引脚配置。"
     },
     {
       "symbol": "course_fault_type",
@@ -1229,7 +1321,8 @@
         "file": "common/include/course_hooks.h",
         "line": 3
       },
-      "uncertainty": ""
+      "uncertainty": "",
+      "summary_zh": "描述一次故障需要记录的信息。"
     }
   ]
 }

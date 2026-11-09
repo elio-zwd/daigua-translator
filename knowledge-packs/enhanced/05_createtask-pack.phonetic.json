@@ -26,7 +26,8 @@
                 "phonetic": "eɪ ɑː dʒiː"
               }
             ]
-          }
+          },
+          "summary_zh": "指向任务运行周期的参数。"
         }
       ],
       "returns_zh": "任务循环不返回",
@@ -46,7 +47,8 @@
             "phonetic": "'wә:kә"
           }
         ]
-      }
+      },
+      "summary_zh": "按指定周期执行工作并记录运行情况。"
     },
     {
       "symbol": "main",
@@ -72,7 +74,8 @@
             "phonetic": "mein"
           }
         ]
-      }
+      },
+      "summary_zh": "初始化运行环境，创建任务并启动调度器。"
     },
     {
       "symbol": "system_clock_config",
@@ -113,7 +116,8 @@
             "phonetic": "ˈkɒnfɪɡ"
           }
         ]
-      }
+      },
+      "summary_zh": "配置系统时钟，为处理器和外设提供运行时基准。"
     },
     {
       "symbol": "course_board_init",
@@ -154,7 +158,8 @@
             "phonetic": "ɪˈnɪt"
           }
         ]
-      }
+      },
+      "summary_zh": "配置开发板的时钟和基础外设，为程序运行做好准备。"
     },
     {
       "symbol": "course_led_set",
@@ -178,7 +183,8 @@
                 "phonetic": "el iː diː"
               }
             ]
-          }
+          },
+          "summary_zh": "指定要操作的 LED。"
         },
         {
           "name": "on",
@@ -194,7 +200,8 @@
                 "phonetic": "ɒn"
               }
             ]
-          }
+          },
+          "summary_zh": "指定 LED 应点亮还是熄灭。"
         }
       ],
       "returns_zh": "无返回值",
@@ -229,7 +236,8 @@
             "phonetic": "set"
           }
         ]
-      }
+      },
+      "summary_zh": "设置指定 LED 的亮灭状态。"
     },
     {
       "symbol": "course_led_toggle",
@@ -253,7 +261,8 @@
                 "phonetic": "el iː diː"
               }
             ]
-          }
+          },
+          "summary_zh": "指定要操作的 LED。"
         }
       ],
       "returns_zh": "无返回值",
@@ -288,7 +297,8 @@
             "phonetic": "'tɒgl"
           }
         ]
-      }
+      },
+      "summary_zh": "将指定 LED 的亮灭状态反转。"
     },
     {
       "symbol": "course_uart_write",
@@ -311,7 +321,8 @@
                 "phonetic": "tekst"
               }
             ]
-          }
+          },
+          "summary_zh": "要通过串口发送的文本。"
         }
       ],
       "returns_zh": "无返回值",
@@ -346,7 +357,8 @@
             "phonetic": "rait"
           }
         ]
-      }
+      },
+      "summary_zh": "通过串口发送文本。"
     },
     {
       "symbol": "course_uart_read",
@@ -369,7 +381,8 @@
                 "phonetic": "bait"
               }
             ]
-          }
+          },
+          "summary_zh": "用于接收串口数据的目标位置。"
         }
       ],
       "returns_zh": "有数据返回 1，否则返回 0",
@@ -404,7 +417,8 @@
             "phonetic": "ri:d"
           }
         ]
-      }
+      },
+      "summary_zh": "尝试从串口读取接收到的数据。"
     },
     {
       "symbol": "course_log",
@@ -427,7 +441,8 @@
                 "phonetic": "'fɒ:mæt"
               }
             ]
-          }
+          },
+          "summary_zh": "指定日志文本的格式。"
         },
         {
           "name": "...",
@@ -435,7 +450,8 @@
           "description_zh": "与格式字符串对应的可变参数",
           "pronunciation": {
             "segments": []
-          }
+          },
+          "summary_zh": "与格式字符串对应的可变参数。"
         }
       ],
       "returns_zh": "无返回值",
@@ -462,7 +478,8 @@
             "phonetic": "lɒg"
           }
         ]
-      }
+      },
+      "summary_zh": "将格式化的日志文本输出到串口。"
     },
     {
       "symbol": "course_busy_ms",
@@ -486,7 +503,8 @@
                 "phonetic": "ˈmɪlɪˌsekəndz"
               }
             ]
-          }
+          },
+          "summary_zh": "指定忙等待的毫秒数。"
         }
       ],
       "returns_zh": "无返回值",
@@ -521,7 +539,8 @@
             "phonetic": "ˈmɪlɪˌsekəndz"
           }
         ]
-      }
+      },
+      "summary_zh": "通过持续等待模拟指定时长的处理负载。"
     },
     {
       "symbol": "course_keys_probe_init",
@@ -570,7 +589,8 @@
             "phonetic": "ɪˈnɪt"
           }
         ]
-      }
+      },
+      "summary_zh": "将候选按键引脚配置为可读取的输入。"
     },
     {
       "symbol": "course_keys_raw",
@@ -611,7 +631,8 @@
             "phonetic": "rɒ:"
           }
         ]
-      }
+      },
+      "summary_zh": "读取候选按键的原始电平状态。"
     },
     {
       "symbol": "course_key_ready",
@@ -651,7 +672,8 @@
             "phonetic": "'redi"
           }
         ]
-      }
+      },
+      "summary_zh": "判断所选按键配置是否可用。"
     },
     {
       "symbol": "course_key_pressed",
@@ -691,7 +713,8 @@
             "phonetic": "prest"
           }
         ]
-      }
+      },
+      "summary_zh": "判断所选按键是否处于按下状态。"
     },
     {
       "symbol": "course_key_input_init",
@@ -739,7 +762,8 @@
             "phonetic": "ɪˈnɪt"
           }
         ]
-      }
+      },
+      "summary_zh": "初始化所选按键的输入引脚。"
     },
     {
       "symbol": "course_key_irq_init",
@@ -788,7 +812,8 @@
             "phonetic": "ɪˈnɪt"
           }
         ]
-      }
+      },
+      "summary_zh": "初始化所选按键的外部中断。"
     },
     {
       "symbol": "course_key_isr",
@@ -829,7 +854,8 @@
             "phonetic": "aɪ es ɑː"
           }
         ]
-      }
+      },
+      "summary_zh": "处理按键触发的中断回调。"
     },
     {
       "symbol": "course_stats_init",
@@ -871,7 +897,8 @@
             "phonetic": "ɪˈnɪt"
           }
         ]
-      }
+      },
+      "summary_zh": "初始化用于运行时间统计的计数器。"
     },
     {
       "symbol": "course_stats_counter",
@@ -912,7 +939,8 @@
             "phonetic": "'kauntә"
           }
         ]
-      }
+      },
+      "summary_zh": "读取运行时间统计所用的计数值。"
     },
     {
       "symbol": "course_fail",
@@ -935,7 +963,8 @@
                 "phonetic": "'ri:zn"
               }
             ]
-          }
+          },
+          "summary_zh": "描述故障原因的文本。"
         }
       ],
       "returns_zh": "不返回",
@@ -962,7 +991,8 @@
             "phonetic": "feil"
           }
         ]
-      }
+      },
+      "summary_zh": "报告运行失败原因并停止程序。"
     },
     {
       "symbol": "course_assert_fail",
@@ -985,7 +1015,8 @@
                 "phonetic": "fail"
               }
             ]
-          }
+          },
+          "summary_zh": "标识故障发生位置的文件名。"
         },
         {
           "name": "line",
@@ -1001,7 +1032,8 @@
                 "phonetic": "lain"
               }
             ]
-          }
+          },
+          "summary_zh": "标识故障发生位置的行号。"
         }
       ],
       "returns_zh": "不返回",
@@ -1035,7 +1067,8 @@
             "phonetic": "feil"
           }
         ]
-      }
+      },
+      "summary_zh": "报告断言失败并进入故障处理。"
     },
     {
       "symbol": "key_input",
@@ -1058,7 +1091,8 @@
                 "phonetic": "ki:"
               }
             ]
-          }
+          },
+          "summary_zh": "指向要配置的按键引脚信息。"
         }
       ],
       "returns_zh": "无返回值",
@@ -1085,7 +1119,8 @@
             "phonetic": "'input"
           }
         ]
-      }
+      },
+      "summary_zh": "将指定按键引脚配置为输入。"
     },
     {
       "symbol": "key_irq_dispatch",
@@ -1126,7 +1161,8 @@
             "phonetic": "dis'pætʃ"
           }
         ]
-      }
+      },
+      "summary_zh": "将按键中断分发给对应的处理函数。"
     },
     {
       "symbol": "EXINT1_IRQHandler",
@@ -1174,7 +1210,8 @@
             "phonetic": "'hændlә"
           }
         ]
-      }
+      },
+      "summary_zh": "响应并处理对应的外部中断。"
     },
     {
       "symbol": "EXINT2_IRQHandler",
@@ -1222,7 +1259,8 @@
             "phonetic": "'hændlә"
           }
         ]
-      }
+      },
+      "summary_zh": "响应并处理对应的外部中断。"
     },
     {
       "symbol": "EXINT4_IRQHandler",
@@ -1270,7 +1308,8 @@
             "phonetic": "'hændlә"
           }
         ]
-      }
+      },
+      "summary_zh": "响应并处理对应的外部中断。"
     },
     {
       "symbol": "EXINT15_10_IRQHandler",
@@ -1324,7 +1363,8 @@
             "phonetic": "'hændlә"
           }
         ]
-      }
+      },
+      "summary_zh": "响应并处理对应分组的外部中断。"
     },
     {
       "symbol": "stop",
@@ -1347,7 +1387,8 @@
                 "phonetic": "'ri:zn"
               }
             ]
-          }
+          },
+          "summary_zh": "描述故障原因的文本。"
         },
         {
           "name": "file",
@@ -1363,7 +1404,8 @@
                 "phonetic": "fail"
               }
             ]
-          }
+          },
+          "summary_zh": "标识故障发生位置的文件名。"
         },
         {
           "name": "line",
@@ -1379,7 +1421,8 @@
                 "phonetic": "lain"
               }
             ]
-          }
+          },
+          "summary_zh": "标识故障发生位置的行号。"
         }
       ],
       "returns_zh": "不返回",
@@ -1399,7 +1442,8 @@
             "phonetic": "stɒp"
           }
         ]
-      }
+      },
+      "summary_zh": "记录故障原因并停止程序运行。"
     },
     {
       "symbol": "vApplicationMallocFailedHook",
@@ -1454,7 +1498,8 @@
             "phonetic": "huk"
           }
         ]
-      }
+      },
+      "summary_zh": "在动态内存分配失败时执行故障处理。"
     },
     {
       "symbol": "vApplicationStackOverflowHook",
@@ -1477,7 +1522,8 @@
                 "phonetic": "tɑ:sk"
               }
             ]
-          }
+          },
+          "summary_zh": "发生栈溢出的任务句柄。"
         },
         {
           "name": "name",
@@ -1493,7 +1539,8 @@
                 "phonetic": "neim"
               }
             ]
-          }
+          },
+          "summary_zh": "发生栈溢出的任务名称。"
         }
       ],
       "returns_zh": "不返回",
@@ -1541,7 +1588,8 @@
             "phonetic": "huk"
           }
         ]
-      }
+      },
+      "summary_zh": "在检测到任务栈溢出时执行故障处理。"
     },
     {
       "symbol": "HardFault_Handler",
@@ -1581,7 +1629,8 @@
             "phonetic": "'hændlә"
           }
         ]
-      }
+      },
+      "summary_zh": "处理处理器发生的硬故障。"
     },
     {
       "symbol": "MemManage_Handler",
@@ -1622,7 +1671,8 @@
             "phonetic": "'hændlә"
           }
         ]
-      }
+      },
+      "summary_zh": "处理内存访问或保护相关故障。"
     },
     {
       "symbol": "BusFault_Handler",
@@ -1662,7 +1712,8 @@
             "phonetic": "'hændlә"
           }
         ]
-      }
+      },
+      "summary_zh": "处理总线访问故障。"
     },
     {
       "symbol": "UsageFault_Handler",
@@ -1702,7 +1753,8 @@
             "phonetic": "'hændlә"
           }
         ]
-      }
+      },
+      "summary_zh": "处理指令使用或运行状态相关故障。"
     },
     {
       "symbol": "intervals",
@@ -1728,7 +1780,8 @@
             "phonetic": "'ɪntevl"
           }
         ]
-      }
+      },
+      "summary_zh": "保存各任务使用的运行周期。"
     },
     {
       "symbol": "local_count",
@@ -1761,7 +1814,8 @@
             "phonetic": "kaunt"
           }
         ]
-      }
+      },
+      "summary_zh": "记录当前任务的执行次数。"
     },
     {
       "symbol": "interval",
@@ -1787,7 +1841,8 @@
             "phonetic": "'intәvәl"
           }
         ]
-      }
+      },
+      "summary_zh": "保存任务使用的延时周期。"
     },
     {
       "symbol": "block",
@@ -1813,7 +1868,8 @@
             "phonetic": "blɒk"
           }
         ]
-      }
+      },
+      "summary_zh": "指向动态申请的演示内存块。"
     },
     {
       "symbol": "board_ready",
@@ -1846,7 +1902,8 @@
             "phonetic": "'redi"
           }
         ]
-      }
+      },
+      "summary_zh": "标记板级资源是否已准备好进行串口输出。"
     },
     {
       "symbol": "buffer",
@@ -1872,7 +1929,8 @@
             "phonetic": "'bʌfә"
           }
         ]
-      }
+      },
+      "summary_zh": "暂存格式化后的日志文本。"
     },
     {
       "symbol": "running",
@@ -1898,7 +1956,8 @@
             "phonetic": "'rʌniŋ"
           }
         ]
-      }
+      },
+      "summary_zh": "标记任务调度器是否正在运行。"
     },
     {
       "symbol": "start",
@@ -1924,7 +1983,8 @@
             "phonetic": "stɑ:t"
           }
         ]
-      }
+      },
+      "summary_zh": "保存本次忙等待开始时的计数值。"
     },
     {
       "symbol": "cycles",
@@ -1951,7 +2011,8 @@
             "phonetic": "ˈsaɪkəlz"
           }
         ]
-      }
+      },
+      "summary_zh": "保存达到目标等待时长所需的周期数。"
     },
     {
       "symbol": "mask",
@@ -1977,7 +2038,8 @@
             "phonetic": "mæsk"
           }
         ]
-      }
+      },
+      "summary_zh": "用各个位记录候选按键的电平状态。"
     },
     {
       "symbol": "timer_clock",
@@ -2010,7 +2072,8 @@
             "phonetic": "klɒk"
           }
         ]
-      }
+      },
+      "summary_zh": "保存运行统计定时器的输入时钟频率。"
     },
     {
       "symbol": "course_last_fault",
@@ -2050,7 +2113,8 @@
             "phonetic": "fɒ:lt"
           }
         ]
-      }
+      },
+      "summary_zh": "保存最近一次故障的相关信息。"
     },
     {
       "symbol": "COURSE_STACK",
@@ -2083,7 +2147,8 @@
             "phonetic": "stæk"
           }
         ]
-      }
+      },
+      "summary_zh": "设置课程示例任务默认使用的栈深度。"
     },
     {
       "symbol": "COURSE_LOG_STACK",
@@ -2123,7 +2188,8 @@
             "phonetic": "stæk"
           }
         ]
-      }
+      },
+      "summary_zh": "设置日志任务使用的栈深度。"
     },
     {
       "symbol": "COURSE_CHECK",
@@ -2156,7 +2222,8 @@
             "phonetic": "tʃek"
           }
         ]
-      }
+      },
+      "summary_zh": "检查运行条件，在条件不满足时报告断言失败。"
     },
     {
       "symbol": "COURSE_KEY_INDEX",
@@ -2196,7 +2263,8 @@
             "phonetic": "'indeks"
           }
         ]
-      }
+      },
+      "summary_zh": "指定使用哪个候选按键。"
     },
     {
       "symbol": "COURSE_KEY_ACTIVE_LEVEL",
@@ -2243,7 +2311,8 @@
             "phonetic": "'levl"
           }
         ]
-      }
+      },
+      "summary_zh": "指定按键按下时对应的有效电平。"
     },
     {
       "symbol": "COURSE_KEY_PULL",
@@ -2283,7 +2352,8 @@
             "phonetic": "pul"
           }
         ]
-      }
+      },
+      "summary_zh": "指定按键输入引脚的上拉或下拉方式。"
     },
     {
       "symbol": "COURSE_IRQ_PRIORITY",
@@ -2324,7 +2394,8 @@
             "phonetic": "prai'ɒriti"
           }
         ]
-      }
+      },
+      "summary_zh": "指定按键中断的优先级。"
     },
     {
       "symbol": "COURSE_LED_A_PIN",
@@ -2373,7 +2444,8 @@
             "phonetic": "pin"
           }
         ]
-      }
+      },
+      "summary_zh": "标识 LED A 使用的引脚。"
     },
     {
       "symbol": "COURSE_LED_B_PIN",
@@ -2422,7 +2494,8 @@
             "phonetic": "pin"
           }
         ]
-      }
+      },
+      "summary_zh": "标识 LED B 使用的引脚。"
     },
     {
       "symbol": "COURSE_UART_BAUD",
@@ -2463,7 +2536,8 @@
             "phonetic": "bɔ:d"
           }
         ]
-      }
+      },
+      "summary_zh": "设置调试串口的数据传输速率。"
     },
     {
       "symbol": "configCPU_CLOCK_HZ",
@@ -2513,7 +2587,8 @@
             "phonetic": "hɜːts"
           }
         ]
-      }
+      },
+      "summary_zh": "配置 RTOS 使用的处理器时钟频率。"
     },
     {
       "symbol": "configTICK_RATE_HZ",
@@ -2562,7 +2637,8 @@
             "phonetic": "hɜːts"
           }
         ]
-      }
+      },
+      "summary_zh": "配置 RTOS 每秒产生的系统节拍数。"
     },
     {
       "symbol": "configMAX_PRIORITIES",
@@ -2604,7 +2680,8 @@
             "phonetic": "praiˈɔritiz"
           }
         ]
-      }
+      },
+      "summary_zh": "配置任务可使用的优先级数量。"
     },
     {
       "symbol": "configMINIMAL_STACK_SIZE",
@@ -2652,7 +2729,8 @@
             "phonetic": "saiz"
           }
         ]
-      }
+      },
+      "summary_zh": "配置最小任务栈深度。"
     },
     {
       "symbol": "configTOTAL_HEAP_SIZE",
@@ -2700,7 +2778,8 @@
             "phonetic": "saiz"
           }
         ]
-      }
+      },
+      "summary_zh": "配置 RTOS 可用于动态分配的堆容量。"
     },
     {
       "symbol": "configMAX_TASK_NAME_LEN",
@@ -2757,7 +2836,8 @@
             "phonetic": "el iː en"
           }
         ]
-      }
+      },
+      "summary_zh": "配置任务名称可占用的最大存储长度。"
     },
     {
       "symbol": "configUSE_PREEMPTION",
@@ -2798,7 +2878,8 @@
             "phonetic": "pri:'empʃәn"
           }
         ]
-      }
+      },
+      "summary_zh": "配置是否启用抢占式任务调度。"
     },
     {
       "symbol": "configUSE_TIME_SLICING",
@@ -2846,7 +2927,8 @@
             "phonetic": "'slaisiŋ"
           }
         ]
-      }
+      },
+      "summary_zh": "配置同优先级任务是否轮流使用时间片。"
     },
     {
       "symbol": "configSUPPORT_DYNAMIC_ALLOCATION",
@@ -2894,7 +2976,8 @@
             "phonetic": ".ælәu'keiʃәn"
           }
         ]
-      }
+      },
+      "summary_zh": "配置是否允许动态分配 RTOS 对象所需的内存。"
     },
     {
       "symbol": "configSUPPORT_STATIC_ALLOCATION",
@@ -2942,7 +3025,8 @@
             "phonetic": ".ælәu'keiʃәn"
           }
         ]
-      }
+      },
+      "summary_zh": "配置是否支持由调用者提供 RTOS 对象所需的内存。"
     },
     {
       "symbol": "configCHECK_FOR_STACK_OVERFLOW",
@@ -2997,7 +3081,8 @@
             "phonetic": ".әuvә'flәu"
           }
         ]
-      }
+      },
+      "summary_zh": "配置任务栈溢出检查方式。"
     },
     {
       "symbol": "configUSE_MALLOC_FAILED_HOOK",
@@ -3053,7 +3138,8 @@
             "phonetic": "huk"
           }
         ]
-      }
+      },
+      "summary_zh": "配置是否启用内存分配失败回调。"
     },
     {
       "symbol": "configUSE_TIMERS",
@@ -3094,7 +3180,8 @@
             "phonetic": "ˈtaɪməz"
           }
         ]
-      }
+      },
+      "summary_zh": "配置是否启用软件定时器。"
     },
     {
       "symbol": "configGENERATE_RUN_TIME_STATS",
@@ -3150,7 +3237,8 @@
             "phonetic": "stæts"
           }
         ]
-      }
+      },
+      "summary_zh": "配置是否统计任务运行时间。"
     },
     {
       "symbol": "configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY",
@@ -3213,7 +3301,8 @@
             "phonetic": "prai'ɒriti"
           }
         ]
-      }
+      },
+      "summary_zh": "配置允许调用 RTOS API 的中断优先级边界。"
     },
     {
       "symbol": "configASSERT",
@@ -3247,7 +3336,8 @@
             "phonetic": "ә'sә:t"
           }
         ]
-      }
+      },
+      "summary_zh": "检查 RTOS 内部条件并在异常时触发断言处理。"
     },
     {
       "symbol": "keys",
@@ -3274,7 +3364,8 @@
             "phonetic": "kiːz"
           }
         ]
-      }
+      },
+      "summary_zh": "保存候选按键的引脚配置信息。"
     },
     {
       "symbol": "key_pin_type",
@@ -3314,7 +3405,8 @@
             "phonetic": "taip"
           }
         ]
-      }
+      },
+      "summary_zh": "描述一个候选按键使用的引脚配置。"
     },
     {
       "symbol": "course_fault_type",
@@ -3354,7 +3446,8 @@
             "phonetic": "taip"
           }
         ]
-      }
+      },
+      "summary_zh": "描述一次故障需要记录的信息。"
     }
   ],
   "pronunciation_metadata": {

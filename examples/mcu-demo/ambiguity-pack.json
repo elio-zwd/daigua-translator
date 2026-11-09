@@ -12,7 +12,8 @@
       "source": {
         "file": "main.c",
         "line": 11
-      }
+      },
+      "summary_zh": "演示电机启动操作，不驱动实际硬件。"
     }
   ]
 }

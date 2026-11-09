@@ -11,7 +11,8 @@
       "parameters": [
         {
           "name": "speed",
-          "description_zh": "目标速度"
+          "description_zh": "目标速度",
+          "summary_zh": "指定目标速度。"
         }
       ],
       "returns_zh": "本次目标速度",
@@ -19,7 +20,8 @@
       "source": {
         "file": "main.c",
         "line": 11
-      }
+      },
+      "summary_zh": "演示电机启动操作，不驱动实际硬件。"
     },
     {
       "symbol": "motor_start_count",
@@ -29,7 +31,8 @@
       "source": {
         "file": "main.c",
         "line": 3
-      }
+      },
+      "summary_zh": "记录电机启动操作的次数。"
     },
     {
       "symbol": "reload_probe_count",
@@ -39,7 +42,8 @@
       "source": {
         "file": "main.c",
         "line": 4
-      }
+      },
+      "summary_zh": "用于检查知识包更新后是否读取到新内容。"
     },
     {
       "symbol": "retained_probe_count",
@@ -49,7 +53,8 @@
       "source": {
         "file": "main.c",
         "line": 5
-      }
+      },
+      "summary_zh": "用于检查知识包加载失败时是否保留上次内容。"
     }
   ]
 }

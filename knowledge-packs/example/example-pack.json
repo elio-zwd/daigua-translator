@@ -11,13 +11,26 @@
       "description_zh": "将指定的 16 位无符号数按小端序写入目标缓冲区。",
       "declaration": "void NFC_WriteU16LE(uint8_t *dst, uint16_t value)",
       "parameters": [
-        { "name": "dst", "description_zh": "目标缓冲区指针" },
-        { "name": "value", "description_zh": "待写入的 16 位无符号数值" }
+        {
+          "name": "dst",
+          "description_zh": "目标缓冲区指针",
+          "summary_zh": "指向写入数据的目标缓冲区。"
+        },
+        {
+          "name": "value",
+          "description_zh": "待写入的 16 位无符号数值",
+          "summary_zh": "要写入的 16 位无符号整数。"
+        }
       ],
       "returns_zh": "无返回值",
       "scope": "nfc_codec",
-      "source": { "project": "示例工程", "file": "src/nfc_codec.c", "line": 42 },
-      "uncertainty": ""
+      "source": {
+        "project": "示例工程",
+        "file": "src/nfc_codec.c",
+        "line": 42
+      },
+      "uncertainty": "",
+      "summary_zh": "将 16 位无符号整数按小端序写入目标缓冲区。"
     },
     {
       "symbol": "Motor_Start",
@@ -26,12 +39,21 @@
       "description_zh": "启动指定电机，设置运行标志并触发 PWM 输出。",
       "declaration": "void Motor_Start(uint8_t motor_id)",
       "parameters": [
-        { "name": "motor_id", "description_zh": "电机编号，从 0 开始" }
+        {
+          "name": "motor_id",
+          "description_zh": "电机编号，从 0 开始",
+          "summary_zh": "指定要启动的电机。"
+        }
       ],
       "returns_zh": "无返回值",
       "scope": "motor_ctrl",
-      "source": { "project": "示例工程", "file": "src/motor_ctrl.c", "line": 88 },
-      "uncertainty": ""
+      "source": {
+        "project": "示例工程",
+        "file": "src/motor_ctrl.c",
+        "line": 88
+      },
+      "uncertainty": "",
+      "summary_zh": "启动指定电机并设置运行状态。"
     },
     {
       "symbol": "g_sys_tick_ms",
@@ -42,8 +64,13 @@
       "parameters": [],
       "returns_zh": "",
       "scope": "global",
-      "source": { "project": "示例工程", "file": "src/main.c", "line": 15 },
-      "uncertainty": ""
+      "source": {
+        "project": "示例工程",
+        "file": "src/main.c",
+        "line": 15
+      },
+      "uncertainty": "",
+      "summary_zh": "记录系统运行的毫秒数。"
     }
   ]
 }
