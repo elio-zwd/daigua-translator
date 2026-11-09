@@ -2,7 +2,7 @@
 
 ![呆瓜翻译器 MCU 代码翻译形象](docs/assets/daigua-mcu-illustration.png)
 
-面向 MCU C/C++ 的独立 VS Code 插件，帮助理解英文函数、变量和参数。0.4.0 提供本地知识包悬停、选区与普通文本翻译、离线词典及音标展示。无需 MTranCode，运行时不调用 AI，不需要 API Key。
+面向 MCU C/C++ 的独立 VS Code 插件，帮助理解英文函数、变量和参数。0.4.1 提供本地知识包悬停、选区与普通文本翻译、离线词典及音标展示。无需 MTranCode，运行时不调用 AI，不需要 API Key。
 
 ## 安装与使用
 
@@ -14,7 +14,7 @@
 
 本地知识包优先；未收录名称的普通释义明确标注“用途未核对”。联网失败或关闭联网后，名称可以查离线词典；普通句子需要联网。旧包无须迁移，缺少音标不影响中文查询。
 
-完整操作、设置、命令及 AI 音标补充流程见[第一期使用指南](docs/phase-one-guide.md)。[0.4.0 验证与人工验收](docs/acceptance-2026-11-09.md)区分自动检查、真实宿主检查和人工待验收项目。
+完整操作、设置、命令及 AI 音标补充流程见[第一期使用指南](docs/phase-one-guide.md)。[0.4.0 历史验证记录](docs/acceptance-2026-11-09.md)保留自动检查和真实宿主检查结果；[0.4.1 反馈调整](docs/feedback-0.4.1.md)记录直接使用、按反馈改进的约定。
 
 ## 开发与验证（Windows 10 x64）
 
@@ -35,7 +35,7 @@ python -X utf8 scripts/check-vsix.py plugin/daigua-translator.vsix
 
 优先让外部 AI [直接阅读源码制包](docs/ai-direct-read-plan.md)，再调用 `phonetics/tool.py enrich` 补音标。ECDICT 索引只需用 `phonetics/tool.py index` 生成一次。未找到的词及不确定读法导出清单，由外部 AI 回填，仍不确定的保留缺失。始终保留原始 JSON，不改已有中文说明。
 
-常见 MCU 缩写、单位和读法存入 `plugin/resources/technical-terms.json`；可用额外文件补充，便于持续完善。初始技术库和示例 AI 回填仍待人工复核。ECDICT 子集样本附带许可证。
+常见 MCU 缩写、单位和读法存入 `plugin/resources/technical-terms.json`；可用额外文件补充，便于持续完善。默认直接使用，有问题再反馈，无须逐条人工审核；保留来源和缺失记录。ECDICT 子集样本附带许可证。
 
 - [制包与复核说明](docs/knowledge-pack-guide.md)
 - [提取器（可选辅助工具）](extractor/README.md)
