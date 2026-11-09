@@ -33,7 +33,8 @@ class PhoneticTests(unittest.TestCase):
         build_index(self.csv, self.index)
         self.pack = self.root / "原始.json"
         self.original = dict(name="测试", version="1", entries=[dict(symbol="Motor_Start", kind="function", name_zh="启动",
-            description_zh="原有中文", source=dict(file="main.c", line=1), parameters=[dict(name="arg", description_zh="原有参数")])])
+            description_zh="原有中文", summary_zh="启动设备。", source=dict(file="main.c", line=1),
+            parameters=[dict(name="arg", description_zh="原有参数", summary_zh="传入的参数。")])])
         write_json(self.pack, self.original)
         self.output, self.missing = self.root / "增强.json", self.root / "缺失.json"
 

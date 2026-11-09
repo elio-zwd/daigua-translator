@@ -30,18 +30,43 @@ exports.run = async function () {
     let document = await vscode.workspace.openTextDocument({ language: 'c', content: 'worker\nLED\narg\nMotor_Start\nuint16_t' });
     let editor = await vscode.window.showTextDocument(document);
     let result = await hoverAt(document, new vscode.Position(0, 2));
-    assert.match(result, /动态工作任务/); assert.match(result, /音标（英式优先）/);
+    assert.match(result, /动态工作任务/); assert.match(result, /音标：/);
     result = await hoverAt(document, new vscode.Position(2, 1));
-    assert.match(result, /毫秒周期的指针/); assert.match(result, /拼字母/);
+    assert.match(result, /任务运行周期/); assert.match(result, /拼字母/);
     checks.push('real C hover and indexed parameter pronunciation');
 
     result = await hoverAt(document, new vscode.Position(1, 1));
-    assert.match(result, /发光二极管/); assert.match(result, /用途未核对/);
+    assert.match(result, /发光二极管/); assert.match(result, /词典释义/);
     assert.doesNotMatch(result, /待人工复核/);
     result = await hoverAt(document, new vscode.Position(4, 2));
     assert.match(result, /16 位无符号整数类型/);
     assert.doesNotMatch(result, /\nt：|待人工复核|待确认/);
-    checks.push('complete fixed-width type lookup without suffix definitions or review prompts');
+    assert.doesNotMatch(result, /AI-type-convention|英式优先/);
+    const otherProvider = vscode.languages.registerHoverProvider('c', { provideHover() {
+      return new vscode.Hover(new vscode.MarkdownString().appendCodeblock('typedef unsigned short uint16_t', 'c'));
+    } });
+    try {
+      const combined = await hoverAt(document, new vscode.Position(4, 2));
+      assert.match(combined, /typedef unsigned short uint16_t/);
+      assert.match(combined, /16 位无符号整数类型/);
+    } finally { otherProvider.dispose(); }
+    await config.update('debugMode', true, vscode.ConfigurationTarget.Workspace);
+    result = await hoverAt(document, new vscode.Position(4, 2));
+    assert.match(result, /AI-type-convention/);
+    await config.update('debugMode', false, vscode.ConfigurationTarget.Workspace);
+    const board = await vscode.workspace.openTextDocument({language:'c',content:'course_board_init\napp_board_init'});
+    await vscode.window.showTextDocument(board);
+    result = await hoverAt(board,new vscode.Position(0,4));
+    assert.match(result,/板级初始化/);assert.doesNotMatch(result,/288|MHz|course_board\.c/);
+    result = await hoverAt(board,new vscode.Position(1,4));
+    assert.match(result,/名称推测/);
+    await vscode.commands.executeCommand('daiguaTranslate.openDetails','course_board_init');
+    assert.equal(api.panels.result.kind,'project');
+    await vscode.commands.executeCommand('daiguaTranslate.openSettings');
+    api.panels.dispose();
+    await vscode.window.showTextDocument(document);
+    editor = vscode.window.activeTextEditor;
+    checks.push('concise results, debug provenance, inferred general names, reader and settings webviews');
     await config.update('hoverFallback', 'off', vscode.ConfigurationTarget.Workspace);
     result = await hoverAt(document, new vscode.Position(1, 1));
     assert.doesNotMatch(result, /发光二极管/);
@@ -52,7 +77,7 @@ exports.run = async function () {
     await new Promise(resolve => setTimeout(resolve, 100));
     await vscode.commands.executeCommand('daiguaTranslate.translateSelection');
     result = await hoverAt(document, editor.selection.active);
-    assert.match(result, /原文：worker/);
+    assert.match(result, /worker/);
     assert.equal((result.match(/动态工作任务/g) || []).length, 1);
     checks.push('explicit command shares one real hover result');
 

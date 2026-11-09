@@ -8,6 +8,9 @@ $testWorkspace = Join-Path $taskDirectory 'workspace'
 $settingsDirectory = Join-Path $testWorkspace '.vscode'
 New-Item -ItemType Directory -Path $settingsDirectory -Force | Out-Null
 '{"daiguaTranslate.bingEnabled":false,"daiguaTranslate.hoverFallback":"off","update.mode":"none","extensions.autoUpdate":false,"telemetry.telemetryLevel":"off"}' | Set-Content -LiteralPath (Join-Path $settingsDirectory 'settings.json') -Encoding utf8
+$profileSettings = Join-Path $taskDirectory 'profile/User'
+New-Item -ItemType Directory -Path $profileSettings -Force | Out-Null
+'{"update.mode":"none","extensions.autoUpdate":false,"telemetry.telemetryLevel":"off","chat.disableAIFeatures":true}' | Set-Content -LiteralPath (Join-Path $profileSettings 'settings.json') -Encoding utf8
 $reportFile = Join-Path $taskDirectory 'report.json'
 # Receive evidence over loopback so enterprise per-application file encryption cannot
 # make a report written by Code unreadable by the invoking PowerShell process.

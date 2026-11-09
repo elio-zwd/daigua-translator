@@ -574,5 +574,97 @@
         }
       ]
     }
+  },
+  {
+    "name": "concise summary",
+    "valid": true,
+    "pack": {
+      "name": "test",
+      "version": "1",
+      "entries": [
+        {
+          "symbol": "Motor_Start",
+          "kind": "function",
+          "name_zh": "启动电机",
+          "source": {
+            "file": "src/motor.c",
+            "line": 1
+          },
+          "parameters": [],
+          "summary_zh": "准备设备。"
+        }
+      ]
+    }
+  },
+  {
+    "name": "invalid summary",
+    "valid": false,
+    "pack": {
+      "name": "test",
+      "version": "1",
+      "entries": [
+        {
+          "symbol": "Motor_Start",
+          "kind": "function",
+          "name_zh": "启动电机",
+          "source": {
+            "file": "src/motor.c",
+            "line": 1
+          },
+          "parameters": [],
+          "summary_zh": 42
+        }
+      ]
+    }
+  },
+  {
+    "name": "parameter summary",
+    "valid": true,
+    "pack": {
+      "name": "test",
+      "version": "1",
+      "entries": [
+        {
+          "symbol": "Motor_Start",
+          "kind": "function",
+          "name_zh": "启动电机",
+          "source": {
+            "file": "src/motor.c",
+            "line": 1
+          },
+          "parameters": [
+            {
+              "name": "speed",
+              "summary_zh": "目标速度。"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "invalid parameter summary",
+    "valid": false,
+    "pack": {
+      "name": "test",
+      "version": "1",
+      "entries": [
+        {
+          "symbol": "Motor_Start",
+          "kind": "function",
+          "name_zh": "启动电机",
+          "source": {
+            "file": "src/motor.c",
+            "line": 1
+          },
+          "parameters": [
+            {
+              "name": "speed",
+              "summary_zh": []
+            }
+          ]
+        }
+      ]
+    }
   }
 ]
