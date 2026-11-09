@@ -28,6 +28,7 @@ export class KnowledgeIndex {
                 scope: `${entry.scope || entry.source.file}::${entry.symbol}::参数`,
                 source: entry.source,
                 uncertainty: entry.uncertainty,
+                pronunciation: parameter.pronunciation,
               });
             }
           }

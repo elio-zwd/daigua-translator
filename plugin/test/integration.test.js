@@ -20,11 +20,11 @@ function vscodeMock(paths) {
   const state = {
     values: { packPaths: paths }, source: 'elio-zwd.daigua-translator-daigua',
     messages: { info: [], warning: [], log: [] }, commands: new Map(), watchers: [],
-    hover: undefined, dialog: undefined, input: undefined, status: {}, updates: [],
+    hover: undefined, dialog: undefined, input: undefined, status: {}, updates: [], executions: [],
   };
   let change;
   const disposable = () => ({ dispose() {} });
-  state.fireSettings = name => change({ affectsConfiguration: section => section === name });
+  state.fireSettings = name => change({ affectsConfiguration: section => section === name || name.startsWith(section + '.') });
   state.vscode = {
     ConfigurationTarget: { Global: 1, Workspace: 2 }, StatusBarAlignment: { Right: 2 },
     RelativePattern: class { constructor(base, pattern) { this.base = base; this.pattern = pattern; } },
@@ -45,6 +45,7 @@ function vscodeMock(paths) {
         },
       }),
       onDidChangeConfiguration: cb => { change = cb; return disposable(); },
+      onDidChangeTextDocument: cb => { state.changeDocument = cb; return disposable(); },
       createFileSystemWatcher: pattern => {
         const watcher = { pattern, disposed: false, callbacks: {}, dispose() { this.disposed = true; } };
         for (const name of ['Change', 'Create', 'Delete']) {
@@ -57,9 +58,11 @@ function vscodeMock(paths) {
     languages: { registerHoverProvider: (languages, provider) => { state.hover = provider; return disposable(); } },
     commands: {
       registerCommand: (name, callback) => { state.commands.set(name, callback); return disposable(); },
-      executeCommand: async () => {},
+      executeCommand: async name => { state.executions.push(name); },
     },
     window: {
+      onDidChangeTextEditorSelection: cb => { state.changeSelection = cb; return disposable(); },
+      onDidChangeActiveTextEditor: cb => { state.changeEditor = cb; return disposable(); },
       showInformationMessage: msg => state.messages.info.push(msg),
       showWarningMessage: msg => state.messages.warning.push(msg),
       showOpenDialog: async () => state.dialog,
@@ -122,7 +125,7 @@ test('Bing errors and invalid results must reject', async () => {
   }
 });
 
-test('MTranCode extension registration keeps the same translator alive across reload', async () => {
+test('independent extension keeps the same translator alive across reload', async () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'daigua-'));
   const file = path.join(dir, 'pack.json');
   fs.writeFileSync(file, JSON.stringify(pack('初始释义')));
@@ -142,11 +145,8 @@ test('MTranCode extension registration keeps the same translator alive across re
   }
   try {
     const exports = await extension.activate({ subscriptions: [], extension: { packageJSON: { version: '0.3.0' } } });
-    let translator;
-    exports.extendTranslate((id, Constructor) => {
-      assert.equal(id, 'daigua');
-      translator = new Constructor();
-    });
+    const translator = exports.translator;
+    assert.equal(exports.extendTranslate, undefined);
     assert.match(await translator.translate('Motor_Start', {}), /初始释义/);
     fs.writeFileSync(file, JSON.stringify(pack('重新加载的新释义')));
     await commands.get('daiguaTranslate.reloadPacks')();
@@ -177,8 +177,7 @@ async function extensionHarness(paths) {
     extension = require('../out/extension');
   } finally { Module._load = originalLoad; }
   const api = await extension.activate({ subscriptions: [], extension: { packageJSON: { version: '0.3.0' } } });
-  let translator;
-  api.extendTranslate((id, Constructor) => { assert.equal(id, 'daigua'); translator = new Constructor(); });
+  const translator = api.translator;
   translator.bingTranslator = async () => ({ translation: 'fallback' });
   return { translator, messages, mock, commands, dispose: () => extension.deactivate(),
     reload: () => commands.get('daiguaTranslate.reloadPacks')(),
@@ -321,7 +320,7 @@ test('diagnostics expose effective paths and local query bypasses fallback; loca
     harness.mock.input = 'not_in_pack';
     await harness.commands.get('daiguaTranslate.queryLocal')();
     assert.match(harness.messages.log.at(-1), /本地未命中/);
-    const document = { getWordRangeAtPosition: () => ({}), getText: () => 'Motor_Start' };
+    const document = { languageId: 'c', getWordRangeAtPosition: () => ({}), getText: () => 'Motor_Start' };
     const hover = harness.mock.hover.provideHover(document, {});
     assert.match(hover.contents.value, /呆瓜 · 本地知识包/);
     assert.match(hover.contents.value, /诊断探针/);
@@ -388,4 +387,97 @@ test('auto reload filters unrelated files, debounces edits, retains invalid edit
     assert.ok(harness.mock.watchers.every(watcher => watcher.disposed));
     fs.rmSync(dir, { recursive: true, force: true });
   }
+});
+
+function documentFixture(text, languageId = 'c') {
+  const position = { line: 0, character: 1, isEqual(other) { return this.line === other.line && this.character === other.character; } };
+  const range = { contains: other => position.isEqual(other) };
+  const document = { languageId, version: 1, getWordRangeAtPosition: () => range, getText: () => text };
+  const editor = { document, selection: { isEmpty: true, active: position } };
+  return { position, range, document, editor };
+}
+
+test('explicit translation uses one hover, works in non-C files with auto hover off, and does not edit text', async () => {
+  const h = await extensionHarness([]);
+  const { position, document, editor } = documentFixture('Motor_Start', 'plaintext');
+  try {
+    h.mock.vscode.window.activeTextEditor = editor;
+    h.mock.values.localHover = false;
+    h.mock.values.hoverFallback = 'off';
+    await h.commands.get('daiguaTranslate.translateSelection')();
+    assert.deepEqual(h.mock.executions, ['editor.action.showHover']);
+    const hover = await h.mock.hover.provideHover(document, position, { isCancellationRequested: false });
+    assert.match(hover.contents.value, /原文：Motor_Start[\s\S]*Bing[\s\S]*fallback/);
+    assert.equal(document.getText(), 'Motor_Start');
+    h.mock.changeSelection();
+    assert.equal(await h.mock.hover.provideHover(document, position, { isCancellationRequested: false }), undefined);
+  } finally { h.dispose(); }
+});
+
+test('input text without an editor uses output; offline sentence failure is readable', async () => {
+  const h = await extensionHarness([]);
+  try {
+    h.mock.input = 'A generic sentence.';
+    await h.commands.get('daiguaTranslate.translateText')();
+    assert.match(h.messages.log.at(-1), /原文：A generic sentence.[\s\S]*Bing/);
+    h.mock.values.bingEnabled = false;
+    await h.commands.get('daiguaTranslate.translateText')();
+    assert.match(h.messages.log.at(-1), /无法提供整句译文/);
+    assert.equal(h.mock.executions.length, 0);
+  } finally { h.dispose(); }
+});
+
+test('late manual translations do not display after document/settings/selection changes', async () => {
+  for (const event of ['document', 'settings', 'selection']) {
+    const h = await extensionHarness([]);
+    const { editor } = documentFixture('Unknown_Name');
+    let finish;
+    try {
+      h.mock.vscode.window.activeTextEditor = editor;
+      h.translator.bingTranslator = () => new Promise(resolve => { finish = resolve; });
+      const request = h.commands.get('daiguaTranslate.translateSelection')();
+      assert.ok(finish);
+      if (event === 'document') { editor.document.version++; h.mock.changeDocument(); }
+      if (event === 'settings') await h.mock.fireSettings('daiguaTranslate.bingEnabled');
+      if (event === 'selection') h.mock.changeSelection();
+      finish({ translation: '过期' });
+      await request;
+      assert.deepEqual(h.mock.executions, [], event);
+    } finally { h.dispose(); }
+  }
+});
+
+test('cancelled, superseded, edited or reconfigured automatic hover never shows stale online results', async () => {
+  for (const event of ['cancel', 'supersede', 'edit', 'settings']) {
+    const h = await extensionHarness([]);
+    const { document, position } = documentFixture('Unknown_Name');
+    let finish;
+    const token = { isCancellationRequested: false };
+    try {
+      h.translator.bingTranslator = () => new Promise(resolve => { finish = resolve; });
+      const request = h.mock.hover.provideHover(document, position, token);
+      if (event === 'cancel') token.isCancellationRequested = true;
+      if (event === 'supersede') { h.mock.values.hoverFallback = 'off'; h.mock.hover.provideHover(document, position, token); }
+      if (event === 'edit') document.version++;
+      if (event === 'settings') await h.mock.fireSettings('daiguaTranslate.hoverFallback');
+      finish({ translation: '过期' });
+      assert.equal(await request, undefined, event);
+    } finally { h.dispose(); }
+  }
+});
+
+test('automatic off never calls Bing; dictionary mode and global-off use the bundled library', async () => {
+  const h = await extensionHarness([]);
+  const { document, position } = documentFixture('LED');
+  let calls = 0;
+  h.translator.bingTranslator = async () => { calls++; return { translation: 'unexpected' }; };
+  try {
+    h.mock.values.hoverFallback = 'off';
+    assert.equal(await h.mock.hover.provideHover(document, position, { isCancellationRequested: false }), undefined);
+    h.mock.values.hoverFallback = 'ecdict';
+    assert.match((await h.mock.hover.provideHover(document, position, { isCancellationRequested: false })).contents.value, /发光二极管/);
+    h.mock.values.hoverFallback = 'online'; h.mock.values.bingEnabled = false;
+    assert.match((await h.mock.hover.provideHover(document, position, { isCancellationRequested: false })).contents.value, /发光二极管/);
+    assert.equal(calls, 0);
+  } finally { h.dispose(); }
 });

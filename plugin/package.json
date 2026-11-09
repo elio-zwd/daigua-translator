@@ -1,8 +1,8 @@
 {
   "name": "daigua-translator",
   "displayName": "呆瓜翻译器",
-  "description": "MCU C/C++ 代码本地知识包翻译，未命中时回退到 Bing。用于 MTranCode 自定义翻译服务。",
-  "version": "0.3.0",
+  "description": "独立 MCU C/C++ 代码知识查询、文本翻译、离线词典与音标学习。",
+  "version": "0.4.0",
   "icon": "./images/icon.png",
   "engines": {
     "vscode": "^1.85.0"
@@ -11,17 +11,17 @@
     "Other"
   ],
   "keywords": [
-    "translateSource"
+    "translation",
+    "MCU",
+    "C++",
+    "dictionary",
+    "phonetic"
   ],
-  "activationEvents": ["onStartupFinished"],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "main": "./out/extension.js",
   "contributes": {
-    "translates": [
-      {
-        "translate": "daigua",
-        "title": "呆瓜翻译器（本地知识包）"
-      }
-    ],
     "configuration": {
       "title": "呆瓜翻译器",
       "properties": {
@@ -37,7 +37,7 @@
         "daiguaTranslate.bingEnabled": {
           "type": "boolean",
           "default": true,
-          "description": "本地未命中时使用 Bing 联网翻译。关闭后立即报告未命中，不发起新的联网请求。MTranCode 已有缓存不受此开关影响。",
+          "description": "允许 Bing 联网翻译。关闭后不发起新的联网请求；名称改查离线词典，普通句子无法联网翻译。",
           "scope": "window",
           "order": 2
         },
@@ -67,7 +67,7 @@
         "daiguaTranslate.localHover": {
           "type": "boolean",
           "default": true,
-          "description": "在 C/C++ 符号上直接显示带“呆瓜 · 本地知识包”标题的悬停说明。仅查本地，绕过 MTranCode 缓存，无需切换翻译源；其他插件的悬停内容可能同时显示。",
+          "description": "在 C/C++ 名称上显示呆瓜悬停。本地知识包优先，未收录名称按悬停模式处理。其他插件的悬停可能同时显示。",
           "scope": "window",
           "order": 6
         },
@@ -77,6 +77,40 @@
           "description": "在状态栏显示有效词条数和 Bing 状态；点击打开快捷设置。",
           "scope": "window",
           "order": 7
+        },
+        "daiguaTranslate.hoverFallback": {
+          "type": "string",
+          "enum": [
+            "online",
+            "ecdict",
+            "off"
+          ],
+          "enumDescriptions": [
+            "自动联网释义，失败后回退离线词典",
+            "仅使用离线技术库和 ECDICT",
+            "关闭未收录名称的自动释义"
+          ],
+          "default": "online",
+          "description": "未收录名称的自动悬停模式；只影响悬停，主动翻译仍受 Bing 总开关约束。",
+          "scope": "window",
+          "order": 8
+        },
+        "daiguaTranslate.dictionaryPath": {
+          "type": "string",
+          "default": "",
+          "description": "由 phonetics/tool.py index 生成、包含 manifest.json 的本地 ECDICT 索引目录。运行时不读取 CSV。",
+          "scope": "window",
+          "order": 9
+        },
+        "daiguaTranslate.technicalLibraryPaths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "额外技术库或项目补充 JSON 的绝对路径。后者优先于前者，均优先于内置技术库和 ECDICT。修改后运行重新加载知识包以刷新。",
+          "scope": "window",
+          "order": 10
         }
       }
     },
@@ -100,11 +134,28 @@
       {
         "command": "daiguaTranslate.queryLocal",
         "title": "呆瓜翻译器：本地查询"
+      },
+      {
+        "command": "daiguaTranslate.translateSelection",
+        "title": "呆瓜翻译器：翻译选区或当前名称"
+      },
+      {
+        "command": "daiguaTranslate.translateText",
+        "title": "呆瓜翻译器：输入文本翻译"
       }
     ],
     "menus": {
       "editor/context": [
-        { "command": "daiguaTranslate.queryLocal", "group": "navigation@20", "when": "editorTextFocus" }
+        {
+          "command": "daiguaTranslate.queryLocal",
+          "group": "navigation@20",
+          "when": "editorTextFocus"
+        },
+        {
+          "command": "daiguaTranslate.translateSelection",
+          "group": "navigation@19",
+          "when": "editorTextFocus"
+        }
       ]
     }
   },

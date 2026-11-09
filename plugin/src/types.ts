@@ -1,9 +1,14 @@
-/**
- * types.ts
- * 知识包相关的 TypeScript 类型定义。
- * 同时手写 comment-translate-manager 所需的接口，
- * 避免依赖该旧版 npm 包的类型导出。
- */
+/** Independent translation and backward-compatible knowledge-pack data. */
+export interface PronunciationSegment {
+  text: string;
+  reading: 'word' | 'letters' | 'silent' | 'unknown';
+  phonetic?: string;
+  source: string;
+  status: 'resolved' | 'pending' | 'skipped';
+  review_status?: 'unreviewed' | 'confirmed';
+}
+
+export interface Pronunciation { segments: PronunciationSegment[]; }
 
 // ────────────────────────────────────────────────────────────
 // 知识包结构
@@ -14,6 +19,7 @@ export interface ParameterEntry {
   name: string;
   type?: string;
   description_zh?: string;
+  pronunciation?: Pronunciation;
 }
 
 /** 词条中的来源引用 */
@@ -35,6 +41,7 @@ export interface KnowledgePackEntry {
   scope?: string;
   source: SourceRef;
   uncertainty?: string;
+  pronunciation?: Pronunciation;
 }
 
 /** 知识包顶层结构（对应一个 JSON 文件） */
@@ -44,10 +51,11 @@ export interface KnowledgePack {
   source_version?: string;
   description?: string;
   entries: KnowledgePackEntry[];
+  pronunciation_metadata?: Record<string, unknown>;
 }
 
 // ────────────────────────────────────────────────────────────
-// comment-translate-manager 接口（手写，绕过旧包类型问题）
+// Independent translator options
 // ────────────────────────────────────────────────────────────
 
 /** 翻译选项 */
@@ -55,19 +63,3 @@ export interface ITranslateOptions {
   from?: string;
   to?: string;
 }
-
-/** 翻译器接口（MTranCode 要求实现） */
-export interface ITranslate {
-  /** 最大翻译字符数 */
-  readonly maxLen: number;
-  /** 执行翻译，返回翻译结果字符串 */
-  translate(content: string, options: ITranslateOptions): Promise<string>;
-  /** 返回外部链接（可为空字符串） */
-  link(content: string, options: ITranslateOptions): string;
-}
-
-/** 翻译器构造函数类型 */
-export type ITranslateConstructor = new () => ITranslate;
-
-/** MTranCode 注册函数签名 */
-export type ITranslateRegistry = (id: string, cls: ITranslateConstructor) => void;

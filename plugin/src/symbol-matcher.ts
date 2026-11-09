@@ -1,4 +1,5 @@
 import { KnowledgePackEntry } from './types';
+import { formatPronunciation } from './pronunciation';
 
 /**
  * 判断输入是否为单个 C/C++ 标识符（支持末尾带 () 或带首尾空格）
@@ -46,6 +47,9 @@ export function formatEntry(entry: KnowledgePackEntry): string {
     lines.push(`【${entry.symbol}】`);
   }
 
+  const pronunciation = formatPronunciation(entry.pronunciation);
+  if (pronunciation) lines.push(pronunciation);
+
   // 声明
   if (entry.declaration) {
     lines.push(`声明：${entry.declaration}`);
@@ -56,6 +60,8 @@ export function formatEntry(entry: KnowledgePackEntry): string {
     lines.push('参数：');
     for (const p of entry.parameters) {
       lines.push(`  - ${p.name}：${p.description_zh || '无说明'}`);
+      const phonetic = formatPronunciation(p.pronunciation);
+      if (phonetic) lines.push(`    ${phonetic}`);
     }
   }
 

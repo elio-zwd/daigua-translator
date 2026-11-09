@@ -1,7 +1,6 @@
 import { ITranslateOptions } from './types';
 
-// Same transport and language mapping as MTranCode's BingTranslate.ts.
-// This extension never calls back into the host translation source.
+// Independent transport; no host extension or translation source is required.
 const languages: Record<string, string> = {
   auto: 'auto-detect', 'zh-CN': 'zh-Hans', 'zh-TW': 'zh-Hant', zh: 'zh-Hans'
 };

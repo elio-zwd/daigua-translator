@@ -9,6 +9,7 @@ export interface PackLoadReport {
   packs: KnowledgePack[];
   loadedCount: number;
   failures: PackLoadFailure[];
+  warnings: string[];
 }
 
 export function resolvePackPaths(paths: string[]): string[] {
@@ -24,10 +25,11 @@ export class KnowledgeLoader {
   async loadWithReport(paths: string[], previous = new Map<string, KnowledgePack>()): Promise<PackLoadReport> {
     const byPath = new Map<string, KnowledgePack>();
     const failures: PackLoadFailure[] = [];
+    const warnings: string[] = [];
     let loadedCount = 0;
     for (const file of resolvePackPaths(paths)) {
       try {
-        const parsed = validateKnowledgePack(JSON.parse((await this.readFile(file)).replace(/^\uFEFF/, '')));
+        const parsed = validateKnowledgePack(JSON.parse((await this.readFile(file)).replace(/^\uFEFF/, '')), message => warnings.push(`${file}: ${message}`));
         byPath.set(file, parsed);
         loadedCount++;
       } catch (error) {
@@ -36,7 +38,7 @@ export class KnowledgeLoader {
         failures.push({ path: file, reason: error instanceof Error ? error.message : String(error), retained: !!old });
       }
     }
-    return { byPath, packs: [...byPath.values()], loadedCount, failures };
+    return { byPath, packs: [...byPath.values()], loadedCount, failures, warnings };
   }
 
   async loadFromPaths(paths: string[]): Promise<KnowledgePack[]> {

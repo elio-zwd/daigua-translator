@@ -1,12 +1,13 @@
 import * as path from 'path';
 import { KnowledgePack } from './types';
+import { sanitizePronunciation } from './pronunciation';
 
 const kinds = new Set(['function', 'variable', 'macro', 'enum', 'typedef']);
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
 /** Mirrors validator/validate.py's structural checks without needing the source tree. */
-export function validateKnowledgePack(value: unknown): KnowledgePack {
+export function validateKnowledgePack(value: unknown, warn: (message: string) => void = () => {}): KnowledgePack {
   const errors: string[] = [];
   const text = (v: unknown, label: string, required = false): void => {
     if (typeof v !== 'string' || (required && !v.trim())) {
@@ -25,6 +26,7 @@ export function validateKnowledgePack(value: unknown): KnowledgePack {
   value.entries.forEach((entry: unknown, index: number) => {
     const label = `词条 #${index + 1}`;
     if (!isObject(entry)) { errors.push(`${label} 必须是对象`); return; }
+    if ('pronunciation' in entry) entry.pronunciation = sanitizePronunciation(entry.pronunciation, message => warn(`${label}: ${message}`));
     for (const field of ['symbol', 'kind', 'name_zh']) text(entry[field], `${label}.${field}`, true);
     if (typeof entry.symbol === 'string' &&
         (entry.symbol.trim() !== entry.symbol || !/^[A-Za-z_][A-Za-z0-9_]*$/.test(entry.symbol))) {
@@ -58,6 +60,7 @@ export function validateKnowledgePack(value: unknown): KnowledgePack {
         entry.parameters.forEach((param: unknown, i: number) => {
           const pLabel = `${label}.parameters[${i + 1}]`;
           if (!isObject(param)) { errors.push(`${pLabel} 必须是对象`); return; }
+          if ('pronunciation' in param) param.pronunciation = sanitizePronunciation(param.pronunciation, message => warn(`${pLabel}: ${message}`));
           text(param.name, `${pLabel}.name`, true);
           optionalText(param, ['description_zh', 'type'], pLabel);
           if (typeof param.name === 'string') {

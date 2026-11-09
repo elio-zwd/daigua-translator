@@ -3,4 +3,8 @@ src/
 tsconfig.json
 **/*.map
 test/**
+host-tests/**
 *.vsix
+**/ecdict.csv
+**/dictionary-index/**
+**/daigua-index/**
