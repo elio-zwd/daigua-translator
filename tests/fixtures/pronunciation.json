@@ -1,0 +1,10 @@
+[
+  {"name":"missing structure","value":null,"segments":0,"warnings":1},
+  {"name":"wrong segments","value":{"segments":"bad"},"segments":0,"warnings":1},
+  {"name":"empty optional","value":{"segments":[]},"segments":0,"warnings":0},
+  {"name":"word","value":{"segments":[{"text":"Motor","reading":"word","phonetic":"test","source":"ECDICT","status":"resolved"}]},"segments":1,"warnings":0},
+  {"name":"silent prefix","value":{"segments":[{"text":"x","reading":"silent","source":"AI","status":"resolved","review_status":"unreviewed"}]},"segments":1,"warnings":0},
+  {"name":"partially corrupt","value":{"segments":[null,{"text":"LED","reading":"letters","phonetic":"test","source":"AI","status":"resolved"},{"text":"x","reading":"word","source":"bad","status":"resolved"}]},"segments":1,"warnings":2},
+  {"name":"pending without IPA","value":{"segments":[{"text":"u","reading":"unknown","source":"unresolved","status":"pending"}]},"segments":1,"warnings":0},
+  {"name":"false confirmation","value":{"segments":[{"text":"x","reading":"unknown","source":"AI","status":"resolved"}]},"segments":0,"warnings":1}
+]

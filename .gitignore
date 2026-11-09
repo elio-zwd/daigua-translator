@@ -19,3 +19,7 @@ extractor/out/
 # 系统
 Thumbs.db
 .DS_Store
+
+# Local ECDICT index (full data stays outside the repository by default)
+dictionary-index/
+.local/

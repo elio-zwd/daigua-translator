@@ -8,6 +8,9 @@ import sys
 import tempfile
 from pathlib import Path, PureWindowsPath
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from phonetics.model import sanitize_pronunciation
+
 # GitHub Actions and some Windows shells default to a non-Unicode console code page.
 for stream in (sys.stdout, sys.stderr):
     if hasattr(stream, 'reconfigure'):
@@ -114,6 +117,12 @@ def validate_data(data, src_root=None):
         if not isinstance(entry, dict):
             errors.append(label + " 必须是对象")
             continue
+        owners = [(entry, label)]
+        if isinstance(entry.get("parameters"), list):
+            owners.extend((p, f"{label}.parameters[{i}]") for i, p in enumerate(entry["parameters"], 1) if isinstance(p, dict))
+        for owner, location in owners:
+            if "pronunciation" in owner:
+                sanitize_pronunciation(owner["pronunciation"], lambda message, loc=location: warnings.append(loc + ": " + message))
         symbol = check_text(entry.get("symbol"), label + ".symbol", errors, True)
         kind = check_text(entry.get("kind"), label + ".kind", errors, True)
         check_text(entry.get("name_zh"), label + ".name_zh", errors, True)
