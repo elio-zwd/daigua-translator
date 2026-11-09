@@ -1,0 +1,290 @@
+{
+  "format_version": 1,
+  "original_sha256": "7b3c5270482ed0bd5e8a883f0344475066e08153dc08766ffd56944d71c6b677",
+  "entries": [
+    {
+      "token": "keys",
+      "match": "exact",
+      "translation": "",
+      "reading": "unknown",
+      "source": "external-ai:待填写",
+      "review_status": "unreviewed",
+      "reason": "词典无音标或存在多种读法",
+      "occurrences": [
+        {
+          "symbol": "course_keys_probe_init",
+          "scope": "common/platform/course_board.c",
+          "source": {
+            "file": "common/platform/course_board.c",
+            "line": 121
+          }
+        },
+        {
+          "symbol": "course_keys_raw",
+          "scope": "common/platform/course_board.c",
+          "source": {
+            "file": "common/platform/course_board.c",
+            "line": 126
+          }
+        },
+        {
+          "symbol": "keys",
+          "scope": "common/platform/course_board.c",
+          "source": {
+            "file": "common/platform/course_board.c",
+            "line": 14
+          }
+        }
+      ]
+    },
+    {
+      "token": "EXINT",
+      "match": "exact",
+      "translation": "",
+      "reading": "unknown",
+      "source": "external-ai:待填写",
+      "review_status": "unreviewed",
+      "reason": "疑似缩写或型号",
+      "occurrences": [
+        {
+          "symbol": "EXINT1_IRQHandler",
+          "scope": "common/platform/course_board.c",
+          "source": {
+            "file": "common/platform/course_board.c",
+            "line": 179
+          }
+        },
+        {
+          "symbol": "EXINT2_IRQHandler",
+          "scope": "common/platform/course_board.c",
+          "source": {
+            "file": "common/platform/course_board.c",
+            "line": 180
+          }
+        },
+        {
+          "symbol": "EXINT4_IRQHandler",
+          "scope": "common/platform/course_board.c",
+          "source": {
+            "file": "common/platform/course_board.c",
+            "line": 181
+          }
+        },
+        {
+          "symbol": "EXINT15_10_IRQHandler",
+          "scope": "common/platform/course_board.c",
+          "source": {
+            "file": "common/platform/course_board.c",
+            "line": 182
+          }
+        }
+      ]
+    },
+    {
+      "token": "Malloc",
+      "match": "exact",
+      "translation": "",
+      "reading": "unknown",
+      "source": "external-ai:待填写",
+      "review_status": "unreviewed",
+      "reason": "技术库读法仍待确认",
+      "occurrences": [
+        {
+          "symbol": "vApplicationMallocFailedHook",
+          "scope": "common/platform/course_hooks.c",
+          "source": {
+            "file": "common/platform/course_hooks.c",
+            "line": 19
+          }
+        }
+      ]
+    },
+    {
+      "token": "Failed",
+      "match": "exact",
+      "translation": "",
+      "reading": "unknown",
+      "source": "external-ai:待填写",
+      "review_status": "unreviewed",
+      "reason": "词典无音标或存在多种读法",
+      "occurrences": [
+        {
+          "symbol": "vApplicationMallocFailedHook",
+          "scope": "common/platform/course_hooks.c",
+          "source": {
+            "file": "common/platform/course_hooks.c",
+            "line": 19
+          }
+        }
+      ]
+    },
+    {
+      "token": "Mem",
+      "match": "exact",
+      "translation": "",
+      "reading": "unknown",
+      "source": "external-ai:待填写",
+      "review_status": "unreviewed",
+      "reason": "疑似缩写或型号",
+      "occurrences": [
+        {
+          "symbol": "MemManage_Handler",
+          "scope": "common/platform/course_hooks.c",
+          "source": {
+            "file": "common/platform/course_hooks.c",
+            "line": 27
+          }
+        }
+      ]
+    },
+    {
+      "token": "cycles",
+      "match": "exact",
+      "translation": "",
+      "reading": "unknown",
+      "source": "external-ai:待填写",
+      "review_status": "unreviewed",
+      "reason": "词典无音标或存在多种读法",
+      "occurrences": [
+        {
+          "symbol": "cycles",
+          "scope": "common/platform/course_board.c::course_busy_ms:L105:C5",
+          "source": {
+            "file": "common/platform/course_board.c",
+            "line": 105
+          }
+        }
+      ]
+    },
+    {
+      "token": "A",
+      "match": "exact",
+      "translation": "",
+      "reading": "unknown",
+      "source": "external-ai:待填写",
+      "review_status": "unreviewed",
+      "reason": "疑似缩写或型号",
+      "occurrences": [
+        {
+          "symbol": "COURSE_LED_A_PIN",
+          "scope": "common/include/course_board_config.h",
+          "source": {
+            "file": "common/include/course_board_config.h",
+            "line": 9
+          }
+        }
+      ]
+    },
+    {
+      "token": "B",
+      "match": "exact",
+      "translation": "",
+      "reading": "unknown",
+      "source": "external-ai:待填写",
+      "review_status": "unreviewed",
+      "reason": "疑似缩写或型号",
+      "occurrences": [
+        {
+          "symbol": "COURSE_LED_B_PIN",
+          "scope": "common/include/course_board_config.h",
+          "source": {
+            "file": "common/include/course_board_config.h",
+            "line": 10
+          }
+        }
+      ]
+    },
+    {
+      "token": "MAX",
+      "match": "exact",
+      "translation": "",
+      "reading": "unknown",
+      "source": "external-ai:待填写",
+      "review_status": "unreviewed",
+      "reason": "疑似缩写或型号",
+      "occurrences": [
+        {
+          "symbol": "configMAX_PRIORITIES",
+          "scope": "common/include/course_rtos_config.h",
+          "source": {
+            "file": "common/include/course_rtos_config.h",
+            "line": 10
+          }
+        },
+        {
+          "symbol": "configMAX_TASK_NAME_LEN",
+          "scope": "common/include/course_rtos_config.h",
+          "source": {
+            "file": "common/include/course_rtos_config.h",
+            "line": 13
+          }
+        },
+        {
+          "symbol": "configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY",
+          "scope": "common/include/course_rtos_config.h",
+          "source": {
+            "file": "common/include/course_rtos_config.h",
+            "line": 69
+          }
+        }
+      ]
+    },
+    {
+      "token": "MALLOC",
+      "match": "exact",
+      "translation": "",
+      "reading": "unknown",
+      "source": "external-ai:待填写",
+      "review_status": "unreviewed",
+      "reason": "技术库读法仍待确认",
+      "occurrences": [
+        {
+          "symbol": "configUSE_MALLOC_FAILED_HOOK",
+          "scope": "common/include/course_rtos_config.h",
+          "source": {
+            "file": "common/include/course_rtos_config.h",
+            "line": 29
+          }
+        }
+      ]
+    },
+    {
+      "token": "FAILED",
+      "match": "exact",
+      "translation": "",
+      "reading": "unknown",
+      "source": "external-ai:待填写",
+      "review_status": "unreviewed",
+      "reason": "词典无音标或存在多种读法",
+      "occurrences": [
+        {
+          "symbol": "configUSE_MALLOC_FAILED_HOOK",
+          "scope": "common/include/course_rtos_config.h",
+          "source": {
+            "file": "common/include/course_rtos_config.h",
+            "line": 29
+          }
+        }
+      ]
+    },
+    {
+      "token": "SYSCALL",
+      "match": "exact",
+      "translation": "",
+      "reading": "unknown",
+      "source": "external-ai:待填写",
+      "review_status": "unreviewed",
+      "reason": "技术库读法仍待确认",
+      "occurrences": [
+        {
+          "symbol": "configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY",
+          "scope": "common/include/course_rtos_config.h",
+          "source": {
+            "file": "common/include/course_rtos_config.h",
+            "line": 69
+          }
+        }
+      ]
+    }
+  ]
+}

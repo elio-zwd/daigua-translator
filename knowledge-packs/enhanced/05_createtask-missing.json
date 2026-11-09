@@ -1,0 +1,63 @@
+{
+  "format_version": 1,
+  "original_sha256": "7b3c5270482ed0bd5e8a883f0344475066e08153dc08766ffd56944d71c6b677",
+  "entries": [
+    {
+      "token": "Malloc",
+      "match": "exact",
+      "translation": "",
+      "reading": "unknown",
+      "source": "external-ai:待填写",
+      "review_status": "unreviewed",
+      "reason": "技术库读法仍待确认",
+      "occurrences": [
+        {
+          "symbol": "vApplicationMallocFailedHook",
+          "scope": "common/platform/course_hooks.c",
+          "source": {
+            "file": "common/platform/course_hooks.c",
+            "line": 19
+          }
+        }
+      ]
+    },
+    {
+      "token": "MALLOC",
+      "match": "exact",
+      "translation": "",
+      "reading": "unknown",
+      "source": "external-ai:待填写",
+      "review_status": "unreviewed",
+      "reason": "技术库读法仍待确认",
+      "occurrences": [
+        {
+          "symbol": "configUSE_MALLOC_FAILED_HOOK",
+          "scope": "common/include/course_rtos_config.h",
+          "source": {
+            "file": "common/include/course_rtos_config.h",
+            "line": 29
+          }
+        }
+      ]
+    },
+    {
+      "token": "SYSCALL",
+      "match": "exact",
+      "translation": "",
+      "reading": "unknown",
+      "source": "external-ai:待填写",
+      "review_status": "unreviewed",
+      "reason": "技术库读法仍待确认",
+      "occurrences": [
+        {
+          "symbol": "configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY",
+          "scope": "common/include/course_rtos_config.h",
+          "source": {
+            "file": "common/include/course_rtos_config.h",
+            "line": 69
+          }
+        }
+      ]
+    }
+  ]
+}

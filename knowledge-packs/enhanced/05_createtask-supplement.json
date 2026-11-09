@@ -1,0 +1,242 @@
+{
+  "format_version": 1,
+  "description": "AI 补充样例；尚未经人工读法复核，不推断源码用途；malloc/syscall 保持待确认",
+  "entries": [
+    {
+      "token": "keys",
+      "match": "exact",
+      "translation": "key 的复数形式",
+      "reading": "word",
+      "source": "external-ai:Codex-2026-11-09",
+      "review_status": "unreviewed",
+      "reason": "词典无音标或存在多种读法",
+      "occurrences": [
+        {
+          "symbol": "course_keys_probe_init",
+          "scope": "common/platform/course_board.c",
+          "source": {
+            "file": "common/platform/course_board.c",
+            "line": 121
+          }
+        },
+        {
+          "symbol": "course_keys_raw",
+          "scope": "common/platform/course_board.c",
+          "source": {
+            "file": "common/platform/course_board.c",
+            "line": 126
+          }
+        },
+        {
+          "symbol": "keys",
+          "scope": "common/platform/course_board.c",
+          "source": {
+            "file": "common/platform/course_board.c",
+            "line": 14
+          }
+        }
+      ],
+      "phonetic": "kiːz"
+    },
+    {
+      "token": "EXINT",
+      "match": "exact",
+      "translation": "平台外部中断名称；此处采用逐字母读法",
+      "reading": "letters",
+      "source": "external-ai:Codex-2026-11-09",
+      "review_status": "unreviewed",
+      "reason": "疑似缩写或型号",
+      "occurrences": [
+        {
+          "symbol": "EXINT1_IRQHandler",
+          "scope": "common/platform/course_board.c",
+          "source": {
+            "file": "common/platform/course_board.c",
+            "line": 179
+          }
+        },
+        {
+          "symbol": "EXINT2_IRQHandler",
+          "scope": "common/platform/course_board.c",
+          "source": {
+            "file": "common/platform/course_board.c",
+            "line": 180
+          }
+        },
+        {
+          "symbol": "EXINT4_IRQHandler",
+          "scope": "common/platform/course_board.c",
+          "source": {
+            "file": "common/platform/course_board.c",
+            "line": 181
+          }
+        },
+        {
+          "symbol": "EXINT15_10_IRQHandler",
+          "scope": "common/platform/course_board.c",
+          "source": {
+            "file": "common/platform/course_board.c",
+            "line": 182
+          }
+        }
+      ],
+      "phonetic": "iː eks aɪ en tiː"
+    },
+    {
+      "token": "Failed",
+      "match": "exact",
+      "translation": "fail 的过去分词形式",
+      "reading": "word",
+      "source": "external-ai:Codex-2026-11-09",
+      "review_status": "unreviewed",
+      "reason": "词典无音标或存在多种读法",
+      "occurrences": [
+        {
+          "symbol": "vApplicationMallocFailedHook",
+          "scope": "common/platform/course_hooks.c",
+          "source": {
+            "file": "common/platform/course_hooks.c",
+            "line": 19
+          }
+        }
+      ],
+      "phonetic": "feɪld"
+    },
+    {
+      "token": "Mem",
+      "match": "exact",
+      "translation": "memory 的代码短写；采用短写读法",
+      "reading": "word",
+      "source": "external-ai:Codex-2026-11-09",
+      "review_status": "unreviewed",
+      "reason": "疑似缩写或型号",
+      "occurrences": [
+        {
+          "symbol": "MemManage_Handler",
+          "scope": "common/platform/course_hooks.c",
+          "source": {
+            "file": "common/platform/course_hooks.c",
+            "line": 27
+          }
+        }
+      ],
+      "phonetic": "mem"
+    },
+    {
+      "token": "cycles",
+      "match": "exact",
+      "translation": "cycle 的复数形式",
+      "reading": "word",
+      "source": "external-ai:Codex-2026-11-09",
+      "review_status": "unreviewed",
+      "reason": "词典无音标或存在多种读法",
+      "occurrences": [
+        {
+          "symbol": "cycles",
+          "scope": "common/platform/course_board.c::course_busy_ms:L105:C5",
+          "source": {
+            "file": "common/platform/course_board.c",
+            "line": 105
+          }
+        }
+      ],
+      "phonetic": "ˈsaɪkəlz"
+    },
+    {
+      "token": "A",
+      "match": "exact",
+      "translation": "字母 A",
+      "reading": "letters",
+      "source": "external-ai:Codex-2026-11-09",
+      "review_status": "unreviewed",
+      "reason": "疑似缩写或型号",
+      "occurrences": [
+        {
+          "symbol": "COURSE_LED_A_PIN",
+          "scope": "common/include/course_board_config.h",
+          "source": {
+            "file": "common/include/course_board_config.h",
+            "line": 9
+          }
+        }
+      ],
+      "phonetic": "eɪ"
+    },
+    {
+      "token": "B",
+      "match": "exact",
+      "translation": "字母 B",
+      "reading": "letters",
+      "source": "external-ai:Codex-2026-11-09",
+      "review_status": "unreviewed",
+      "reason": "疑似缩写或型号",
+      "occurrences": [
+        {
+          "symbol": "COURSE_LED_B_PIN",
+          "scope": "common/include/course_board_config.h",
+          "source": {
+            "file": "common/include/course_board_config.h",
+            "line": 10
+          }
+        }
+      ],
+      "phonetic": "biː"
+    },
+    {
+      "token": "MAX",
+      "match": "exact",
+      "translation": "maximum 的短写",
+      "reading": "word",
+      "source": "external-ai:Codex-2026-11-09",
+      "review_status": "unreviewed",
+      "reason": "疑似缩写或型号",
+      "occurrences": [
+        {
+          "symbol": "configMAX_PRIORITIES",
+          "scope": "common/include/course_rtos_config.h",
+          "source": {
+            "file": "common/include/course_rtos_config.h",
+            "line": 10
+          }
+        },
+        {
+          "symbol": "configMAX_TASK_NAME_LEN",
+          "scope": "common/include/course_rtos_config.h",
+          "source": {
+            "file": "common/include/course_rtos_config.h",
+            "line": 13
+          }
+        },
+        {
+          "symbol": "configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY",
+          "scope": "common/include/course_rtos_config.h",
+          "source": {
+            "file": "common/include/course_rtos_config.h",
+            "line": 69
+          }
+        }
+      ],
+      "phonetic": "mæks"
+    },
+    {
+      "token": "FAILED",
+      "match": "exact",
+      "translation": "fail 的过去分词形式",
+      "reading": "word",
+      "source": "external-ai:Codex-2026-11-09",
+      "review_status": "unreviewed",
+      "reason": "词典无音标或存在多种读法",
+      "occurrences": [
+        {
+          "symbol": "configUSE_MALLOC_FAILED_HOOK",
+          "scope": "common/include/course_rtos_config.h",
+          "source": {
+            "file": "common/include/course_rtos_config.h",
+            "line": 29
+          }
+        }
+      ],
+      "phonetic": "feɪld"
+    }
+  ]
+}

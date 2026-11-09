@@ -1,0 +1,3375 @@
+{
+  "name": "FreeRTOS 05_createtask 课程工程知识包",
+  "version": "1.1.0",
+  "source_version": "2b16b3041576f4d904d7296ac00386cc289bbc53",
+  "description": "覆盖 05 应用及共享板级模块；AI 初筛并对照源码编写，仍待人工复核。源码路径相对 freertos-learning。",
+  "entries": [
+    {
+      "symbol": "worker",
+      "kind": "function",
+      "name_zh": "动态工作任务",
+      "description_zh": "读取传入的毫秒周期，申请并释放一块 64 字节堆内存用于演示，然后循环记录计数并延时。",
+      "declaration": "static void worker(void *arg)",
+      "parameters": [
+        {
+          "name": "arg",
+          "type": "void *arg",
+          "description_zh": "指向 uint32_t 毫秒周期的指针",
+          "pronunciation": {
+            "segments": [
+              {
+                "text": "arg",
+                "reading": "letters",
+                "source": "AI-initial:2026-11-09",
+                "status": "resolved",
+                "review_status": "unreviewed",
+                "phonetic": "eɪ ɑː dʒiː"
+              }
+            ]
+          }
+        }
+      ],
+      "returns_zh": "任务循环不返回",
+      "scope": "05_createtask/src/main.c",
+      "source": {
+        "file": "05_createtask/src/main.c",
+        "line": 4
+      },
+      "uncertainty": "",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "worker",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "'wә:kә"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "main",
+      "kind": "function",
+      "name_zh": "课程入口",
+      "description_zh": "初始化板级资源，创建周期分别为 500 和 1000 毫秒的两个动态任务，启动调度器；调度器返回时进入故障处理。",
+      "declaration": "int main(void)",
+      "parameters": [],
+      "returns_zh": "正常运行时不返回",
+      "scope": "05_createtask/src/main.c",
+      "source": {
+        "file": "05_createtask/src/main.c",
+        "line": 20
+      },
+      "uncertainty": "",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "main",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "mein"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "system_clock_config",
+      "kind": "function",
+      "name_zh": "系统时钟配置",
+      "description_zh": "启用外部晶振和 PLL，配置 AHB/APB 分频并将系统时钟切换到 PLL；板级初始化随后更新 system_core_clock。",
+      "declaration": "void system_clock_config(void)",
+      "parameters": [],
+      "returns_zh": "无返回值",
+      "scope": "common/platform/at32f435_437_clock.c",
+      "source": {
+        "file": "common/platform/at32f435_437_clock.c",
+        "line": 57
+      },
+      "uncertainty": "",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "system",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "'sistәm"
+          },
+          {
+            "text": "clock",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "klɒk"
+          },
+          {
+            "text": "config",
+            "reading": "word",
+            "source": "AI-initial:2026-11-09",
+            "status": "resolved",
+            "review_status": "unreviewed",
+            "phonetic": "ˈkɒnfɪɡ"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "course_board_init",
+      "kind": "function",
+      "name_zh": "板级初始化",
+      "description_zh": "配置系统时钟、优先级分组、LED、串口和 DWT 周期计数器，设置就绪标志并检查核心时钟为 288 MHz。没有防止重复调用的判断。",
+      "declaration": "void course_board_init(void)",
+      "parameters": [],
+      "returns_zh": "无返回值",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 68
+      },
+      "uncertainty": "",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "course",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "kɒ:s"
+          },
+          {
+            "text": "board",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "bɒ:d"
+          },
+          {
+            "text": "init",
+            "reading": "word",
+            "source": "AI-initial:2026-11-09",
+            "status": "resolved",
+            "review_status": "unreviewed",
+            "phonetic": "ɪˈnɪt"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "course_led_set",
+      "kind": "function",
+      "name_zh": "设置 LED",
+      "description_zh": "根据 led 选择两个 LED 引脚之一，使用低电平表示点亮。",
+      "declaration": "void course_led_set(unsigned int led, int on)",
+      "parameters": [
+        {
+          "name": "led",
+          "type": "unsigned int led",
+          "description_zh": "0 选择 LED A，其他值选择 LED B",
+          "pronunciation": {
+            "segments": [
+              {
+                "text": "led",
+                "reading": "letters",
+                "source": "AI-initial:2026-11-09",
+                "status": "resolved",
+                "review_status": "unreviewed",
+                "phonetic": "el iː diː"
+              }
+            ]
+          }
+        },
+        {
+          "name": "on",
+          "type": "int on",
+          "description_zh": "非零点亮，0 熄灭",
+          "pronunciation": {
+            "segments": [
+              {
+                "text": "on",
+                "reading": "word",
+                "source": "ECDICT:d1ecbdf9ee2b",
+                "status": "resolved",
+                "phonetic": "ɒn"
+              }
+            ]
+          }
+        }
+      ],
+      "returns_zh": "无返回值",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 26
+      },
+      "uncertainty": "",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "course",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "kɒ:s"
+          },
+          {
+            "text": "led",
+            "reading": "letters",
+            "source": "AI-initial:2026-11-09",
+            "status": "resolved",
+            "review_status": "unreviewed",
+            "phonetic": "el iː diː"
+          },
+          {
+            "text": "set",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "set"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "course_led_toggle",
+      "kind": "function",
+      "name_zh": "翻转 LED",
+      "description_zh": "读取所选 LED 输出位并写入相反电平。",
+      "declaration": "void course_led_toggle(unsigned int led)",
+      "parameters": [
+        {
+          "name": "led",
+          "type": "unsigned int led",
+          "description_zh": "0 选择 LED A，其他值选择 LED B",
+          "pronunciation": {
+            "segments": [
+              {
+                "text": "led",
+                "reading": "letters",
+                "source": "AI-initial:2026-11-09",
+                "status": "resolved",
+                "review_status": "unreviewed",
+                "phonetic": "el iː diː"
+              }
+            ]
+          }
+        }
+      ],
+      "returns_zh": "无返回值",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 31
+      },
+      "uncertainty": "",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "course",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "kɒ:s"
+          },
+          {
+            "text": "led",
+            "reading": "letters",
+            "source": "AI-initial:2026-11-09",
+            "status": "resolved",
+            "review_status": "unreviewed",
+            "phonetic": "el iː diː"
+          },
+          {
+            "text": "toggle",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "'tɒgl"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "course_uart_write",
+      "kind": "function",
+      "name_zh": "串口轮询输出",
+      "description_zh": "板级就绪后逐字节轮询 USART1 发送空闲标志并发送字符串；尚未就绪则直接返回。",
+      "declaration": "void course_uart_write(const char *text)",
+      "parameters": [
+        {
+          "name": "text",
+          "type": "const char *text",
+          "description_zh": "以空字符结尾的文本指针",
+          "pronunciation": {
+            "segments": [
+              {
+                "text": "text",
+                "reading": "word",
+                "source": "ECDICT:d1ecbdf9ee2b",
+                "status": "resolved",
+                "phonetic": "tekst"
+              }
+            ]
+          }
+        }
+      ],
+      "returns_zh": "无返回值",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 36
+      },
+      "uncertainty": "",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "course",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "kɒ:s"
+          },
+          {
+            "text": "uart",
+            "reading": "letters",
+            "source": "AI-initial:2026-11-09",
+            "status": "resolved",
+            "review_status": "unreviewed",
+            "phonetic": "juː eɪ ɑː tiː"
+          },
+          {
+            "text": "write",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "rait"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "course_uart_read",
+      "kind": "function",
+      "name_zh": "串口非阻塞读取",
+      "description_zh": "检查 USART1 接收标志，有数据时读取一个字节；没有数据时不写入目标。",
+      "declaration": "int course_uart_read(uint8_t *byte)",
+      "parameters": [
+        {
+          "name": "byte",
+          "type": "uint8_t *byte",
+          "description_zh": "接收字节的目标指针",
+          "pronunciation": {
+            "segments": [
+              {
+                "text": "byte",
+                "reading": "word",
+                "source": "ECDICT:d1ecbdf9ee2b",
+                "status": "resolved",
+                "phonetic": "bait"
+              }
+            ]
+          }
+        }
+      ],
+      "returns_zh": "有数据返回 1，否则返回 0",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 44
+      },
+      "uncertainty": "",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "course",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "kɒ:s"
+          },
+          {
+            "text": "uart",
+            "reading": "letters",
+            "source": "AI-initial:2026-11-09",
+            "status": "resolved",
+            "review_status": "unreviewed",
+            "phonetic": "juː eɪ ɑː tiː"
+          },
+          {
+            "text": "read",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "ri:d"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "course_log",
+      "kind": "function",
+      "name_zh": "格式化串口日志",
+      "description_zh": "检查当前处于线程模式，将文本格式化到 160 字节缓冲区；调度器运行时暂停任务调度，输出文本和换行后恢复调度。中断仍可运行，不保证相对中断的原子性。",
+      "declaration": "void course_log(const char *format, ...)",
+      "parameters": [
+        {
+          "name": "format",
+          "type": "const char *format",
+          "description_zh": "printf 格式字符串",
+          "pronunciation": {
+            "segments": [
+              {
+                "text": "format",
+                "reading": "word",
+                "source": "ECDICT:d1ecbdf9ee2b",
+                "status": "resolved",
+                "phonetic": "'fɒ:mæt"
+              }
+            ]
+          }
+        },
+        {
+          "name": "...",
+          "type": "...",
+          "description_zh": "与格式字符串对应的可变参数",
+          "pronunciation": {
+            "segments": []
+          }
+        }
+      ],
+      "returns_zh": "无返回值",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 50
+      },
+      "uncertainty": "",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "course",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "kɒ:s"
+          },
+          {
+            "text": "log",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "lɒg"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "course_busy_ms",
+      "kind": "function",
+      "name_zh": "周期计数忙等待",
+      "description_zh": "根据核心时钟计算等待周期数，轮询 DWT 周期计数器直到达到目标；注释限定用于不超过 200 毫秒的负载演示。",
+      "declaration": "void course_busy_ms(uint32_t ms)",
+      "parameters": [
+        {
+          "name": "ms",
+          "type": "uint32_t ms",
+          "description_zh": "忙等待毫秒数",
+          "pronunciation": {
+            "segments": [
+              {
+                "text": "ms",
+                "reading": "word",
+                "source": "AI-initial:2026-11-09",
+                "status": "resolved",
+                "review_status": "unreviewed",
+                "phonetic": "ˈmɪlɪˌsekəndz"
+              }
+            ]
+          }
+        }
+      ],
+      "returns_zh": "无返回值",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 102
+      },
+      "uncertainty": "",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "course",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "kɒ:s"
+          },
+          {
+            "text": "busy",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "'bizi"
+          },
+          {
+            "text": "ms",
+            "reading": "word",
+            "source": "AI-initial:2026-11-09",
+            "status": "resolved",
+            "review_status": "unreviewed",
+            "phonetic": "ˈmɪlɪˌsekəndz"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "course_keys_probe_init",
+      "kind": "function",
+      "name_zh": "初始化全部候选按键",
+      "description_zh": "遍历八项候选引脚表，逐项配置输入模式，用于识别实际板载按键。",
+      "declaration": "void course_keys_probe_init(void)",
+      "parameters": [],
+      "returns_zh": "无返回值",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 121
+      },
+      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "course",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "kɒ:s"
+          },
+          {
+            "text": "keys",
+            "reading": "word",
+            "source": "external-ai:Codex-2026-11-09",
+            "status": "resolved",
+            "review_status": "unreviewed",
+            "phonetic": "kiːz"
+          },
+          {
+            "text": "probe",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "prәub"
+          },
+          {
+            "text": "init",
+            "reading": "word",
+            "source": "AI-initial:2026-11-09",
+            "status": "resolved",
+            "review_status": "unreviewed",
+            "phonetic": "ɪˈnɪt"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "course_keys_raw",
+      "kind": "function",
+      "name_zh": "读取候选按键电平",
+      "description_zh": "遍历八项候选输入，将高电平输入映射到返回值的对应位；此值不等于经过消抖的按下状态。",
+      "declaration": "uint32_t course_keys_raw(void)",
+      "parameters": [],
+      "returns_zh": "八个候选输入的电平位图",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 126
+      },
+      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "course",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "kɒ:s"
+          },
+          {
+            "text": "keys",
+            "reading": "word",
+            "source": "external-ai:Codex-2026-11-09",
+            "status": "resolved",
+            "review_status": "unreviewed",
+            "phonetic": "kiːz"
+          },
+          {
+            "text": "raw",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "rɒ:"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "course_key_ready",
+      "kind": "function",
+      "name_zh": "检查按键配置",
+      "description_zh": "检查 COURSE_KEY_INDEX 是否非零；默认值 0 表示尚未确认按键。",
+      "declaration": "int course_key_ready(void)",
+      "parameters": [],
+      "returns_zh": "已配置返回非零，否则返回 0",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 135
+      },
+      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "course",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "kɒ:s"
+          },
+          {
+            "text": "key",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "ki:"
+          },
+          {
+            "text": "ready",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "'redi"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "course_key_pressed",
+      "kind": "function",
+      "name_zh": "读取按键按下状态",
+      "description_zh": "未配置按键时返回 0；否则比较所选引脚电平与 COURSE_KEY_ACTIVE_LEVEL，不进行消抖。",
+      "declaration": "int course_key_pressed(void)",
+      "parameters": [],
+      "returns_zh": "按下返回 1，否则返回 0",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 140
+      },
+      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "course",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "kɒ:s"
+          },
+          {
+            "text": "key",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "ki:"
+          },
+          {
+            "text": "pressed",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "prest"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "course_key_input_init",
+      "kind": "function",
+      "name_zh": "初始化选定按键",
+      "description_zh": "仅在按键索引非零时，按候选表配置选定输入。",
+      "declaration": "void course_key_input_init(void)",
+      "parameters": [],
+      "returns_zh": "无返回值",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 136
+      },
+      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "course",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "kɒ:s"
+          },
+          {
+            "text": "key",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "ki:"
+          },
+          {
+            "text": "input",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "'input"
+          },
+          {
+            "text": "init",
+            "reading": "word",
+            "source": "AI-initial:2026-11-09",
+            "status": "resolved",
+            "review_status": "unreviewed",
+            "phonetic": "ɪˈnɪt"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "course_key_irq_init",
+      "kind": "function",
+      "name_zh": "初始化按键外部中断",
+      "description_zh": "未配置按键时直接返回 0；否则配置输入、外部中断映射、双边沿触发和 NVIC 优先级。",
+      "declaration": "int course_key_irq_init(void)",
+      "parameters": [],
+      "returns_zh": "配置成功返回 1，按键未配置返回 0",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 149
+      },
+      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "course",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "kɒ:s"
+          },
+          {
+            "text": "key",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "ki:"
+          },
+          {
+            "text": "irq",
+            "reading": "letters",
+            "source": "AI-initial:2026-11-09",
+            "status": "resolved",
+            "review_status": "unreviewed",
+            "phonetic": "aɪ ɑː kjuː"
+          },
+          {
+            "text": "init",
+            "reading": "word",
+            "source": "AI-initial:2026-11-09",
+            "status": "resolved",
+            "review_status": "unreviewed",
+            "phonetic": "ɪˈnɪt"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "course_key_isr",
+      "kind": "function",
+      "name_zh": "按键中断弱回调",
+      "description_zh": "提供默认空实现，供课程应用覆盖。",
+      "declaration": "__weak void course_key_isr(void)",
+      "parameters": [],
+      "returns_zh": "无返回值",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 168
+      },
+      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "course",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "kɒ:s"
+          },
+          {
+            "text": "key",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "ki:"
+          },
+          {
+            "text": "isr",
+            "reading": "letters",
+            "source": "AI-initial:2026-11-09",
+            "status": "resolved",
+            "review_status": "unreviewed",
+            "phonetic": "aɪ es ɑː"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "course_stats_init",
+      "kind": "function",
+      "name_zh": "运行时间计数器初始化",
+      "description_zh": "根据 APB1 分频计算定时器时钟，将 TMR2 配置为 32 位向上计数，目标计数频率为 10 kHz。",
+      "declaration": "void course_stats_init(void)",
+      "parameters": [],
+      "returns_zh": "无返回值",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 184
+      },
+      "uncertainty": "",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "course",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "kɒ:s"
+          },
+          {
+            "text": "stats",
+            "reading": "word",
+            "source": "AI-initial:2026-11-09",
+            "status": "resolved",
+            "review_status": "unreviewed",
+            "phonetic": "stæts"
+          },
+          {
+            "text": "init",
+            "reading": "word",
+            "source": "AI-initial:2026-11-09",
+            "status": "resolved",
+            "review_status": "unreviewed",
+            "phonetic": "ɪˈnɪt"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "course_stats_counter",
+      "kind": "function",
+      "name_zh": "读取运行时间计数",
+      "description_zh": "读取 TMR2 当前计数值；运行时间统计默认未启用。",
+      "declaration": "uint32_t course_stats_counter(void)",
+      "parameters": [],
+      "returns_zh": "TMR2 计数值",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 198
+      },
+      "uncertainty": "",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "course",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "kɒ:s"
+          },
+          {
+            "text": "stats",
+            "reading": "word",
+            "source": "AI-initial:2026-11-09",
+            "status": "resolved",
+            "review_status": "unreviewed",
+            "phonetic": "stæts"
+          },
+          {
+            "text": "counter",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "'kauntә"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "course_fail",
+      "kind": "function",
+      "name_zh": "报告课程运行失败",
+      "description_zh": "将给定原因传给 stop，关闭中断、记录故障并停止运行。",
+      "declaration": "void course_fail(const char *reason)",
+      "parameters": [
+        {
+          "name": "reason",
+          "type": "const char *reason",
+          "description_zh": "故障原因字符串",
+          "pronunciation": {
+            "segments": [
+              {
+                "text": "reason",
+                "reading": "word",
+                "source": "ECDICT:d1ecbdf9ee2b",
+                "status": "resolved",
+                "phonetic": "'ri:zn"
+              }
+            ]
+          }
+        }
+      ],
+      "returns_zh": "不返回",
+      "scope": "common/platform/course_hooks.c",
+      "source": {
+        "file": "common/platform/course_hooks.c",
+        "line": 17
+      },
+      "uncertainty": "",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "course",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "kɒ:s"
+          },
+          {
+            "text": "fail",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "feil"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "course_assert_fail",
+      "kind": "function",
+      "name_zh": "报告断言失败",
+      "description_zh": "将 assert 原因及源文件行号传给 stop。",
+      "declaration": "void course_assert_fail(const char *file, unsigned int line)",
+      "parameters": [
+        {
+          "name": "file",
+          "type": "const char *file",
+          "description_zh": "断言发生的文件名",
+          "pronunciation": {
+            "segments": [
+              {
+                "text": "file",
+                "reading": "word",
+                "source": "ECDICT:d1ecbdf9ee2b",
+                "status": "resolved",
+                "phonetic": "fail"
+              }
+            ]
+          }
+        },
+        {
+          "name": "line",
+          "type": "unsigned int line",
+          "description_zh": "断言行号",
+          "pronunciation": {
+            "segments": [
+              {
+                "text": "line",
+                "reading": "word",
+                "source": "ECDICT:d1ecbdf9ee2b",
+                "status": "resolved",
+                "phonetic": "lain"
+              }
+            ]
+          }
+        }
+      ],
+      "returns_zh": "不返回",
+      "scope": "common/platform/course_hooks.c",
+      "source": {
+        "file": "common/platform/course_hooks.c",
+        "line": 18
+      },
+      "uncertainty": "",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "course",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "kɒ:s"
+          },
+          {
+            "text": "assert",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "ә'sә:t"
+          },
+          {
+            "text": "fail",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "feil"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "key_input",
+      "kind": "function",
+      "name_zh": "配置候选按键输入",
+      "description_zh": "打开候选按键所在端口时钟，将对应引脚配置为采用 COURSE_KEY_PULL 的输入模式。",
+      "declaration": "static void key_input(const key_pin_type *key)",
+      "parameters": [
+        {
+          "name": "key",
+          "type": "const key_pin_type *key",
+          "description_zh": "候选引脚表项指针",
+          "pronunciation": {
+            "segments": [
+              {
+                "text": "key",
+                "reading": "word",
+                "source": "ECDICT:d1ecbdf9ee2b",
+                "status": "resolved",
+                "phonetic": "ki:"
+              }
+            ]
+          }
+        }
+      ],
+      "returns_zh": "无返回值",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 109
+      },
+      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "key",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "ki:"
+          },
+          {
+            "text": "input",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "'input"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "key_irq_dispatch",
+      "kind": "function",
+      "name_zh": "分发按键中断",
+      "description_zh": "检查选定按键的外部中断标志，清除标志后调用 course_key_isr。",
+      "declaration": "static void key_irq_dispatch(void)",
+      "parameters": [],
+      "returns_zh": "无返回值",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 169
+      },
+      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "key",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "ki:"
+          },
+          {
+            "text": "irq",
+            "reading": "letters",
+            "source": "AI-initial:2026-11-09",
+            "status": "resolved",
+            "review_status": "unreviewed",
+            "phonetic": "aɪ ɑː kjuː"
+          },
+          {
+            "text": "dispatch",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "dis'pætʃ"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "EXINT1_IRQHandler",
+      "kind": "function",
+      "name_zh": "外部中断处理入口",
+      "description_zh": "将该组外部中断交给 key_irq_dispatch 检查并分发；默认按键索引为 0 时不调用按键回调。",
+      "declaration": "void EXINT1_IRQHandler(void)",
+      "parameters": [],
+      "returns_zh": "无返回值",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 179
+      },
+      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "EXINT",
+            "reading": "letters",
+            "source": "external-ai:Codex-2026-11-09",
+            "status": "resolved",
+            "review_status": "unreviewed",
+            "phonetic": "iː eks aɪ en tiː"
+          },
+          {
+            "text": "1",
+            "reading": "unknown",
+            "source": "identifier:number",
+            "status": "skipped"
+          },
+          {
+            "text": "IRQ",
+            "reading": "letters",
+            "source": "AI-initial:2026-11-09",
+            "status": "resolved",
+            "review_status": "unreviewed",
+            "phonetic": "aɪ ɑː kjuː"
+          },
+          {
+            "text": "Handler",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "'hændlә"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "EXINT2_IRQHandler",
+      "kind": "function",
+      "name_zh": "外部中断处理入口",
+      "description_zh": "将该组外部中断交给 key_irq_dispatch 检查并分发；默认按键索引为 0 时不调用按键回调。",
+      "declaration": "void EXINT2_IRQHandler(void)",
+      "parameters": [],
+      "returns_zh": "无返回值",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 180
+      },
+      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "EXINT",
+            "reading": "letters",
+            "source": "external-ai:Codex-2026-11-09",
+            "status": "resolved",
+            "review_status": "unreviewed",
+            "phonetic": "iː eks aɪ en tiː"
+          },
+          {
+            "text": "2",
+            "reading": "unknown",
+            "source": "identifier:number",
+            "status": "skipped"
+          },
+          {
+            "text": "IRQ",
+            "reading": "letters",
+            "source": "AI-initial:2026-11-09",
+            "status": "resolved",
+            "review_status": "unreviewed",
+            "phonetic": "aɪ ɑː kjuː"
+          },
+          {
+            "text": "Handler",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "'hændlә"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "EXINT4_IRQHandler",
+      "kind": "function",
+      "name_zh": "外部中断处理入口",
+      "description_zh": "将该组外部中断交给 key_irq_dispatch 检查并分发；默认按键索引为 0 时不调用按键回调。",
+      "declaration": "void EXINT4_IRQHandler(void)",
+      "parameters": [],
+      "returns_zh": "无返回值",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 181
+      },
+      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "EXINT",
+            "reading": "letters",
+            "source": "external-ai:Codex-2026-11-09",
+            "status": "resolved",
+            "review_status": "unreviewed",
+            "phonetic": "iː eks aɪ en tiː"
+          },
+          {
+            "text": "4",
+            "reading": "unknown",
+            "source": "identifier:number",
+            "status": "skipped"
+          },
+          {
+            "text": "IRQ",
+            "reading": "letters",
+            "source": "AI-initial:2026-11-09",
+            "status": "resolved",
+            "review_status": "unreviewed",
+            "phonetic": "aɪ ɑː kjuː"
+          },
+          {
+            "text": "Handler",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "'hændlә"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "EXINT15_10_IRQHandler",
+      "kind": "function",
+      "name_zh": "外部中断处理入口",
+      "description_zh": "将该组外部中断交给 key_irq_dispatch 检查并分发；默认按键索引为 0 时不调用按键回调。",
+      "declaration": "void EXINT15_10_IRQHandler(void)",
+      "parameters": [],
+      "returns_zh": "无返回值",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 182
+      },
+      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "EXINT",
+            "reading": "letters",
+            "source": "external-ai:Codex-2026-11-09",
+            "status": "resolved",
+            "review_status": "unreviewed",
+            "phonetic": "iː eks aɪ en tiː"
+          },
+          {
+            "text": "15",
+            "reading": "unknown",
+            "source": "identifier:number",
+            "status": "skipped"
+          },
+          {
+            "text": "10",
+            "reading": "unknown",
+            "source": "identifier:number",
+            "status": "skipped"
+          },
+          {
+            "text": "IRQ",
+            "reading": "letters",
+            "source": "AI-initial:2026-11-09",
+            "status": "resolved",
+            "review_status": "unreviewed",
+            "phonetic": "aɪ ɑː kjuː"
+          },
+          {
+            "text": "Handler",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "'hændlә"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "stop",
+      "kind": "function",
+      "name_zh": "故障停机",
+      "description_zh": "关闭中断，记录原因、文件和行号，点亮两个 LED 并尝试输出简短故障文本，随后永久循环。不会保存寄存器现场。",
+      "declaration": "static void stop(const char *reason, const char *file, unsigned int line)",
+      "parameters": [
+        {
+          "name": "reason",
+          "type": "const char *reason",
+          "description_zh": "故障原因",
+          "pronunciation": {
+            "segments": [
+              {
+                "text": "reason",
+                "reading": "word",
+                "source": "ECDICT:d1ecbdf9ee2b",
+                "status": "resolved",
+                "phonetic": "'ri:zn"
+              }
+            ]
+          }
+        },
+        {
+          "name": "file",
+          "type": "const char *file",
+          "description_zh": "来源文件，可为空指针",
+          "pronunciation": {
+            "segments": [
+              {
+                "text": "file",
+                "reading": "word",
+                "source": "ECDICT:d1ecbdf9ee2b",
+                "status": "resolved",
+                "phonetic": "fail"
+              }
+            ]
+          }
+        },
+        {
+          "name": "line",
+          "type": "unsigned int line",
+          "description_zh": "来源行号，可为 0",
+          "pronunciation": {
+            "segments": [
+              {
+                "text": "line",
+                "reading": "word",
+                "source": "ECDICT:d1ecbdf9ee2b",
+                "status": "resolved",
+                "phonetic": "lain"
+              }
+            ]
+          }
+        }
+      ],
+      "returns_zh": "不返回",
+      "scope": "common/platform/course_hooks.c",
+      "source": {
+        "file": "common/platform/course_hooks.c",
+        "line": 3
+      },
+      "uncertainty": "",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "stop",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "stɒp"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "vApplicationMallocFailedHook",
+      "kind": "function",
+      "name_zh": "堆分配失败钩子",
+      "description_zh": "进入 stop，记录 allocation failed 原因；配置已启用此钩子。",
+      "declaration": "void vApplicationMallocFailedHook(void)",
+      "parameters": [],
+      "returns_zh": "不返回",
+      "scope": "common/platform/course_hooks.c",
+      "source": {
+        "file": "common/platform/course_hooks.c",
+        "line": 19
+      },
+      "uncertainty": "",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "v",
+            "reading": "silent",
+            "source": "AI-initial:2026-11-09",
+            "status": "resolved",
+            "review_status": "unreviewed"
+          },
+          {
+            "text": "Application",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": ".æpli'keiʃәn"
+          },
+          {
+            "text": "Malloc",
+            "reading": "unknown",
+            "source": "AI-initial:2026-11-09",
+            "status": "pending",
+            "review_status": "unreviewed"
+          },
+          {
+            "text": "Failed",
+            "reading": "word",
+            "source": "external-ai:Codex-2026-11-09",
+            "status": "resolved",
+            "review_status": "unreviewed",
+            "phonetic": "feɪld"
+          },
+          {
+            "text": "Hook",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "huk"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "vApplicationStackOverflowHook",
+      "kind": "function",
+      "name_zh": "任务栈溢出钩子",
+      "description_zh": "忽略任务句柄和名称，进入 stop 记录 stack overflow。",
+      "declaration": "void vApplicationStackOverflowHook(TaskHandle_t task, char *name)",
+      "parameters": [
+        {
+          "name": "task",
+          "type": "TaskHandle_t task",
+          "description_zh": "发生溢出的任务句柄，本实现未使用",
+          "pronunciation": {
+            "segments": [
+              {
+                "text": "task",
+                "reading": "word",
+                "source": "ECDICT:d1ecbdf9ee2b",
+                "status": "resolved",
+                "phonetic": "tɑ:sk"
+              }
+            ]
+          }
+        },
+        {
+          "name": "name",
+          "type": "char *name",
+          "description_zh": "任务名，本实现未使用",
+          "pronunciation": {
+            "segments": [
+              {
+                "text": "name",
+                "reading": "word",
+                "source": "ECDICT:d1ecbdf9ee2b",
+                "status": "resolved",
+                "phonetic": "neim"
+              }
+            ]
+          }
+        }
+      ],
+      "returns_zh": "不返回",
+      "scope": "common/platform/course_hooks.c",
+      "source": {
+        "file": "common/platform/course_hooks.c",
+        "line": 20
+      },
+      "uncertainty": "",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "v",
+            "reading": "silent",
+            "source": "AI-initial:2026-11-09",
+            "status": "resolved",
+            "review_status": "unreviewed"
+          },
+          {
+            "text": "Application",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": ".æpli'keiʃәn"
+          },
+          {
+            "text": "Stack",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "stæk"
+          },
+          {
+            "text": "Overflow",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": ".әuvә'flәu"
+          },
+          {
+            "text": "Hook",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "huk"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "HardFault_Handler",
+      "kind": "function",
+      "name_zh": "硬故障处理",
+      "description_zh": "进入 stop，记录 HardFault 原因并停机。",
+      "declaration": "void HardFault_Handler(void)",
+      "parameters": [],
+      "returns_zh": "不返回",
+      "scope": "common/platform/course_hooks.c",
+      "source": {
+        "file": "common/platform/course_hooks.c",
+        "line": 26
+      },
+      "uncertainty": "",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "Hard",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "hɑ:d"
+          },
+          {
+            "text": "Fault",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "fɒ:lt"
+          },
+          {
+            "text": "Handler",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "'hændlә"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "MemManage_Handler",
+      "kind": "function",
+      "name_zh": "内存管理故障处理",
+      "description_zh": "进入 stop，记录 MemManage 原因并停机。",
+      "declaration": "void MemManage_Handler(void)",
+      "parameters": [],
+      "returns_zh": "不返回",
+      "scope": "common/platform/course_hooks.c",
+      "source": {
+        "file": "common/platform/course_hooks.c",
+        "line": 27
+      },
+      "uncertainty": "",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "Mem",
+            "reading": "word",
+            "source": "external-ai:Codex-2026-11-09",
+            "status": "resolved",
+            "review_status": "unreviewed",
+            "phonetic": "mem"
+          },
+          {
+            "text": "Manage",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "'mænidʒ"
+          },
+          {
+            "text": "Handler",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "'hændlә"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "BusFault_Handler",
+      "kind": "function",
+      "name_zh": "总线故障处理",
+      "description_zh": "进入 stop，记录 BusFault 原因并停机。",
+      "declaration": "void BusFault_Handler(void)",
+      "parameters": [],
+      "returns_zh": "不返回",
+      "scope": "common/platform/course_hooks.c",
+      "source": {
+        "file": "common/platform/course_hooks.c",
+        "line": 28
+      },
+      "uncertainty": "",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "Bus",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "bʌs"
+          },
+          {
+            "text": "Fault",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "fɒ:lt"
+          },
+          {
+            "text": "Handler",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "'hændlә"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "UsageFault_Handler",
+      "kind": "function",
+      "name_zh": "用法故障处理",
+      "description_zh": "进入 stop，记录 UsageFault 原因并停机。",
+      "declaration": "void UsageFault_Handler(void)",
+      "parameters": [],
+      "returns_zh": "不返回",
+      "scope": "common/platform/course_hooks.c",
+      "source": {
+        "file": "common/platform/course_hooks.c",
+        "line": 29
+      },
+      "uncertainty": "",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "Usage",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "'ju:sidʒ"
+          },
+          {
+            "text": "Fault",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "fɒ:lt"
+          },
+          {
+            "text": "Handler",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "'hændlә"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "intervals",
+      "kind": "variable",
+      "name_zh": "任务周期数组",
+      "description_zh": "保存两个任务的毫秒周期 500 和 1000，地址作为 worker 的参数传入。",
+      "declaration": "static const uint32_t intervals[2] = {500,1000}",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "05_createtask/src/main.c",
+      "source": {
+        "file": "05_createtask/src/main.c",
+        "line": 3
+      },
+      "uncertainty": "",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "intervals",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "'ɪntevl"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "local_count",
+      "kind": "variable",
+      "name_zh": "任务局部计数",
+      "description_zh": "每个任务各自保存的循环计数，每次输出前递增。",
+      "declaration": "uint32_t local_count = 0",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "05_createtask/src/main.c::worker:L6:C5",
+      "source": {
+        "file": "05_createtask/src/main.c",
+        "line": 6
+      },
+      "uncertainty": "",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "local",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "'lәukәl"
+          },
+          {
+            "text": "count",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "kaunt"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "interval",
+      "kind": "variable",
+      "name_zh": "任务延时周期",
+      "description_zh": "从 arg 指向的 uint32_t 读取的毫秒数，循环中转换为 tick 后延时。",
+      "declaration": "uint32_t interval = *(const uint32_t *)arg",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "05_createtask/src/main.c::worker:L7:C5",
+      "source": {
+        "file": "05_createtask/src/main.c",
+        "line": 7
+      },
+      "uncertainty": "",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "interval",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "'intәvәl"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "block",
+      "kind": "variable",
+      "name_zh": "演示堆块指针",
+      "description_zh": "申请 64 字节后检查非空、输出地址并释放，只在进入循环前使用。",
+      "declaration": "void *block = pvPortMalloc(64)",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "05_createtask/src/main.c::worker:L8:C5",
+      "source": {
+        "file": "05_createtask/src/main.c",
+        "line": 8
+      },
+      "uncertainty": "",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "block",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "blɒk"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "board_ready",
+      "kind": "variable",
+      "name_zh": "串口输出就绪标志",
+      "description_zh": "初始为 0，板级初始化后设为 1；course_uart_write 据此决定是否输出，不用于防止重复初始化。",
+      "declaration": "static int board_ready",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 24
+      },
+      "uncertainty": "",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "board",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "bɒ:d"
+          },
+          {
+            "text": "ready",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "'redi"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "buffer",
+      "kind": "variable",
+      "name_zh": "日志格式化缓冲区",
+      "description_zh": "160 字节的局部字符数组，格式化结果可能被截断，并显式保证末尾为空字符。",
+      "declaration": "char buffer[160]",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/platform/course_board.c::course_log:L52:C5",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 52
+      },
+      "uncertainty": "",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "buffer",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "'bʌfә"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "running",
+      "kind": "variable",
+      "name_zh": "调度器运行标志",
+      "description_zh": "标记调度器是否处于运行状态，用于成对暂停和恢复任务调度。",
+      "declaration": "BaseType_t running",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/platform/course_board.c::course_log:L54:C5",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 54
+      },
+      "uncertainty": "",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "running",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "'rʌniŋ"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "start",
+      "kind": "variable",
+      "name_zh": "忙等待起始周期",
+      "description_zh": "保存 DWT 周期计数器初值，用无符号差值判断经过的周期。",
+      "declaration": "uint32_t start = DWT->CYCCNT",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/platform/course_board.c::course_busy_ms:L104:C5",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 104
+      },
+      "uncertainty": "",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "start",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "stɑ:t"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "cycles",
+      "kind": "variable",
+      "name_zh": "目标等待周期数",
+      "description_zh": "将毫秒换算为核心时钟周期数，供短时忙等待判断。",
+      "declaration": "uint32_t cycles = (system_core_clock / 1000U) * ms",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/platform/course_board.c::course_busy_ms:L105:C5",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 105
+      },
+      "uncertainty": "",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "cycles",
+            "reading": "word",
+            "source": "external-ai:Codex-2026-11-09",
+            "status": "resolved",
+            "review_status": "unreviewed",
+            "phonetic": "ˈsaɪkəlz"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "mask",
+      "kind": "variable",
+      "name_zh": "候选按键电平位图",
+      "description_zh": "逐位记录八个候选输入当前是否为高电平，不进行消抖。",
+      "declaration": "uint32_t mask = 0",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/platform/course_board.c::course_keys_raw:L129:C5",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 129
+      },
+      "uncertainty": "",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "mask",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "mæsk"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "timer_clock",
+      "kind": "variable",
+      "name_zh": "统计定时器输入频率",
+      "description_zh": "从 APB1 频率推导定时器频率，用于设置 10 kHz 计数分频。",
+      "declaration": "uint32_t timer_clock",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/platform/course_board.c::course_stats_init:L187:C5",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 187
+      },
+      "uncertainty": "",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "timer",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "'taimә"
+          },
+          {
+            "text": "clock",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "klɒk"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "course_last_fault",
+      "kind": "variable",
+      "name_zh": "最近故障记录",
+      "description_zh": "保存 stop 写入的原因字符串、来源文件和行号，不包含 CPU 寄存器快照。",
+      "declaration": "volatile course_fault_type course_last_fault",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/platform/course_hooks.c",
+      "source": {
+        "file": "common/platform/course_hooks.c",
+        "line": 2
+      },
+      "uncertainty": "",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "course",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "kɒ:s"
+          },
+          {
+            "text": "last",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "lɑ:st"
+          },
+          {
+            "text": "fault",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "fɒ:lt"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "COURSE_STACK",
+      "kind": "macro",
+      "name_zh": "课程默认栈深度",
+      "description_zh": "值为 256，作为课程任务栈深度常量；实际使用位置决定计量单位。",
+      "declaration": "#define COURSE_STACK 256U",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/include/course.h",
+      "source": {
+        "file": "common/include/course.h",
+        "line": 13
+      },
+      "uncertainty": "",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "COURSE",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "kɒ:s"
+          },
+          {
+            "text": "STACK",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "stæk"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "COURSE_LOG_STACK",
+      "kind": "macro",
+      "name_zh": "日志任务栈深度",
+      "description_zh": "值为 512，05 工程将其作为 xTaskCreate 的栈深度，单位为 StackType_t 元素数。",
+      "declaration": "#define COURSE_LOG_STACK 512U",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/include/course.h",
+      "source": {
+        "file": "common/include/course.h",
+        "line": 14
+      },
+      "uncertainty": "",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "COURSE",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "kɒ:s"
+          },
+          {
+            "text": "LOG",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "lɒg"
+          },
+          {
+            "text": "STACK",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "stæk"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "COURSE_CHECK",
+      "kind": "macro",
+      "name_zh": "课程断言入口",
+      "description_zh": "将条件交给 configASSERT，失败时调用课程断言处理。",
+      "declaration": "#define COURSE_CHECK(x) configASSERT(x)",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/include/course.h",
+      "source": {
+        "file": "common/include/course.h",
+        "line": 15
+      },
+      "uncertainty": "",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "COURSE",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "kɒ:s"
+          },
+          {
+            "text": "CHECK",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "tʃek"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "COURSE_KEY_INDEX",
+      "kind": "macro",
+      "name_zh": "候选按键索引",
+      "description_zh": "值为 0 表示尚未确认；1 到 8 对应候选表，不表示板上接线已经核实。",
+      "declaration": "#define COURSE_KEY_INDEX 0",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/include/course_board_config.h",
+      "source": {
+        "file": "common/include/course_board_config.h",
+        "line": 5
+      },
+      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "COURSE",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "kɒ:s"
+          },
+          {
+            "text": "KEY",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "ki:"
+          },
+          {
+            "text": "INDEX",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "'indeks"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "COURSE_KEY_ACTIVE_LEVEL",
+      "kind": "macro",
+      "name_zh": "按键有效电平",
+      "description_zh": "当前为 0，用于按下状态比较；须实际确认引脚和极性后使用。",
+      "declaration": "#define COURSE_KEY_ACTIVE_LEVEL 0",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/include/course_board_config.h",
+      "source": {
+        "file": "common/include/course_board_config.h",
+        "line": 6
+      },
+      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "COURSE",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "kɒ:s"
+          },
+          {
+            "text": "KEY",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "ki:"
+          },
+          {
+            "text": "ACTIVE",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "'æktiv"
+          },
+          {
+            "text": "LEVEL",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "'levl"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "COURSE_KEY_PULL",
+      "kind": "macro",
+      "name_zh": "按键输入上下拉配置",
+      "description_zh": "当前为 GPIO_PULL_NONE，配置候选按键输入时使用。",
+      "declaration": "#define COURSE_KEY_PULL GPIO_PULL_NONE",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/include/course_board_config.h",
+      "source": {
+        "file": "common/include/course_board_config.h",
+        "line": 7
+      },
+      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "COURSE",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "kɒ:s"
+          },
+          {
+            "text": "KEY",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "ki:"
+          },
+          {
+            "text": "PULL",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "pul"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "COURSE_IRQ_PRIORITY",
+      "kind": "macro",
+      "name_zh": "按键中断优先级",
+      "description_zh": "值为 6，传给按键外部中断的 NVIC 配置。",
+      "declaration": "#define COURSE_IRQ_PRIORITY 6",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/include/course_board_config.h",
+      "source": {
+        "file": "common/include/course_board_config.h",
+        "line": 8
+      },
+      "uncertainty": "",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "COURSE",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "kɒ:s"
+          },
+          {
+            "text": "IRQ",
+            "reading": "letters",
+            "source": "AI-initial:2026-11-09",
+            "status": "resolved",
+            "review_status": "unreviewed",
+            "phonetic": "aɪ ɑː kjuː"
+          },
+          {
+            "text": "PRIORITY",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "prai'ɒriti"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "COURSE_LED_A_PIN",
+      "kind": "macro",
+      "name_zh": "LED A 引脚掩码",
+      "description_zh": "配置为 GPIO_PINS_12，板级代码在 GPIOC 上使用。",
+      "declaration": "#define COURSE_LED_A_PIN GPIO_PINS_12",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/include/course_board_config.h",
+      "source": {
+        "file": "common/include/course_board_config.h",
+        "line": 9
+      },
+      "uncertainty": "",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "COURSE",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "kɒ:s"
+          },
+          {
+            "text": "LED",
+            "reading": "letters",
+            "source": "AI-initial:2026-11-09",
+            "status": "resolved",
+            "review_status": "unreviewed",
+            "phonetic": "el iː diː"
+          },
+          {
+            "text": "A",
+            "reading": "letters",
+            "source": "external-ai:Codex-2026-11-09",
+            "status": "resolved",
+            "review_status": "unreviewed",
+            "phonetic": "eɪ"
+          },
+          {
+            "text": "PIN",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "pin"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "COURSE_LED_B_PIN",
+      "kind": "macro",
+      "name_zh": "LED B 引脚掩码",
+      "description_zh": "配置为 GPIO_PINS_9，板级代码在 GPIOC 上使用。",
+      "declaration": "#define COURSE_LED_B_PIN GPIO_PINS_9",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/include/course_board_config.h",
+      "source": {
+        "file": "common/include/course_board_config.h",
+        "line": 10
+      },
+      "uncertainty": "",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "COURSE",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "kɒ:s"
+          },
+          {
+            "text": "LED",
+            "reading": "letters",
+            "source": "AI-initial:2026-11-09",
+            "status": "resolved",
+            "review_status": "unreviewed",
+            "phonetic": "el iː diː"
+          },
+          {
+            "text": "B",
+            "reading": "letters",
+            "source": "external-ai:Codex-2026-11-09",
+            "status": "resolved",
+            "review_status": "unreviewed",
+            "phonetic": "biː"
+          },
+          {
+            "text": "PIN",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "pin"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "COURSE_UART_BAUD",
+      "kind": "macro",
+      "name_zh": "调试串口波特率",
+      "description_zh": "USART1 初始化使用的波特率，值为 115200。",
+      "declaration": "#define COURSE_UART_BAUD 115200U",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/include/course_board_config.h",
+      "source": {
+        "file": "common/include/course_board_config.h",
+        "line": 11
+      },
+      "uncertainty": "",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "COURSE",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "kɒ:s"
+          },
+          {
+            "text": "UART",
+            "reading": "letters",
+            "source": "AI-initial:2026-11-09",
+            "status": "resolved",
+            "review_status": "unreviewed",
+            "phonetic": "juː eɪ ɑː tiː"
+          },
+          {
+            "text": "BAUD",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "bɔ:d"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "configCPU_CLOCK_HZ",
+      "kind": "macro",
+      "name_zh": "RTOS 核心时钟频率",
+      "description_zh": "引用 system_core_clock，由板级初始化更新后用于 RTOS 配置。",
+      "declaration": "#define configCPU_CLOCK_HZ system_core_clock",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 8
+      },
+      "uncertainty": "",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "config",
+            "reading": "word",
+            "source": "AI-initial:2026-11-09",
+            "status": "resolved",
+            "review_status": "unreviewed",
+            "phonetic": "ˈkɒnfɪɡ"
+          },
+          {
+            "text": "CPU",
+            "reading": "letters",
+            "source": "AI-initial:2026-11-09",
+            "status": "resolved",
+            "review_status": "unreviewed",
+            "phonetic": "siː piː juː"
+          },
+          {
+            "text": "CLOCK",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "klɒk"
+          },
+          {
+            "text": "HZ",
+            "reading": "word",
+            "source": "AI-initial:2026-11-09",
+            "status": "resolved",
+            "review_status": "unreviewed",
+            "phonetic": "hɜːts"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "configTICK_RATE_HZ",
+      "kind": "macro",
+      "name_zh": "RTOS 节拍频率",
+      "description_zh": "值为 1000 Hz，供延时与节拍换算。",
+      "declaration": "#define configTICK_RATE_HZ 1000U",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 9
+      },
+      "uncertainty": "",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "config",
+            "reading": "word",
+            "source": "AI-initial:2026-11-09",
+            "status": "resolved",
+            "review_status": "unreviewed",
+            "phonetic": "ˈkɒnfɪɡ"
+          },
+          {
+            "text": "TICK",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "tik"
+          },
+          {
+            "text": "RATE",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "reit"
+          },
+          {
+            "text": "HZ",
+            "reading": "word",
+            "source": "AI-initial:2026-11-09",
+            "status": "resolved",
+            "review_status": "unreviewed",
+            "phonetic": "hɜːts"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "configMAX_PRIORITIES",
+      "kind": "macro",
+      "name_zh": "任务优先级数量",
+      "description_zh": "配置为 8，任务优先级有效范围为 0 到 7。",
+      "declaration": "#define configMAX_PRIORITIES 8",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 10
+      },
+      "uncertainty": "",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "config",
+            "reading": "word",
+            "source": "AI-initial:2026-11-09",
+            "status": "resolved",
+            "review_status": "unreviewed",
+            "phonetic": "ˈkɒnfɪɡ"
+          },
+          {
+            "text": "MAX",
+            "reading": "word",
+            "source": "external-ai:Codex-2026-11-09",
+            "status": "resolved",
+            "review_status": "unreviewed",
+            "phonetic": "mæks"
+          },
+          {
+            "text": "PRIORITIES",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "praiˈɔritiz"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "configMINIMAL_STACK_SIZE",
+      "kind": "macro",
+      "name_zh": "最小任务栈深度",
+      "description_zh": "配置为 256 个 StackType_t 元素，供空闲任务等使用。",
+      "declaration": "#define configMINIMAL_STACK_SIZE 256U",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 11
+      },
+      "uncertainty": "",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "config",
+            "reading": "word",
+            "source": "AI-initial:2026-11-09",
+            "status": "resolved",
+            "review_status": "unreviewed",
+            "phonetic": "ˈkɒnfɪɡ"
+          },
+          {
+            "text": "MINIMAL",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "'miniml"
+          },
+          {
+            "text": "STACK",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "stæk"
+          },
+          {
+            "text": "SIZE",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "saiz"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "configTOTAL_HEAP_SIZE",
+      "kind": "macro",
+      "name_zh": "RTOS 堆容量",
+      "description_zh": "配置为 60×1024 字节，最终行为还取决于工程所链接的堆实现。",
+      "declaration": "#define configTOTAL_HEAP_SIZE (60U * 1024U)",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 12
+      },
+      "uncertainty": "",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "config",
+            "reading": "word",
+            "source": "AI-initial:2026-11-09",
+            "status": "resolved",
+            "review_status": "unreviewed",
+            "phonetic": "ˈkɒnfɪɡ"
+          },
+          {
+            "text": "TOTAL",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "'tәutl"
+          },
+          {
+            "text": "HEAP",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "hi:p"
+          },
+          {
+            "text": "SIZE",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "saiz"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "configMAX_TASK_NAME_LEN",
+      "kind": "macro",
+      "name_zh": "任务名存储长度",
+      "description_zh": "配置为 16，包含字符串结尾所需空间。",
+      "declaration": "#define configMAX_TASK_NAME_LEN 16",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 13
+      },
+      "uncertainty": "",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "config",
+            "reading": "word",
+            "source": "AI-initial:2026-11-09",
+            "status": "resolved",
+            "review_status": "unreviewed",
+            "phonetic": "ˈkɒnfɪɡ"
+          },
+          {
+            "text": "MAX",
+            "reading": "word",
+            "source": "external-ai:Codex-2026-11-09",
+            "status": "resolved",
+            "review_status": "unreviewed",
+            "phonetic": "mæks"
+          },
+          {
+            "text": "TASK",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "tɑ:sk"
+          },
+          {
+            "text": "NAME",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "neim"
+          },
+          {
+            "text": "LEN",
+            "reading": "letters",
+            "source": "AI-initial:2026-11-09",
+            "status": "resolved",
+            "review_status": "unreviewed",
+            "phonetic": "el iː en"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "configUSE_PREEMPTION",
+      "kind": "macro",
+      "name_zh": "抢占调度开关",
+      "description_zh": "配置为 1，启用抢占式任务调度。",
+      "declaration": "#define configUSE_PREEMPTION 1",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 15
+      },
+      "uncertainty": "",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "config",
+            "reading": "word",
+            "source": "AI-initial:2026-11-09",
+            "status": "resolved",
+            "review_status": "unreviewed",
+            "phonetic": "ˈkɒnfɪɡ"
+          },
+          {
+            "text": "USE",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "ju:s"
+          },
+          {
+            "text": "PREEMPTION",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "pri:'empʃәn"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "configUSE_TIME_SLICING",
+      "kind": "macro",
+      "name_zh": "同优先级时间片开关",
+      "description_zh": "未由外部预定义时默认为 1；05 工程配置中未覆盖此默认值。",
+      "declaration": "#define configUSE_TIME_SLICING 1",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 17
+      },
+      "uncertainty": "",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "config",
+            "reading": "word",
+            "source": "AI-initial:2026-11-09",
+            "status": "resolved",
+            "review_status": "unreviewed",
+            "phonetic": "ˈkɒnfɪɡ"
+          },
+          {
+            "text": "USE",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "ju:s"
+          },
+          {
+            "text": "TIME",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "taim"
+          },
+          {
+            "text": "SLICING",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "'slaisiŋ"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "configSUPPORT_DYNAMIC_ALLOCATION",
+      "kind": "macro",
+      "name_zh": "动态分配开关",
+      "description_zh": "配置为 1，允许使用动态分配 API 创建任务等对象。",
+      "declaration": "#define configSUPPORT_DYNAMIC_ALLOCATION 1",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 20
+      },
+      "uncertainty": "",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "config",
+            "reading": "word",
+            "source": "AI-initial:2026-11-09",
+            "status": "resolved",
+            "review_status": "unreviewed",
+            "phonetic": "ˈkɒnfɪɡ"
+          },
+          {
+            "text": "SUPPORT",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "sә'pɒ:t"
+          },
+          {
+            "text": "DYNAMIC",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "dai'næmik"
+          },
+          {
+            "text": "ALLOCATION",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": ".ælәu'keiʃәn"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "configSUPPORT_STATIC_ALLOCATION",
+      "kind": "macro",
+      "name_zh": "静态分配开关",
+      "description_zh": "未由外部预定义时默认为 0；05 工程未覆盖，因此静态任务内存钩子分支不启用。",
+      "declaration": "#define configSUPPORT_STATIC_ALLOCATION 0",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 22
+      },
+      "uncertainty": "",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "config",
+            "reading": "word",
+            "source": "AI-initial:2026-11-09",
+            "status": "resolved",
+            "review_status": "unreviewed",
+            "phonetic": "ˈkɒnfɪɡ"
+          },
+          {
+            "text": "SUPPORT",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "sә'pɒ:t"
+          },
+          {
+            "text": "STATIC",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "'stætik"
+          },
+          {
+            "text": "ALLOCATION",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": ".ælәu'keiʃәn"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "configCHECK_FOR_STACK_OVERFLOW",
+      "kind": "macro",
+      "name_zh": "栈溢出检查模式",
+      "description_zh": "配置为 2，启用对应的 RTOS 栈溢出检查方式。",
+      "declaration": "#define configCHECK_FOR_STACK_OVERFLOW 2",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 28
+      },
+      "uncertainty": "",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "config",
+            "reading": "word",
+            "source": "AI-initial:2026-11-09",
+            "status": "resolved",
+            "review_status": "unreviewed",
+            "phonetic": "ˈkɒnfɪɡ"
+          },
+          {
+            "text": "CHECK",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "tʃek"
+          },
+          {
+            "text": "FOR",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "fɒ:"
+          },
+          {
+            "text": "STACK",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "stæk"
+          },
+          {
+            "text": "OVERFLOW",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": ".әuvә'flәu"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "configUSE_MALLOC_FAILED_HOOK",
+      "kind": "macro",
+      "name_zh": "堆分配失败钩子开关",
+      "description_zh": "配置为 1，使用 vApplicationMallocFailedHook 处理 RTOS 堆分配失败。",
+      "declaration": "#define configUSE_MALLOC_FAILED_HOOK 1",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 29
+      },
+      "uncertainty": "",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "config",
+            "reading": "word",
+            "source": "AI-initial:2026-11-09",
+            "status": "resolved",
+            "review_status": "unreviewed",
+            "phonetic": "ˈkɒnfɪɡ"
+          },
+          {
+            "text": "USE",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "ju:s"
+          },
+          {
+            "text": "MALLOC",
+            "reading": "unknown",
+            "source": "AI-initial:2026-11-09",
+            "status": "pending",
+            "review_status": "unreviewed"
+          },
+          {
+            "text": "FAILED",
+            "reading": "word",
+            "source": "external-ai:Codex-2026-11-09",
+            "status": "resolved",
+            "review_status": "unreviewed",
+            "phonetic": "feɪld"
+          },
+          {
+            "text": "HOOK",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "huk"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "configUSE_TIMERS",
+      "kind": "macro",
+      "name_zh": "软件定时器开关",
+      "description_zh": "未由外部预定义时默认为 0；05 工程未覆盖，定时器任务内存钩子分支不启用。",
+      "declaration": "#define configUSE_TIMERS 0",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 43
+      },
+      "uncertainty": "",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "config",
+            "reading": "word",
+            "source": "AI-initial:2026-11-09",
+            "status": "resolved",
+            "review_status": "unreviewed",
+            "phonetic": "ˈkɒnfɪɡ"
+          },
+          {
+            "text": "USE",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "ju:s"
+          },
+          {
+            "text": "TIMERS",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "ˈtaɪməz"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "configGENERATE_RUN_TIME_STATS",
+      "kind": "macro",
+      "name_zh": "运行时间统计开关",
+      "description_zh": "未由外部预定义时默认为 0，05 工程未启用运行时间统计。",
+      "declaration": "#define configGENERATE_RUN_TIME_STATS 0",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 52
+      },
+      "uncertainty": "",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "config",
+            "reading": "word",
+            "source": "AI-initial:2026-11-09",
+            "status": "resolved",
+            "review_status": "unreviewed",
+            "phonetic": "ˈkɒnfɪɡ"
+          },
+          {
+            "text": "GENERATE",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "'dʒenәreit"
+          },
+          {
+            "text": "RUN",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "rʌn"
+          },
+          {
+            "text": "TIME",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "taim"
+          },
+          {
+            "text": "STATS",
+            "reading": "word",
+            "source": "AI-initial:2026-11-09",
+            "status": "resolved",
+            "review_status": "unreviewed",
+            "phonetic": "stæts"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY",
+      "kind": "macro",
+      "name_zh": "可调用 RTOS API 的中断优先级边界",
+      "description_zh": "配置库级优先级数值为 5；使用允许在中断中调用的 API 时还须遵循对应 FreeRTOS 端口规则。",
+      "declaration": "#define configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY 5",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 69
+      },
+      "uncertainty": "",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "config",
+            "reading": "word",
+            "source": "AI-initial:2026-11-09",
+            "status": "resolved",
+            "review_status": "unreviewed",
+            "phonetic": "ˈkɒnfɪɡ"
+          },
+          {
+            "text": "LIBRARY",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "'laibrәri"
+          },
+          {
+            "text": "MAX",
+            "reading": "word",
+            "source": "external-ai:Codex-2026-11-09",
+            "status": "resolved",
+            "review_status": "unreviewed",
+            "phonetic": "mæks"
+          },
+          {
+            "text": "SYSCALL",
+            "reading": "unknown",
+            "source": "AI-initial:2026-11-09",
+            "status": "pending",
+            "review_status": "unreviewed"
+          },
+          {
+            "text": "INTERRUPT",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": ".intә'rʌpt"
+          },
+          {
+            "text": "PRIORITY",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "prai'ɒriti"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "configASSERT",
+      "kind": "macro",
+      "name_zh": "RTOS 断言宏",
+      "description_zh": "条件为假时将 __FILE__ 和 __LINE__ 交给 course_assert_fail。",
+      "declaration": "#define configASSERT(x) do { if (!(x)) course_assert_fail(__FILE__, __LINE__); } while (0)",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/include/course_rtos_config.h",
+      "source": {
+        "file": "common/include/course_rtos_config.h",
+        "line": 72
+      },
+      "uncertainty": "",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "config",
+            "reading": "word",
+            "source": "AI-initial:2026-11-09",
+            "status": "resolved",
+            "review_status": "unreviewed",
+            "phonetic": "ˈkɒnfɪɡ"
+          },
+          {
+            "text": "ASSERT",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "ә'sә:t"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "keys",
+      "kind": "variable",
+      "name_zh": "候选按键引脚表",
+      "description_zh": "保存八组候选 GPIO、引脚与外部中断映射；源码明确声明这不是已核实的板级原理图。",
+      "declaration": "static const key_pin_type keys[8] = {\n    {GPIOB, GPIO_PINS_13, SCFG_PORT_SOURCE_GPIOB, SCFG_PINS_SOURCE13, EXINT15_10_IRQn},\n    {GPIOB, GPIO_PINS_14, SCFG_PORT_SOURCE_GPIOB, SCFG_PINS_SOURCE14, EXINT15_10_IRQn},\n    {GPIOB, GPIO_PINS_15, SCFG_PORT_SOURCE_GPIOB, SCFG_PINS_SOURCE15, EXINT15_10_IRQn},\n    {GPIOE, GPIO_PINS_1, SCFG_PORT_SOURCE_GPIOE, SCFG_PINS_SOURCE1, EXINT1_IRQn},\n    {GPIOD, GPIO_PINS_2, SCFG_PORT_SOURCE_GPIOD, SCFG_PINS_SOURCE2, EXINT2_IRQn},\n    {GPIOD, GPIO_PINS_12, SCFG_PORT_SOURCE_GPIOD, SCFG_PINS_SOURCE12, EXINT15_10_IRQn},\n    {GPIOB, GPIO_PINS_2, SCFG_PORT_SOURCE_GPIOB, SCFG_PINS_SOURCE2, EXINT2_IRQn},\n    {GPIOE, GPIO_PINS_4, SCFG_PORT_SOURCE_GPIOE, SCFG_PINS_SOURCE4, EXINT4_IRQn}\n};",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 14
+      },
+      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "keys",
+            "reading": "word",
+            "source": "external-ai:Codex-2026-11-09",
+            "status": "resolved",
+            "review_status": "unreviewed",
+            "phonetic": "kiːz"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "key_pin_type",
+      "kind": "typedef",
+      "name_zh": "候选按键引脚类型",
+      "description_zh": "保存端口、引脚、外部中断映射和中断号。",
+      "declaration": "typedef struct {\n    gpio_type *port;\n    uint16_t pin;\n    scfg_port_source_type source;\n    scfg_pins_source_type line;\n    IRQn_Type irq;\n} key_pin_type;",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/platform/course_board.c",
+      "source": {
+        "file": "common/platform/course_board.c",
+        "line": 6
+      },
+      "uncertainty": "仅核对代码行为；候选按键接线及极性尚未通过物理板卡确认，COURSE_KEY_INDEX 当前为 0。",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "key",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "ki:"
+          },
+          {
+            "text": "pin",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "pin"
+          },
+          {
+            "text": "type",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "taip"
+          }
+        ]
+      }
+    },
+    {
+      "symbol": "course_fault_type",
+      "kind": "typedef",
+      "name_zh": "课程故障记录类型",
+      "description_zh": "包含故障原因、文件名和行号，不包含寄存器现场。",
+      "declaration": "typedef struct {\n    const char *reason;\n    const char *file;\n    unsigned int line;\n} course_fault_type;",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "common/include/course_hooks.h",
+      "source": {
+        "file": "common/include/course_hooks.h",
+        "line": 3
+      },
+      "uncertainty": "",
+      "pronunciation": {
+        "segments": [
+          {
+            "text": "course",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "kɒ:s"
+          },
+          {
+            "text": "fault",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "fɒ:lt"
+          },
+          {
+            "text": "type",
+            "reading": "word",
+            "source": "ECDICT:d1ecbdf9ee2b",
+            "status": "resolved",
+            "phonetic": "taip"
+          }
+        ]
+      }
+    }
+  ],
+  "pronunciation_metadata": {
+    "format_version": 1,
+    "original_sha256": "7b3c5270482ed0bd5e8a883f0344475066e08153dc08766ffd56944d71c6b677",
+    "ecdict_sha256": "d1ecbdf9ee2b920afb6f430ca6b6bb9f559588cf0dff86e04bd255f9390843cc",
+    "libraries": [
+      {
+        "file": "technical-terms.json",
+        "sha256": "2299c26d56eeebb1e952d6713da91b56bd03cde5d7a000238e6020a007afa394"
+      },
+      {
+        "file": "05_createtask-supplement.json",
+        "sha256": "e802c2edb3aa23d962978dc0c367d53b5f965e271e748b25dc8aaeeb5e980fe1"
+      }
+    ]
+  }
+}
