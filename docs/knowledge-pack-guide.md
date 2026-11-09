@@ -18,3 +18,8 @@ python validator/validate.py --pack knowledge-packs/05_createtask-pack.json --sr
 05 的[候选清单](../knowledge-packs/reviews/05_createtask-review.md)及同目录 JSON 保存 AI 决定、来源、排除原因、人工状态、提交号和文件哈希。`source_version` 是制作时真实提交号，哈希描述实际文件快照，不将提交号当作工作区无修改的证明。
 
 更新时重新提取受影响文件，AI 对照旧词条修改，把相关人工状态恢复为待复核，再校验和加载。翻译源 ID 保持稳定；宿主已缓存文本可能继续返回旧内容，不能宣称所有历史查询已经更新。
+
+
+## 0.4.0 音标补充衔接
+
+中文知识包冻结并通过校验后，由外部 AI 调用 `phonetics/tool.py enrich` 补音标，再处理导出的缺失／待确认清单。使用独立补充文件回填，保留原始包和已有中文，不把符号提取器作为 AI 制包的必要前置步骤。具体命令、技术库格式及数据来源规则见[第一期指南](phase-one-guide.md)。

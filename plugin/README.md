@@ -1,50 +1,38 @@
-# 呆瓜翻译器 MTranCode 插件
+# 呆瓜翻译器 0.4.0
 
-0.3.0 增加直接本地悬停、快捷设置、Bing 开关和加载诊断。优先查本地 MCU 包，未命中且允许回退时调用 `bing-translate-api`。不需要 AI 或账号配置。
+独立的 MCU C/C++ 代码知识查询与文本翻译插件，无需 MTranCode。运行时不调用 AI，不需要模型密钥。
 
-## 使用
+## 快速使用
 
-1. 安装新版 VSIX 后重新加载 VS Code 窗口。
-2. 运行“呆瓜翻译器：选择知识包文件”，选择 `pack-revised.json` 等知识包，可多选。先校验，全部有效后替换路径列表；打开工程时保存到当前工作区，否则保存到用户设置。
-3. 状态栏显示“呆瓜 122条 · Bing 开”等状态，点击进入快捷设置。运行“查看加载诊断”可查看包名、版本、实际生效路径、用户／工作区设置和失败原因。
-4. 在 C/C++ 文件的符号上悬停，查看带“呆瓜 · 本地知识包”标题的说明。这个入口只查本地，不经过 MTranCode，也不调用 Bing。
-5. 编辑器右键选择“呆瓜翻译器：本地查询”，或在命令面板运行同名命令，输入 `interval`、`worker()`、`arg` 检查命中。它不经过宿主翻译缓存。
+1. 从 VSIX 安装后重新加载窗口。
+2. 运行“呆瓜翻译器：选择知识包文件”，选择普通或带音标的增强 JSON。
+3. C/C++ 名称悬停显示中文用途与可用音标；同名结果保留候选。
+4. 右键“翻译选区或当前名称”，或命令面板“输入文本翻译”。有编辑器时结果显示在悬停浮窗，无编辑器时使用输出窗口，不替换原文。单次最多 1000 字符。
+5. 点击状态栏打开快捷设置，选择悬停模式、联网开关或 ECDICT 索引目录。
 
-需要 MTranCode 的普通文本翻译时，在快捷设置中将其翻译源设为呆瓜。符号匹配区分大小写，支持尾部空括号；同名候选全部显示，不根据当前文件自动猜选。只有参数自身已有中文说明时，才从函数 `parameters` 建立额外查询索引，显示所属函数；知识包文件和词条计数保持原样。
+本地知识包始终优先；普通名称释义带来源和“用途未核对”，不冒充项目功能说明。
 
 ## 设置
 
-在 VS Code 设置中搜索 `@ext:elio-zwd.daigua-translator`：
-
-| 设置 | 默认值 | 用途 |
+| 配置 | 默认值 | 说明 |
 | --- | --- | --- |
-| `daiguaTranslate.packPaths` | `[]` | 知识包 JSON 绝对路径；推荐用文件选择命令设置 |
-| `daiguaTranslate.bingEnabled` | `true` | 未命中时是否使用 Bing；关闭后不发起新的联网请求 |
-| `daiguaTranslate.bingTimeoutMs` | `5000` | 等待单次 Bing 结果的上限，100～30000 毫秒 |
-| `daiguaTranslate.autoReload` | `true` | 文件保存后自动重载，连续事件合并等待 250 毫秒 |
-| `daiguaTranslate.includeParameters` | `true` | 将函数参数说明加入本地索引 |
-| `daiguaTranslate.localHover` | `true` | C/C++ 独立本地悬停说明 |
-| `daiguaTranslate.showStatusBar` | `true` | 显示词条数量、Bing 状态和加载失败标志 |
+| `daiguaTranslate.packPaths` | `[]` | 知识包绝对路径；可用选择文件命令配置 |
+| `daiguaTranslate.localHover` | `true` | C/C++ 自动悬停总开关；主动命令不受影响 |
+| `daiguaTranslate.hoverFallback` | `online` | 未收录名称：`online` 自动联网、`ecdict` 离线词典、`off` 关闭自动释义 |
+| `daiguaTranslate.bingEnabled` | `true` | 所有入口联网总开关；关闭不发起新请求 |
+| `daiguaTranslate.bingTimeoutMs` | `5000` | 等待上限 100–30000 ms；底层已发请求不能撤回 |
+| `daiguaTranslate.dictionaryPath` | `""` | 含 manifest.json 的 ECDICT 索引目录，不能填 CSV |
+| `daiguaTranslate.technicalLibraryPaths` | `[]` | 额外技术库或项目补充 JSON 的绝对路径，后者优先 |
+| `daiguaTranslate.includeParameters` | `true` | 将有中文说明的函数参数加入查询索引 |
+| `daiguaTranslate.autoReload` | `true` | 包保存后自动重载，坏包保留上次有效内容 |
+| `daiguaTranslate.showStatusBar` | `true` | 显示数量和 Bing 状态 |
 
-建议只读 MCU 符号说明时关闭 Bing，避免未收录名称被当成普通单词翻译。错误和未命中以失败返回 MTranCode，不作为成功译文缓存。
+三档模式只控制自动悬停；右键和输入命令仍可使用 Bing，受联网总开关约束。Bing 失败或超时后名称改查离线词典；联网关闭时直接查离线词典。普通句子关闭联网后无法翻译，会明确提示。
 
-查询使用符号索引，知识包快照或参数设置变化时重建；相同文本和语言的并发 Bing 请求合并，最多保留 16 个未完成请求，不在本插件保存完成的在线译文。
+其他翻译插件可能显示自己的浮窗，可自行停用其重复悬停；本插件不会改动其他插件设置。旧知识包继续可用，没有音标或音标局部损坏不影响中文解释，错误见加载诊断。
 
-## 重载与限制
+## ECDICT 与音标工具
 
-“呆瓜翻译器：重新加载知识包”及路径配置变更会刷新活动实例。坏包整体拒绝，重载失败保留该路径旧包，移除路径立即移除。提示区分成功包数、保留旧包数和有效词条数，详情见同名输出通道。
+运行时不加载完整 CSV、不需要 Python。完整词典不随 VSIX 提供，先在源码仓库用 Python 3.10+ 运行 `phonetics/tool.py index`，再选择生成的索引目录。音标增强用 `phonetics/tool.py enrich`，生成独立增强包及外部 AI 补充清单。
 
-宿主持久化缓存可能先于翻译源返回旧译文；重载不等于清除缓存，切换源或重启也不保证清除。独立本地悬停和“本地查询”绕过该缓存。本插件不修改宿主或其缓存数据库。其他词典／翻译插件的悬停内容可能同时显示，以“呆瓜 · 本地知识包”标题区分。
-
-Bing 超时只限制本插件每次等待，不取消底层库已经发起的请求；关闭开关也不取消在途请求。MTranCode 可能再次调用或重试，所以不保证宿主整体等待恰好等于该上限。只有本地入口保证不调用 Bing。
-
-开发需要 PowerShell 7、Node.js 22+：
-
-```powershell
-npm ci
-npm test
-# 先验证测试与离线示例，再打包到 daigua-translator.vsix
-npm run package
-```
-
-[0.3.0 验证与安装步骤](../docs/acceptance-2026-11-05.md)。当前候选版本待用户手动验收，不发布 Marketplace。
+完整命令、技术库格式及回填示例见[第一期使用指南](../docs/phase-one-guide.md)；[验证与人工验收](../docs/acceptance-2026-11-09.md)记录自动检查与待验收内容。技术库初稿和 AI 补充不代表读法已获人工复核。

@@ -2,56 +2,44 @@
 
 ![呆瓜翻译器 MCU 代码翻译形象](docs/assets/daigua-mcu-illustration.png)
 
-面向 MCU C/C++ 的本地知识包插件，提供直接符号悬停和 MTranCode 翻译源。未命中且开启回退时使用 `bing-translate-api` 请求 Bing。运行时不调用 AI，不需要模型地址或 API Key。
-
-当前为首版候选实现，自动验证已具备。真实 VS Code/MTranCode、实际断网和硬件行为由用户手动验收，知识包中文仍待人工复核。已查询文本可能受宿主持久化缓存影响，详见[验收步骤与记录](docs/mtrancode-integration.md)。
+面向 MCU C/C++ 的独立 VS Code 插件，帮助理解英文函数、变量和参数。0.4.0 提供本地知识包悬停、选区与普通文本翻译、离线词典及音标展示。无需 MTranCode，运行时不调用 AI，不需要 API Key。
 
 ## 安装与使用
 
-1. 在 VS Code 选择“从 VSIX 安装”安装本插件，更新后重新加载窗口。使用普通文本翻译时另需 MTranCode。
-2. 运行“呆瓜翻译器：选择知识包文件”选择 JSON，状态栏显示已加载词条数量。
-3. 在 C/C++ 符号上悬停，查看“呆瓜 · 本地知识包”说明；也可通过编辑器右键的“本地查询”直接检查词条。两个入口不经过 MTranCode 缓存。
-4. 点击状态栏打开快捷设置，可开关 Bing、检查加载诊断，或将 MTranCode 翻译源设为呆瓜。
+1. 从 VSIX 安装 `plugin/daigua-translator.vsix`，重新加载窗口。
+2. 运行“呆瓜翻译器：选择知识包文件”，选择旧包或 `knowledge-packs/enhanced/05_createtask-pack.phonetic.json` 增强样本。
+3. 在 C/C++ 名称上悬停，查看中文说明、来源与音标；右键可“翻译选区或当前名称”，命令面板可“输入文本翻译”。
+4. 点击状态栏打开快捷设置，可选择自动联网／ECDICT 词典／关闭未收录名称释义，或关闭联网总开关。
+5. 离线词典索引配置为 `M:\005869\My_Elio\ECDICT\daigua-index`（本机已生成）；其他电脑按指南从自己的 CSV 生成。
 
-0.3.0 的 [完整设置说明](plugin/README.md)及[安装和验证步骤](docs/acceptance-2026-11-05.md)。默认启用保存后自动重载及函数参数查询，不修改原知识包。只读本地代码说明时可关闭 Bing，未命中立即结束。
+本地知识包优先；未收录名称的普通释义明确标注“用途未核对”。联网失败或关闭联网后，名称可以查离线词典；普通句子需要联网。旧包无须迁移，缺少音标不影响中文查询。
 
-“呆瓜翻译器：重新加载知识包”更新活动翻译器，路径配置变化也会重载。坏包整体拒绝；重载失败保留该路径上一次有效内容，移除路径立即移除该包。提示显示成功包数、有效词条数和失败路径，详细原因见“呆瓜翻译器”输出通道。
+完整操作、设置、命令及 AI 音标补充流程见[第一期使用指南](docs/phase-one-guide.md)。[0.4.0 验证与人工验收](docs/acceptance-2026-11-09.md)区分自动检查、真实宿主检查和人工待验收项目。
 
-## 开发与验证（Win10 x64）
+## 开发与验证（Windows 10 x64）
 
-需要 PowerShell 7、Node.js 22+ 和 Python 3.10+。在仓库根目录执行：
-
-```powershell
-npm --prefix plugin ci
-pwsh -NoProfile -File scripts/verify.ps1
-# 可选：联网示例与本机真实工程快照核对
-pwsh -NoProfile -File scripts/verify.ps1 -Online -SourceRoot 'D:\FreeRtos\projects\freertos-learning'
-```
-
-验证通过后再打包：
+需要 PowerShell 7、Node.js 22+、Python 3.10+。在仓库根目录执行：
 
 ```powershell
-npm --prefix plugin run package
+npm.cmd --prefix plugin ci
+pwsh.exe -NoProfile -File scripts/verify.ps1
+# 可选：在隔离配置中验证本机真实 VS Code 扩展宿主
+pwsh.exe -NoProfile -File scripts/test-vscode.ps1
+npm.cmd --prefix plugin run package
+python -X utf8 scripts/check-vsix.py plugin/daigua-translator.vsix
 ```
 
-产物为 `plugin/daigua-translator.vsix`。打包命令先执行插件测试和离线示例，再运行固定版本的 vsce；完整 Python 检查请先执行验证脚本。脚本不操作电脑界面、不安装插件、不发布 Marketplace。
+可选 `verify.ps1 -Online` 只发送一个普通英文句子测试 Bing。测试与打包不会自动安装插件或发布 Marketplace。
 
-## 制作知识包
+## 知识包与音标
 
-```powershell
-python extractor/extract.py --proj 'D:\FreeRtos\projects\freertos-learning\05_createtask\mdk_v5\course.uvprojx' --root 'D:\FreeRtos\projects\freertos-learning' --include-locals --out extractor/out/05_createtask
-# AI 根据草稿和源码筛选、编写，再由人工复核
-python validator/validate.py --pack knowledge-packs/05_createtask-pack.json --src 'D:\FreeRtos\projects\freertos-learning'
-```
+优先让外部 AI [直接阅读源码制包](docs/ai-direct-read-plan.md)，再调用 `phonetics/tool.py enrich` 补音标。ECDICT 索引只需用 `phonetics/tool.py index` 生成一次。未找到的词及不确定读法导出清单，由外部 AI 回填，仍不确定的保留缺失。始终保留原始 JSON，不改已有中文说明。
 
-05 工程包包含 75 条 AI 初筛词条，覆盖任务、共享板级代码、关键配置及部分局部状态。[149 项候选清单](knowledge-packs/reviews/05_createtask-review.md)记录收录、排除原因、来源和人工状态。按键接线未核实，相关条目保留待确认说明。
+常见 MCU 缩写、单位和读法存入 `plugin/resources/technical-terms.json`；可用额外文件补充，便于持续完善。初始技术库和示例 AI 回填仍待人工复核。ECDICT 子集样本附带许可证。
 
-提取器是启发式扫描器，不能完整解析 C/C++。复杂语法和条件编译须回看源码，`uncertain.json` 不能保证列出全部遗漏。结构校验不证明中文语义正确。
+- [制包与复核说明](docs/knowledge-pack-guide.md)
+- [提取器（可选辅助工具）](extractor/README.md)
+- [校验器](validator/README.md)
+- [项目目的与发展规划](docs/project-purpose-and-roadmap.md)
 
-- [提取器说明](extractor/README.md)
-- [校验器说明](validator/README.md)
-- [AI 制包与人工筛选](docs/knowledge-pack-guide.md)
-- [手工验收与缓存限制](docs/mtrancode-integration.md)
-- [方案规格](docs/spec-v0.2.md)
-
-目录：`plugin/` 插件，`extractor/` 提取器，`validator/` 校验器，`knowledge-packs/` 知识包和复核记录，`examples/mcu-demo/` 可复现示例，`tests/` 和 `scripts/` 自动验证。
+旧版 MTranCode 集成归档在 `archive/mtrancode-v0.3`，基线 `f8910af`。历史文档保留用于查阅，主线不再提供该集成。后续上下文消歧、源码定位和知识包管理不属于本期交付。
