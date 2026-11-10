@@ -1,0 +1,400 @@
+{
+  "format_version": 1,
+  "original_sha256": "0426fa3d15861e53c3a6aa3ee4b37150a240cb1990bdf2fc15dfb81a731ff874",
+  "entries": [
+    {
+      "token": "H",
+      "match": "exact",
+      "translation": "",
+      "reading": "unknown",
+      "source": "external-ai:待填写",
+      "review_status": "unreviewed",
+      "reason": "疑似缩写或型号",
+      "occurrences": [
+        {
+          "symbol": "DFU_H",
+          "scope": "dfu.h",
+          "source": {
+            "file": "dfu.h",
+            "line": 13
+          }
+        }
+      ]
+    },
+    {
+      "token": "MAX",
+      "match": "exact",
+      "translation": "",
+      "reading": "unknown",
+      "source": "external-ai:待填写",
+      "review_status": "unreviewed",
+      "reason": "疑似缩写或型号",
+      "occurrences": [
+        {
+          "symbol": "DFU_MAX_FILE_SIZE",
+          "scope": "dfu.h",
+          "source": {
+            "file": "dfu.h",
+            "line": 20
+          }
+        },
+        {
+          "symbol": "DFU_MAX_SLICE_SIZE",
+          "scope": "dfu.h",
+          "source": {
+            "file": "dfu.h",
+            "line": 21
+          }
+        },
+        {
+          "symbol": "DFU_MAX_FRAME_SIZE",
+          "scope": "dfu.h",
+          "source": {
+            "file": "dfu.h",
+            "line": 22
+          }
+        },
+        {
+          "symbol": "DFU_MAX_BITMAP_SIZE",
+          "scope": "dfu.c",
+          "source": {
+            "file": "dfu.c",
+            "line": 22
+          }
+        }
+      ]
+    },
+    {
+      "token": "META",
+      "match": "exact",
+      "translation": "",
+      "reading": "unknown",
+      "source": "external-ai:待填写",
+      "review_status": "unreviewed",
+      "reason": "词典无音标或存在多种读法",
+      "occurrences": [
+        {
+          "symbol": "DFU_META_ADDRESS",
+          "scope": "dfu.h",
+          "source": {
+            "file": "dfu.h",
+            "line": 23
+          }
+        }
+      ]
+    },
+    {
+      "token": "t",
+      "match": "exact",
+      "translation": "",
+      "reading": "unknown",
+      "source": "external-ai:待填写",
+      "review_status": "unreviewed",
+      "reason": "疑似缩写或型号",
+      "occurrences": [
+        {
+          "symbol": "dfu_route_t",
+          "scope": "dfu.h",
+          "source": {
+            "file": "dfu.h",
+            "line": 31
+          }
+        },
+        {
+          "symbol": "dfu_state_t",
+          "scope": "dfu.h",
+          "source": {
+            "file": "dfu.h",
+            "line": 43
+          }
+        },
+        {
+          "symbol": "dfu_result_t",
+          "scope": "dfu.h",
+          "source": {
+            "file": "dfu.h",
+            "line": 61
+          }
+        },
+        {
+          "symbol": "dfu_port_t",
+          "scope": "dfu.h",
+          "source": {
+            "file": "dfu.h",
+            "line": 109
+          }
+        },
+        {
+          "symbol": "dfu_frame_t",
+          "scope": "dfu.c",
+          "source": {
+            "file": "dfu.c",
+            "line": 36
+          }
+        },
+        {
+          "symbol": "dfu_context_t",
+          "scope": "dfu.c",
+          "source": {
+            "file": "dfu.c",
+            "line": 55
+          }
+        }
+      ]
+    },
+    {
+      "token": "VERIFYING",
+      "match": "exact",
+      "translation": "",
+      "reading": "unknown",
+      "source": "external-ai:待填写",
+      "review_status": "unreviewed",
+      "reason": "词典无音标或存在多种读法",
+      "occurrences": [
+        {
+          "symbol": "DFU_STATE_VERIFYING",
+          "scope": "dfu.h",
+          "source": {
+            "file": "dfu.h",
+            "line": 39
+          }
+        }
+      ]
+    },
+    {
+      "token": "CMD",
+      "match": "exact",
+      "translation": "",
+      "reading": "unknown",
+      "source": "external-ai:待填写",
+      "review_status": "unreviewed",
+      "reason": "词典无音标或存在多种读法",
+      "occurrences": [
+        {
+          "symbol": "DFU_CMD_START",
+          "scope": "dfu.c",
+          "source": {
+            "file": "dfu.c",
+            "line": 24
+          }
+        },
+        {
+          "symbol": "DFU_CMD_DATA",
+          "scope": "dfu.c",
+          "source": {
+            "file": "dfu.c",
+            "line": 25
+          }
+        },
+        {
+          "symbol": "DFU_CMD_COMPLETE",
+          "scope": "dfu.c",
+          "source": {
+            "file": "dfu.c",
+            "line": 26
+          }
+        },
+        {
+          "symbol": "DFU_CMD_ABORT",
+          "scope": "dfu.c",
+          "source": {
+            "file": "dfu.c",
+            "line": 27
+          }
+        }
+      ]
+    },
+    {
+      "token": "initialized",
+      "match": "exact",
+      "translation": "",
+      "reading": "unknown",
+      "source": "external-ai:待填写",
+      "review_status": "unreviewed",
+      "reason": "词典无音标或存在多种读法",
+      "occurrences": [
+        {
+          "symbol": "initialized",
+          "scope": "dfu.c::dfu_context_t",
+          "source": {
+            "file": "dfu.c",
+            "line": 43
+          }
+        }
+      ]
+    },
+    {
+      "token": "s",
+      "match": "exact",
+      "translation": "",
+      "reading": "unknown",
+      "source": "external-ai:待填写",
+      "review_status": "unreviewed",
+      "reason": "疑似缩写或型号",
+      "occurrences": [
+        {
+          "symbol": "s_dfu",
+          "scope": "dfu.c",
+          "source": {
+            "file": "dfu.c",
+            "line": 59
+          }
+        }
+      ]
+    },
+    {
+      "token": "u",
+      "match": "exact",
+      "translation": "",
+      "reading": "unknown",
+      "source": "external-ai:待填写",
+      "review_status": "unreviewed",
+      "reason": "疑似缩写或型号",
+      "occurrences": [
+        {
+          "symbol": "read_u16_le",
+          "scope": "dfu.c",
+          "source": {
+            "file": "dfu.c",
+            "line": 63
+          }
+        },
+        {
+          "symbol": "read_u32_le",
+          "scope": "dfu.c",
+          "source": {
+            "file": "dfu.c",
+            "line": 69
+          }
+        },
+        {
+          "symbol": "write_u16_le",
+          "scope": "dfu.c",
+          "source": {
+            "file": "dfu.c",
+            "line": 78
+          }
+        }
+      ]
+    },
+    {
+      "token": "le",
+      "match": "exact",
+      "translation": "",
+      "reading": "unknown",
+      "source": "external-ai:待填写",
+      "review_status": "unreviewed",
+      "reason": "疑似缩写或型号",
+      "occurrences": [
+        {
+          "symbol": "read_u16_le",
+          "scope": "dfu.c",
+          "source": {
+            "file": "dfu.c",
+            "line": 63
+          }
+        },
+        {
+          "symbol": "read_u32_le",
+          "scope": "dfu.c",
+          "source": {
+            "file": "dfu.c",
+            "line": 69
+          }
+        },
+        {
+          "symbol": "write_u16_le",
+          "scope": "dfu.c",
+          "source": {
+            "file": "dfu.c",
+            "line": 78
+          }
+        }
+      ]
+    },
+    {
+      "token": "crc32_update",
+      "match": "identifier",
+      "translation": "",
+      "reading": "unknown",
+      "source": "external-ai:待填写",
+      "review_status": "unreviewed",
+      "reason": "技术库读法仍待确认",
+      "occurrences": [
+        {
+          "symbol": "crc32_update",
+          "scope": "dfu.c",
+          "source": {
+            "file": "dfu.c",
+            "line": 95
+          }
+        }
+      ]
+    },
+    {
+      "token": "parse_frame",
+      "match": "identifier",
+      "translation": "",
+      "reading": "unknown",
+      "source": "external-ai:待填写",
+      "review_status": "unreviewed",
+      "reason": "技术库读法仍待确认",
+      "occurrences": [
+        {
+          "symbol": "parse_frame",
+          "scope": "dfu.c",
+          "source": {
+            "file": "dfu.c",
+            "line": 127
+          }
+        }
+      ]
+    },
+    {
+      "token": "remaining",
+      "match": "exact",
+      "translation": "",
+      "reading": "unknown",
+      "source": "external-ai:待填写",
+      "review_status": "unreviewed",
+      "reason": "词典无音标或存在多种读法",
+      "occurrences": [
+        {
+          "symbol": "remaining",
+          "scope": "dfu.c::get_block_length:L173:C14",
+          "source": {
+            "file": "dfu.c",
+            "line": 173
+          }
+        },
+        {
+          "symbol": "remaining",
+          "scope": "dfu.c::Dfu_Process:L480:C14",
+          "source": {
+            "file": "dfu.c",
+            "line": 480
+          }
+        }
+      ]
+    },
+    {
+      "token": "expected",
+      "match": "exact",
+      "translation": "",
+      "reading": "unknown",
+      "source": "external-ai:待填写",
+      "review_status": "unreviewed",
+      "reason": "词典无音标或存在多种读法",
+      "occurrences": [
+        {
+          "symbol": "expected_length",
+          "scope": "dfu.c::handle_data:L282:C14",
+          "source": {
+            "file": "dfu.c",
+            "line": 282
+          }
+        }
+      ]
+    }
+  ]
+}

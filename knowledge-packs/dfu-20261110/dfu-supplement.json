@@ -1,0 +1,114 @@
+{
+  "format_version": 1,
+  "description": "DFU 固件升级模块音标回填补充库；AI 根据工程上下文提供，标记为 unreviewed",
+  "entries": [
+    {
+      "token": "H",
+      "match": "exact",
+      "translation": "头文件（Header）命名缩写；逐字母读",
+      "reading": "letters",
+      "phonetic": "eɪtʃ",
+      "source": "external-ai:C语言头文件命名约定；依据见 report.md",
+      "review_status": "unreviewed"
+    },
+    {
+      "token": "MAX",
+      "match": "insensitive",
+      "translation": "最大值",
+      "reading": "word",
+      "phonetic": "mæks",
+      "source": "external-ai:常用词汇；依据见 report.md",
+      "review_status": "unreviewed"
+    },
+    {
+      "token": "META",
+      "match": "insensitive",
+      "translation": "元数据",
+      "reading": "word",
+      "phonetic": "ˈmetə",
+      "source": "external-ai:计算机通用术语；依据见 report.md",
+      "review_status": "unreviewed"
+    },
+    {
+      "token": "t",
+      "match": "exact",
+      "translation": "类型（type）后缀；逐字母读",
+      "reading": "letters",
+      "phonetic": "tiː",
+      "source": "external-ai:POSIX/C类型后缀约定；依据见 report.md",
+      "review_status": "unreviewed"
+    },
+    {
+      "token": "VERIFYING",
+      "match": "insensitive",
+      "translation": "正在校验",
+      "reading": "word",
+      "phonetic": "ˈverɪfaɪɪŋ",
+      "source": "external-ai:verify的现在分词；依据见 report.md",
+      "review_status": "unreviewed"
+    },
+    {
+      "token": "CMD",
+      "match": "insensitive",
+      "translation": "命令（command）缩写；逐字母读",
+      "reading": "letters",
+      "phonetic": "siː em diː",
+      "source": "external-ai:通信协议常用缩写；依据见 report.md",
+      "review_status": "unreviewed"
+    },
+    {
+      "token": "initialized",
+      "match": "insensitive",
+      "translation": "已初始化",
+      "reading": "word",
+      "phonetic": "ɪˈnɪʃəlaɪzd",
+      "source": "external-ai:initialize的过去分词；依据见 report.md",
+      "review_status": "unreviewed"
+    },
+    {
+      "token": "s",
+      "match": "exact",
+      "translation": "静态（static）变量前缀；逐字母读",
+      "reading": "letters",
+      "phonetic": "es",
+      "source": "external-ai:C语言命名规范约定；依据见 report.md",
+      "review_status": "unreviewed"
+    },
+    {
+      "token": "u",
+      "match": "exact",
+      "translation": "无符号（unsigned）类型缩写；逐字母读",
+      "reading": "letters",
+      "phonetic": "juː",
+      "source": "external-ai:C类型缩写约定；依据见 report.md",
+      "review_status": "unreviewed"
+    },
+    {
+      "token": "le",
+      "match": "exact",
+      "translation": "小端字节序（little-endian）缩写；逐字母读",
+      "reading": "letters",
+      "phonetic": "el iː",
+      "source": "external-ai:体系结构缩写约定；依据见 report.md",
+      "review_status": "unreviewed"
+    },
+    {
+      "token": "remaining",
+      "match": "insensitive",
+      "translation": "剩余的",
+      "reading": "word",
+      "phonetic": "rɪˈmeɪnɪŋ",
+      "source": "external-ai:remain的现在分词；依据见 report.md",
+      "review_status": "unreviewed"
+    },
+    {
+      "token": "expected",
+      "match": "insensitive",
+      "translation": "预期的",
+      "reading": "word",
+      "phonetic": "ɪkˈspektɪd",
+      "source": "external-ai:expect的过去分词；依据见 report.md",
+      "review_status": "unreviewed"
+    }
+  ]
+}

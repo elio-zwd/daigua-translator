@@ -1,0 +1,44 @@
+{
+  "format_version": 1,
+  "original_sha256": "0426fa3d15861e53c3a6aa3ee4b37150a240cb1990bdf2fc15dfb81a731ff874",
+  "entries": [
+    {
+      "token": "crc32_update",
+      "match": "identifier",
+      "translation": "",
+      "reading": "unknown",
+      "source": "external-ai:待填写",
+      "review_status": "unreviewed",
+      "reason": "技术库读法仍待确认",
+      "occurrences": [
+        {
+          "symbol": "crc32_update",
+          "scope": "dfu.c",
+          "source": {
+            "file": "dfu.c",
+            "line": 95
+          }
+        }
+      ]
+    },
+    {
+      "token": "parse_frame",
+      "match": "identifier",
+      "translation": "",
+      "reading": "unknown",
+      "source": "external-ai:待填写",
+      "review_status": "unreviewed",
+      "reason": "技术库读法仍待确认",
+      "occurrences": [
+        {
+          "symbol": "parse_frame",
+          "scope": "dfu.c",
+          "source": {
+            "file": "dfu.c",
+            "line": 127
+          }
+        }
+      ]
+    }
+  ]
+}

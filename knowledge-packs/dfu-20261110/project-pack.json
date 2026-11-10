@@ -1,0 +1,1909 @@
+{
+  "name": "DFU 固件升级模块知识包",
+  "version": "1.0.0",
+  "source_version": "7323c0ef18fdabd733e055bb15e4738fa6a108b6",
+  "description": "基于课程根目录 dfu.h 与 dfu.c 提炼的固件升级核心状态机、协议编解码、分片组装及 Flash 校验接口知识包。",
+  "entries": [
+    {
+      "symbol": "DFU_H",
+      "kind": "macro",
+      "name_zh": "DFU 头文件保护宏",
+      "summary_zh": "防止 dfu.h 头文件被多次重复包含。",
+      "description_zh": "条件编译头文件卫士宏，避免类型与常量重复定义。",
+      "declaration": "#define DFU_H",
+      "scope": "dfu.h",
+      "source": {
+        "file": "dfu.h",
+        "line": 13
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "DFU_PROTOCOL_VERSION",
+      "kind": "macro",
+      "name_zh": "DFU 协议版本号",
+      "summary_zh": "当前固件升级通信协议的固定版本编号（0x01）。",
+      "description_zh": "协议帧中携带的版本号标识，当前线上版本固定为 0x01U。",
+      "declaration": "#define DFU_PROTOCOL_VERSION 0x01U",
+      "scope": "dfu.h",
+      "source": {
+        "file": "dfu.h",
+        "line": 18
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "DFU_BLOCK_SIZE",
+      "kind": "macro",
+      "name_zh": "DFU 块大小上限",
+      "summary_zh": "每个传输大块的最大字节数（10080 字节）。",
+      "description_zh": "文件划分为若干大块进行组装和校验，每个文件块最多 10080 字节，末块可不足此长度。",
+      "declaration": "#define DFU_BLOCK_SIZE 10080U",
+      "scope": "dfu.h",
+      "source": {
+        "file": "dfu.h",
+        "line": 19
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "DFU_MAX_FILE_SIZE",
+      "kind": "macro",
+      "name_zh": "DFU 文件最大长度",
+      "summary_zh": "升级固件文件的最大允许字节数（2 MiB）。",
+      "description_zh": "完整升级文件大小上限，取值 2097152UL 字节（即 2 MiB），超出则拒绝接收。",
+      "declaration": "#define DFU_MAX_FILE_SIZE 2097152UL",
+      "scope": "dfu.h",
+      "source": {
+        "file": "dfu.h",
+        "line": 20
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "DFU_MAX_SLICE_SIZE",
+      "kind": "macro",
+      "name_zh": "DFU 分片有效载荷上限",
+      "summary_zh": "单个分片中包含的固件数据最大字节数（228 字节）。",
+      "description_zh": "单个传输分片有效载荷上限为 228U 字节，适配信道传输 MTU。",
+      "declaration": "#define DFU_MAX_SLICE_SIZE 228U",
+      "scope": "dfu.h",
+      "source": {
+        "file": "dfu.h",
+        "line": 21
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "DFU_MAX_FRAME_SIZE",
+      "kind": "macro",
+      "name_zh": "DFU 协议帧最大长度",
+      "summary_zh": "接收蓝牙 GATT 写入帧的最大缓冲上限（244 字节）。",
+      "description_zh": "GATT 写入帧接收上限，包含固定帧头、定位字段和 CRC 校验，共 244U 字节。",
+      "declaration": "#define DFU_MAX_FRAME_SIZE 244U",
+      "scope": "dfu.h",
+      "source": {
+        "file": "dfu.h",
+        "line": 22
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "DFU_META_ADDRESS",
+      "kind": "macro",
+      "name_zh": "DFU 元数据区起始地址",
+      "summary_zh": "共享 Flash 中存放升级元数据扇区的起始物理地址。",
+      "description_zh": "共享 Flash 暂存元数据扇区起始字节地址，为 0x00400000UL。",
+      "declaration": "#define DFU_META_ADDRESS 0x00400000UL",
+      "scope": "dfu.h",
+      "source": {
+        "file": "dfu.h",
+        "line": 23
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "DFU_FILE_ADDRESS",
+      "kind": "macro",
+      "name_zh": "DFU 文件暂存起始地址",
+      "summary_zh": "共享 Flash 中存放完整升级文件的起始字节物理地址。",
+      "description_zh": "完整升级固件在共享 Flash 暂存区中的起始字节物理地址，为 0x00401000UL。",
+      "declaration": "#define DFU_FILE_ADDRESS 0x00401000UL",
+      "scope": "dfu.h",
+      "source": {
+        "file": "dfu.h",
+        "line": 24
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "dfu_route_t",
+      "kind": "typedef",
+      "name_zh": "DFU 路由通道类型",
+      "summary_zh": "区分协议帧是来自控制通道还是数据通道的路由枚举。",
+      "description_zh": "接收路由类型，区分控制特征值写请求与数据特征值无响应写入，决定分发入口。",
+      "declaration": "typedef enum { DFU_ROUTE_CONTROL = 0, DFU_ROUTE_DATA } dfu_route_t;",
+      "scope": "dfu.h",
+      "source": {
+        "file": "dfu.h",
+        "line": 31
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "DFU_ROUTE_CONTROL",
+      "kind": "enum",
+      "name_zh": "控制通道路由",
+      "summary_zh": "表示来自控制特征值的写请求通道。",
+      "description_zh": "控制通道帧包含开始、完成、取消等会话管理指令。",
+      "scope": "dfu.h",
+      "source": {
+        "file": "dfu.h",
+        "line": 29
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "DFU_ROUTE_DATA",
+      "kind": "enum",
+      "name_zh": "数据通道路由",
+      "summary_zh": "表示来自数据特征值的无响应写入通道。",
+      "description_zh": "数据通道专用承载固件分片数据，提高传输吞吐率。",
+      "scope": "dfu.h",
+      "source": {
+        "file": "dfu.h",
+        "line": 30
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "dfu_state_t",
+      "kind": "typedef",
+      "name_zh": "DFU 任务状态类型",
+      "summary_zh": "表示升级状态机各个运行阶段的状态枚举。",
+      "description_zh": "定义空闲、接收、就绪、校验中、已校验、已取消及错误等状态。",
+      "declaration": "typedef enum { DFU_STATE_IDLE = 0, DFU_STATE_RECEIVING, DFU_STATE_READY_TO_VERIFY, DFU_STATE_VERIFYING, DFU_STATE_VERIFIED, DFU_STATE_ABORTED, DFU_STATE_ERROR } dfu_state_t;",
+      "scope": "dfu.h",
+      "source": {
+        "file": "dfu.h",
+        "line": 43
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "DFU_STATE_IDLE",
+      "kind": "enum",
+      "name_zh": "状态：空闲",
+      "summary_zh": "核心已初始化完成且当前无升级任务，可接收开始请求。",
+      "description_zh": "模块处于待机阶段，只有该状态允许接受 DFU_CMD_START。",
+      "scope": "dfu.h",
+      "source": {
+        "file": "dfu.h",
+        "line": 36
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "DFU_STATE_RECEIVING",
+      "kind": "enum",
+      "name_zh": "状态：正在接收",
+      "summary_zh": "正在接收并拼装当前数据块的文件分片。",
+      "description_zh": "核心正在收取数据帧并按位图标记接收进度，收齐后写入 Flash。",
+      "scope": "dfu.h",
+      "source": {
+        "file": "dfu.h",
+        "line": 37
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "DFU_STATE_READY_TO_VERIFY",
+      "kind": "enum",
+      "name_zh": "状态：就绪待校验",
+      "summary_zh": "所有数据块已写入 Flash，等待客户端发起完成请求。",
+      "description_zh": "全部块已成功提交，等待外部发送 DFU_CMD_COMPLETE 触发校验流程。",
+      "scope": "dfu.h",
+      "source": {
+        "file": "dfu.h",
+        "line": 38
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "DFU_STATE_VERIFYING",
+      "kind": "enum",
+      "name_zh": "状态：正在校验",
+      "summary_zh": "正在分段从 Flash 读取暂存文件并累计计算 CRC32。",
+      "description_zh": "状态机循环通过 Dfu_Process 分段读取数据并计算 CRC32。",
+      "scope": "dfu.h",
+      "source": {
+        "file": "dfu.h",
+        "line": 39
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "DFU_STATE_VERIFIED",
+      "kind": "enum",
+      "name_zh": "状态：校验通过",
+      "summary_zh": "整文件 CRC32 校验一致，升级文件完整可用。",
+      "description_zh": "整文件 CRC32 已通过校验，尚未向主 MCU 发起安装握手。",
+      "scope": "dfu.h",
+      "source": {
+        "file": "dfu.h",
+        "line": 40
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "DFU_STATE_ABORTED",
+      "kind": "enum",
+      "name_zh": "状态：已取消",
+      "summary_zh": "升级任务已由客户端主动取消，等待外部清理资源。",
+      "description_zh": "收到 DFU_CMD_ABORT 后的终止状态，核心已停止接收。",
+      "scope": "dfu.h",
+      "source": {
+        "file": "dfu.h",
+        "line": 41
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "DFU_STATE_ERROR",
+      "kind": "enum",
+      "name_zh": "状态：错误终止",
+      "summary_zh": "升级过程发生不可恢复的故障，任务终止并等待清理。",
+      "description_zh": "存储故障、校验不符或分片冲突引发的终止错误状态。",
+      "scope": "dfu.h",
+      "source": {
+        "file": "dfu.h",
+        "line": 42
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "dfu_result_t",
+      "kind": "typedef",
+      "name_zh": "DFU 处理结果类型",
+      "summary_zh": "协议处理状态码与操作结果的枚举类型。",
+      "description_zh": "数值 0x00~0x0C 对应原协议状态码，由调用方组包反馈客户端。",
+      "declaration": "typedef enum { DFU_SUCCESS = 0x00, DFU_MALFORMED_FRAME = 0x01, DFU_VERSION_UNSUPPORTED = 0x02, DFU_INVALID_STATE = 0x03, DFU_INVALID_START = 0x04, DFU_INVALID_BLOCK = 0x05, DFU_INVALID_SLICE = 0x06, DFU_BLOCK_INCOMPLETE = 0x07, DFU_FRAME_CRC_MISMATCH = 0x08, DFU_FILE_CRC_MISMATCH = 0x09, DFU_STORAGE_ERROR = 0x0A, DFU_FILE_REJECTED = 0x0B, DFU_UNSUPPORTED_COMMAND = 0x0C } dfu_result_t;",
+      "scope": "dfu.h",
+      "source": {
+        "file": "dfu.h",
+        "line": 61
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "DFU_SUCCESS",
+      "kind": "enum",
+      "name_zh": "结果：成功",
+      "summary_zh": "当前帧或操作执行成功。",
+      "description_zh": "当前帧处理成功，不代表整文件校验或升级已全部完成。",
+      "scope": "dfu.h",
+      "source": {
+        "file": "dfu.h",
+        "line": 48
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "DFU_MALFORMED_FRAME",
+      "kind": "enum",
+      "name_zh": "结果：协议帧畸形",
+      "summary_zh": "帧长度、头部标识或载荷格式不合法。",
+      "description_zh": "报文长度超出限制、魔数不匹配或长度字段与实际不符。",
+      "scope": "dfu.h",
+      "source": {
+        "file": "dfu.h",
+        "line": 49
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "DFU_VERSION_UNSUPPORTED",
+      "kind": "enum",
+      "name_zh": "结果：版本不受支持",
+      "summary_zh": "帧中携带的协议版本号与当前核心不兼容。",
+      "description_zh": "协议版本字段非 DFU_PROTOCOL_VERSION 时返回此错误。",
+      "scope": "dfu.h",
+      "source": {
+        "file": "dfu.h",
+        "line": 50
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "DFU_INVALID_STATE",
+      "kind": "enum",
+      "name_zh": "结果：当前状态无效",
+      "summary_zh": "当前所处状态不允许执行该请求操作。",
+      "description_zh": "如未初始化、非 IDLE 时开始或未收齐所有块时请求完成。",
+      "scope": "dfu.h",
+      "source": {
+        "file": "dfu.h",
+        "line": 51
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "DFU_INVALID_START",
+      "kind": "enum",
+      "name_zh": "结果：开始参数非法",
+      "summary_zh": "开始请求携带的文件大小、块数或分片长度不合法。",
+      "description_zh": "文件大小为 0 或超上限、块数计算不匹配或片长超限时返回。",
+      "scope": "dfu.h",
+      "source": {
+        "file": "dfu.h",
+        "line": 52
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "DFU_INVALID_BLOCK",
+      "kind": "enum",
+      "name_zh": "结果：块号非法",
+      "summary_zh": "数据块编号越界、跳块或为已处理过的旧块。",
+      "description_zh": "接收到的块号不等于 next_block_no 或超出 block_count。",
+      "scope": "dfu.h",
+      "source": {
+        "file": "dfu.h",
+        "line": 53
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "DFU_INVALID_SLICE",
+      "kind": "enum",
+      "name_zh": "结果：分片非法或冲突",
+      "summary_zh": "分片编号越界、分片长度错误或相同片号内容发生冲突。",
+      "description_zh": "片号超限、载荷大小不符，或重复片内容与先前已收数据不一致。",
+      "scope": "dfu.h",
+      "source": {
+        "file": "dfu.h",
+        "line": 54
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "DFU_BLOCK_INCOMPLETE",
+      "kind": "enum",
+      "name_zh": "结果：数据块未收齐",
+      "summary_zh": "尚有分片或数据块未接收完成，不能结束上传。",
+      "description_zh": "仍在 RECEIVING 状态时收到完成请求，拒绝提早结束。",
+      "scope": "dfu.h",
+      "source": {
+        "file": "dfu.h",
+        "line": 55
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "DFU_FRAME_CRC_MISMATCH",
+      "kind": "enum",
+      "name_zh": "结果：帧校验不匹配",
+      "summary_zh": "协议帧尾部的 CRC16 校验值与实际内容计算结果不符。",
+      "description_zh": "帧尾 2 字节小端 CRC16 与前置内容计算不匹配。",
+      "scope": "dfu.h",
+      "source": {
+        "file": "dfu.h",
+        "line": 56
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "DFU_FILE_CRC_MISMATCH",
+      "kind": "enum",
+      "name_zh": "结果：文件校验不匹配",
+      "summary_zh": "暂存文件整体验证计算的 CRC32 与开始请求中的预期值不符。",
+      "description_zh": "整文件回读累计计算的 CRC32 异或后与 file_crc32 不一致。",
+      "scope": "dfu.h",
+      "source": {
+        "file": "dfu.h",
+        "line": 57
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "DFU_STORAGE_ERROR",
+      "kind": "enum",
+      "name_zh": "结果：存储访问错误",
+      "summary_zh": "Flash 擦除、写入失败或回读验证数据不一致。",
+      "description_zh": "底层 Flash 接口返回错误，或写后回读比对发现数据不一致。",
+      "scope": "dfu.h",
+      "source": {
+        "file": "dfu.h",
+        "line": 58
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "DFU_FILE_REJECTED",
+      "kind": "enum",
+      "name_zh": "结果：固件文件被拒绝",
+      "summary_zh": "首块固件中的产品标识与当前设备硬件或型号不匹配。",
+      "description_zh": "端口回调 product_id_valid 判定首块头部标识非法或不适配。",
+      "scope": "dfu.h",
+      "source": {
+        "file": "dfu.h",
+        "line": 59
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "DFU_UNSUPPORTED_COMMAND",
+      "kind": "enum",
+      "name_zh": "结果：未知或不支持的命令",
+      "summary_zh": "命令码未知或在不匹配的通信通道上接收到了该命令。",
+      "description_zh": "如控制通道路由收到了数据帧命令，或命令码未定义。",
+      "scope": "dfu.h",
+      "source": {
+        "file": "dfu.h",
+        "line": 60
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "dfu_port_t",
+      "kind": "typedef",
+      "name_zh": "DFU 端口接口表",
+      "summary_zh": "板级 Flash 读写与硬件标识校验的函数指针接口结构体。",
+      "description_zh": "解耦具体硬件平台，包含准备存储、产品校验、写入与读取四个同步函数指针。",
+      "declaration": "typedef struct { bool (*prepare)(uint32_t file_size); bool (*product_id_valid)(const uint8_t *data, uint16_t length); bool (*write)(uint32_t address, const uint8_t *data, uint16_t length); bool (*read)(uint32_t address, uint8_t *data, uint16_t length); } dfu_port_t;",
+      "scope": "dfu.h",
+      "source": {
+        "file": "dfu.h",
+        "line": 109
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "prepare",
+      "kind": "variable",
+      "name_zh": "端口：准备存储区",
+      "summary_zh": "擦除暂存区、写入固件长度元数据并回读确认。",
+      "description_zh": "函数指针原型 bool (*prepare)(uint32_t file_size)，阻塞准备元数据区与固件区。",
+      "declaration": "bool (*prepare)(uint32_t file_size)",
+      "parameters": [
+        {
+          "name": "file_size",
+          "type": "uint32_t file_size",
+          "summary_zh": "完整升级固件的字节大小。"
+        }
+      ],
+      "returns_zh": "擦除与元数据写入均成功返回 true，否则返回 false",
+      "scope": "dfu.h::dfu_port_t",
+      "source": {
+        "file": "dfu.h",
+        "line": 81
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "product_id_valid",
+      "kind": "variable",
+      "name_zh": "端口：检查产品标识",
+      "summary_zh": "校验首块固件中的产品标识是否适用于当前设备。",
+      "description_zh": "函数指针原型 bool (*product_id_valid)(const uint8_t *data, uint16_t length)，验证固件兼容性。",
+      "declaration": "bool (*product_id_valid)(const uint8_t *data, uint16_t length)",
+      "parameters": [
+        {
+          "name": "data",
+          "type": "const uint8_t *data",
+          "summary_zh": "首块固件数据缓冲指针。"
+        },
+        {
+          "name": "length",
+          "type": "uint16_t length",
+          "summary_zh": "首块固件的实际字节数。"
+        }
+      ],
+      "returns_zh": "标识匹配返回 true，否则返回 false",
+      "scope": "dfu.h::dfu_port_t",
+      "source": {
+        "file": "dfu.h",
+        "line": 89
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "write",
+      "kind": "variable",
+      "name_zh": "端口：写入数据",
+      "summary_zh": "向共享 Flash 指定地址写入一段数据并等待芯片空闲。",
+      "description_zh": "函数指针原型 bool (*write)(uint32_t address, const uint8_t *data, uint16_t length)，同步写入 Flash。",
+      "declaration": "bool (*write)(uint32_t address, const uint8_t *data, uint16_t length)",
+      "parameters": [
+        {
+          "name": "address",
+          "type": "uint32_t address",
+          "summary_zh": "写入 Flash 的物理起始地址。"
+        },
+        {
+          "name": "data",
+          "type": "const uint8_t *data",
+          "summary_zh": "待写入的数据缓冲指针。"
+        },
+        {
+          "name": "length",
+          "type": "uint16_t length",
+          "summary_zh": "写入的字节长度。"
+        }
+      ],
+      "returns_zh": "写入成功返回 true，否则返回 false",
+      "scope": "dfu.h::dfu_port_t",
+      "source": {
+        "file": "dfu.h",
+        "line": 99
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "read",
+      "kind": "variable",
+      "name_zh": "端口：读取数据",
+      "summary_zh": "从共享 Flash 指定地址同步读取指定长度的数据。",
+      "description_zh": "函数指针原型 bool (*read)(uint32_t address, uint8_t *data, uint16_t length)，同步读取 Flash 数据。",
+      "declaration": "bool (*read)(uint32_t address, uint8_t *data, uint16_t length)",
+      "parameters": [
+        {
+          "name": "address",
+          "type": "uint32_t address",
+          "summary_zh": "读取 Flash 的物理起始地址。"
+        },
+        {
+          "name": "data",
+          "type": "uint8_t *data",
+          "summary_zh": "接收数据的目标缓冲指针。"
+        },
+        {
+          "name": "length",
+          "type": "uint16_t length",
+          "summary_zh": "读取的字节长度。"
+        }
+      ],
+      "returns_zh": "读取成功返回 true，否则返回 false",
+      "scope": "dfu.h::dfu_port_t",
+      "source": {
+        "file": "dfu.h",
+        "line": 108
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "DFU_MAGIC_0",
+      "kind": "macro",
+      "name_zh": "协议标识首字节",
+      "summary_zh": "协议帧起始魔数首字节，ASCII 字符 'E'（0x45）。",
+      "description_zh": "用于校验帧头有效性，防止串扰或噪声误触发。",
+      "declaration": "#define DFU_MAGIC_0 0x45U",
+      "scope": "dfu.c",
+      "source": {
+        "file": "dfu.c",
+        "line": 16
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "DFU_MAGIC_1",
+      "kind": "macro",
+      "name_zh": "协议标识次字节",
+      "summary_zh": "协议帧起始魔数次字节，ASCII 字符 'K'（0x4B）。",
+      "description_zh": "与 DFU_MAGIC_0 组合构成协议标识 'EK'。",
+      "declaration": "#define DFU_MAGIC_1 0x4BU",
+      "scope": "dfu.c",
+      "source": {
+        "file": "dfu.c",
+        "line": 17
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "DFU_FRAME_OVERHEAD",
+      "kind": "macro",
+      "name_zh": "协议帧固定开销",
+      "summary_zh": "协议帧除载荷外的固定头部与校验长度，共 8 字节。",
+      "description_zh": "包括 2 字节魔数、1 字节版本、1 字节命令、2 字节长度与 2 字节 CRC16。",
+      "declaration": "#define DFU_FRAME_OVERHEAD 8U",
+      "scope": "dfu.c",
+      "source": {
+        "file": "dfu.c",
+        "line": 18
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "DFU_DATA_LOCATION_SIZE",
+      "kind": "macro",
+      "name_zh": "数据分片定位字段长度",
+      "summary_zh": "数据帧中块号与片号所占用的前置字节数（4 字节）。",
+      "description_zh": "数据帧载荷前部包含 2 字节块号与 2 字节片号定位信息。",
+      "declaration": "#define DFU_DATA_LOCATION_SIZE 4U",
+      "scope": "dfu.c",
+      "source": {
+        "file": "dfu.c",
+        "line": 19
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "DFU_START_DATA_LENGTH",
+      "kind": "macro",
+      "name_zh": "开始请求载荷长度",
+      "summary_zh": "开始上传控制帧的标准载荷字节数（12 字节）。",
+      "description_zh": "由 4 字节文件大小、4 字节 CRC32、2 字节块数和 2 字节片长组成。",
+      "declaration": "#define DFU_START_DATA_LENGTH 12U",
+      "scope": "dfu.c",
+      "source": {
+        "file": "dfu.c",
+        "line": 20
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "DFU_VERIFY_CHUNK_SIZE",
+      "kind": "macro",
+      "name_zh": "校验与回读分段大小",
+      "summary_zh": "Flash 回读比较和整文件 CRC 每次处理的数据长度（256 字节）。",
+      "description_zh": "分段读取 Flash 限制每轮耗时，避免长时阻塞主循环。",
+      "declaration": "#define DFU_VERIFY_CHUNK_SIZE 256U",
+      "scope": "dfu.c",
+      "source": {
+        "file": "dfu.c",
+        "line": 21
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "DFU_MAX_BITMAP_SIZE",
+      "kind": "macro",
+      "name_zh": "分片位图最大容量",
+      "summary_zh": "按最小 1 字节分片计算的一块分片接收标记位图最大字节数。",
+      "description_zh": "计算公式为 (DFU_BLOCK_SIZE + 7U) / 8U，容量为 1260 字节。",
+      "declaration": "#define DFU_MAX_BITMAP_SIZE ((DFU_BLOCK_SIZE + 7U) / 8U)",
+      "scope": "dfu.c",
+      "source": {
+        "file": "dfu.c",
+        "line": 22
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "DFU_CMD_START",
+      "kind": "macro",
+      "name_zh": "命令：开始上传",
+      "summary_zh": "发起升级任务并配置参数的控制命令码（0x10）。",
+      "description_zh": "由控制通道发送，携带 12 字节任务参数以启动上传。",
+      "declaration": "#define DFU_CMD_START 0x10U",
+      "scope": "dfu.c",
+      "source": {
+        "file": "dfu.c",
+        "line": 24
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "DFU_CMD_DATA",
+      "kind": "macro",
+      "name_zh": "命令：分片数据",
+      "summary_zh": "传输固件文件分片内容的命令码（0x20）。",
+      "description_zh": "由数据通道发送，包含定位字段与固件切片内容。",
+      "declaration": "#define DFU_CMD_DATA 0x20U",
+      "scope": "dfu.c",
+      "source": {
+        "file": "dfu.c",
+        "line": 25
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "DFU_CMD_COMPLETE",
+      "kind": "macro",
+      "name_zh": "命令：完成上传",
+      "summary_zh": "请求触发整文件校验并完成升级流程的命令码（0x30）。",
+      "description_zh": "由控制通道发送，载荷长度为 0，使状态进入 VERIFYING。",
+      "declaration": "#define DFU_CMD_COMPLETE 0x30U",
+      "scope": "dfu.c",
+      "source": {
+        "file": "dfu.c",
+        "line": 26
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "DFU_CMD_ABORT",
+      "kind": "macro",
+      "name_zh": "命令：取消上传",
+      "summary_zh": "客户端主动中止当前上传流程的命令码（0x40）。",
+      "description_zh": "由控制通道发送，载荷长度为 0，使状态进入 ABORTED。",
+      "declaration": "#define DFU_CMD_ABORT 0x40U",
+      "scope": "dfu.c",
+      "source": {
+        "file": "dfu.c",
+        "line": 27
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "dfu_frame_t",
+      "kind": "typedef",
+      "name_zh": "协议帧视图类型",
+      "summary_zh": "存储协议帧解析后命令码与载荷切片视图的内部结构体。",
+      "description_zh": "解析帧头与 CRC 后构造的视图对象，借用原始帧缓冲区而不产生深拷贝。",
+      "declaration": "typedef struct { uint8_t command; const uint8_t *data; uint16_t data_length; } dfu_frame_t;",
+      "scope": "dfu.c",
+      "source": {
+        "file": "dfu.c",
+        "line": 36
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "command",
+      "kind": "variable",
+      "name_zh": "帧命令码",
+      "summary_zh": "解析出的协议命令字节。",
+      "description_zh": "从协议帧头部第 4 字节读取到的命令编号。",
+      "declaration": "uint8_t command",
+      "scope": "dfu.c::dfu_frame_t",
+      "source": {
+        "file": "dfu.c",
+        "line": 33
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "data",
+      "kind": "variable",
+      "name_zh": "帧载荷指针",
+      "summary_zh": "指向原始帧中有效载荷起始位置的只读指针。",
+      "description_zh": "仅在解析成功时有效，生命周期与传入的原始帧缓冲一致。",
+      "declaration": "const uint8_t *data",
+      "scope": "dfu.c::dfu_frame_t",
+      "source": {
+        "file": "dfu.c",
+        "line": 34
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "data_length",
+      "kind": "variable",
+      "name_zh": "帧载荷长度",
+      "summary_zh": "协议帧中有效载荷的字节数。",
+      "description_zh": "从协议帧头部解码出的载荷有效长度。",
+      "declaration": "uint16_t data_length",
+      "scope": "dfu.c::dfu_frame_t",
+      "source": {
+        "file": "dfu.c",
+        "line": 35
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "dfu_context_t",
+      "kind": "typedef",
+      "name_zh": "DFU 核心上下文类型",
+      "summary_zh": "维护升级任务参数、状态机、接收进度及组包缓冲的上下文结构体。",
+      "description_zh": "管理任务全生命周期静态资源，包括分片位图、块缓冲区与共用回读缓冲。",
+      "declaration": "typedef struct { const dfu_port_t *port; dfu_state_t state; bool initialized; uint32_t file_size; uint32_t file_crc32; uint32_t crc_offset; uint32_t crc_value; uint16_t block_count; uint16_t slice_size; uint16_t next_block_no; uint16_t received_slice_count; uint8_t block_buffer[DFU_BLOCK_SIZE]; uint8_t slice_bitmap[DFU_MAX_BITMAP_SIZE]; uint8_t verify_buffer[DFU_VERIFY_CHUNK_SIZE]; } dfu_context_t;",
+      "scope": "dfu.c",
+      "source": {
+        "file": "dfu.c",
+        "line": 55
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "port",
+      "kind": "variable",
+      "name_zh": "板级端口指针",
+      "summary_zh": "保存初始化时传入的底层 Flash 及硬件校验端口接口表。",
+      "description_zh": "指向整个运行期有效的板级端口表，由外部提供且不被本模块释放。",
+      "declaration": "const dfu_port_t *port",
+      "scope": "dfu.c::dfu_context_t",
+      "source": {
+        "file": "dfu.c",
+        "line": 41
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "state",
+      "kind": "variable",
+      "name_zh": "任务状态",
+      "summary_zh": "升级核心当前所处的运行阶段与状态。",
+      "description_zh": "状态机核心状态，决定当前允许接受的事件与分发逻辑。",
+      "declaration": "dfu_state_t state",
+      "scope": "dfu.c::dfu_context_t",
+      "source": {
+        "file": "dfu.c",
+        "line": 42
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "initialized",
+      "kind": "variable",
+      "name_zh": "初始化标志",
+      "summary_zh": "标记升级核心单例是否已成功完成初始化。",
+      "description_zh": "冷启动或重新初始化成功后置为 true，未初始化时拒绝处理任何帧。",
+      "declaration": "bool initialized",
+      "scope": "dfu.c::dfu_context_t",
+      "source": {
+        "file": "dfu.c",
+        "line": 43
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "file_size",
+      "kind": "variable",
+      "name_zh": "升级文件大小",
+      "summary_zh": "本次升级固件文件的总字节数。",
+      "description_zh": "由开始请求指定，包含固件文件完整长度，最大支持 2 MiB。",
+      "declaration": "uint32_t file_size",
+      "scope": "dfu.c::dfu_context_t",
+      "source": {
+        "file": "dfu.c",
+        "line": 44
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "file_crc32",
+      "kind": "variable",
+      "name_zh": "预期文件 CRC32",
+      "summary_zh": "开始请求中指定的整文件预期 CRC32 校验码。",
+      "description_zh": "用于整文件全部块写入 Flash 后的最终校验比对。",
+      "declaration": "uint32_t file_crc32",
+      "scope": "dfu.c::dfu_context_t",
+      "source": {
+        "file": "dfu.c",
+        "line": 45
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "crc_offset",
+      "kind": "variable",
+      "name_zh": "CRC 校验读取偏移",
+      "summary_zh": "整文件校验已完成的字节数，也是下一次读取 Flash 的偏移。",
+      "description_zh": "从 0 递增到 file_size，按每轮最多 256 字节推进分段读取。",
+      "declaration": "uint32_t crc_offset",
+      "scope": "dfu.c::dfu_context_t",
+      "source": {
+        "file": "dfu.c",
+        "line": 46
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "crc_value",
+      "kind": "variable",
+      "name_zh": "当前累计 CRC32 值",
+      "summary_zh": "分段读取 Flash 计算中尚未执行最终异或的累计 CRC32 中间值。",
+      "description_zh": "初值为 0xFFFFFFFFUL，每轮合入读取数据，最后异或反转与 file_crc32 对比。",
+      "declaration": "uint32_t crc_value",
+      "scope": "dfu.c::dfu_context_t",
+      "source": {
+        "file": "dfu.c",
+        "line": 47
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "block_count",
+      "kind": "variable",
+      "name_zh": "文件总块数",
+      "summary_zh": "本次升级文件被拆分出的总数据块数量。",
+      "description_zh": "由文件长度除以块大小向上取整所得，包含末块不足完整尺寸的情况。",
+      "declaration": "uint16_t block_count",
+      "scope": "dfu.c::dfu_context_t",
+      "source": {
+        "file": "dfu.c",
+        "line": 48
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "slice_size",
+      "kind": "variable",
+      "name_zh": "分片载荷长度",
+      "summary_zh": "本次升级协商约定的单个分片有效数据字节数。",
+      "description_zh": "由开始请求指定，最大不超过 DFU_MAX_SLICE_SIZE（228 字节）。",
+      "declaration": "uint16_t slice_size",
+      "scope": "dfu.c::dfu_context_t",
+      "source": {
+        "file": "dfu.c",
+        "line": 49
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "next_block_no",
+      "kind": "variable",
+      "name_zh": "当前期望块号",
+      "summary_zh": "核心当前等待接收的从零开始的数据块编号。",
+      "description_zh": "从 0 开始递增，当等于 block_count 时表示所有块已接收并写入完毕。",
+      "declaration": "uint16_t next_block_no",
+      "scope": "dfu.c::dfu_context_t",
+      "source": {
+        "file": "dfu.c",
+        "line": 50
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "received_slice_count",
+      "kind": "variable",
+      "name_zh": "当前块已收分片数",
+      "summary_zh": "当前块中已成功接收并去重后的分片累计个数。",
+      "description_zh": "重复片不重复计数，当等于块内分片总数时触发整块写入 Flash。",
+      "declaration": "uint16_t received_slice_count",
+      "scope": "dfu.c::dfu_context_t",
+      "source": {
+        "file": "dfu.c",
+        "line": 51
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "block_buffer",
+      "kind": "variable",
+      "name_zh": "块组装缓冲区",
+      "summary_zh": "用于在 RAM 中拼装当前块所有乱序分片的数据缓冲区。",
+      "description_zh": "大小为 DFU_BLOCK_SIZE（10080 字节），收满整块后写入 Flash。",
+      "declaration": "uint8_t block_buffer[DFU_BLOCK_SIZE]",
+      "scope": "dfu.c::dfu_context_t",
+      "source": {
+        "file": "dfu.c",
+        "line": 52
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "slice_bitmap",
+      "kind": "variable",
+      "name_zh": "分片接收位图",
+      "summary_zh": "用于按位标记当前块各分片是否已成功接收的位图数组。",
+      "description_zh": "每个比特位映射一个分片序号，用于防重、去重与收齐判定。",
+      "declaration": "uint8_t slice_bitmap[DFU_MAX_BITMAP_SIZE]",
+      "scope": "dfu.c::dfu_context_t",
+      "source": {
+        "file": "dfu.c",
+        "line": 53
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "verify_buffer",
+      "kind": "variable",
+      "name_zh": "校验与回读缓冲区",
+      "summary_zh": "供写入后分段回读比较及整文件 CRC 计算共用的 256 字节临时缓冲。",
+      "description_zh": "避免栈溢出，在单例上下文中集中维护固定 256 字节的回读临时存储。",
+      "declaration": "uint8_t verify_buffer[DFU_VERIFY_CHUNK_SIZE]",
+      "scope": "dfu.c::dfu_context_t",
+      "source": {
+        "file": "dfu.c",
+        "line": 54
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "s_dfu",
+      "kind": "variable",
+      "name_zh": "升级核心单例上下文",
+      "summary_zh": "保存升级状态机与运行资源的静态单例全局变量。",
+      "description_zh": "单实例静态分配，包含端口接口、状态机参数与整块组装缓冲。",
+      "declaration": "static dfu_context_t s_dfu;",
+      "scope": "dfu.c",
+      "source": {
+        "file": "dfu.c",
+        "line": 59
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "read_u16_le",
+      "kind": "function",
+      "name_zh": "读取小端 16 位整数",
+      "summary_zh": "从字节数组中按小端格式解码 16 位无符号整数。",
+      "description_zh": "逐字节拼接读取，规避不同硬件架构下的内存未对齐访问异常。",
+      "declaration": "static uint16_t read_u16_le(const uint8_t *value)",
+      "parameters": [
+        {
+          "name": "value",
+          "type": "const uint8_t *value",
+          "summary_zh": "包含至少两字节小端数据的输入缓冲指针。"
+        }
+      ],
+      "returns_zh": "解码出的 16 位无符号整数",
+      "scope": "dfu.c",
+      "source": {
+        "file": "dfu.c",
+        "line": 63
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "read_u32_le",
+      "kind": "function",
+      "name_zh": "读取小端 32 位整数",
+      "summary_zh": "从字节数组中按小端格式解码 32 位无符号整数。",
+      "description_zh": "按低字节在前的原则逐字节拼接，规避未对齐访问并保证平台无关性。",
+      "declaration": "static uint32_t read_u32_le(const uint8_t *value)",
+      "parameters": [
+        {
+          "name": "value",
+          "type": "const uint8_t *value",
+          "summary_zh": "包含至少四字节小端数据的输入缓冲指针。"
+        }
+      ],
+      "returns_zh": "解码出的 32 位无符号整数",
+      "scope": "dfu.c",
+      "source": {
+        "file": "dfu.c",
+        "line": 69
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "write_u16_le",
+      "kind": "function",
+      "name_zh": "写入小端 16 位整数",
+      "summary_zh": "将 16 位无符号整数按小端格式写入输出字节缓冲。",
+      "description_zh": "将低 8 位写入首字节，高 8 位写入次字节，用于协议帧头或 CRC 写入。",
+      "declaration": "static void write_u16_le(uint8_t *value, uint16_t number)",
+      "parameters": [
+        {
+          "name": "value",
+          "type": "uint8_t *value",
+          "summary_zh": "目标输出字节缓冲指针。"
+        },
+        {
+          "name": "number",
+          "type": "uint16_t number",
+          "summary_zh": "待写入的 16 位无符号整数。"
+        }
+      ],
+      "returns_zh": "无返回值",
+      "scope": "dfu.c",
+      "source": {
+        "file": "dfu.c",
+        "line": 78
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "crc32_update",
+      "kind": "function",
+      "name_zh": "更新 CRC32 累计校验值",
+      "summary_zh": "将一段输入数据按多项式增量更新到 CRC32 累计计算值中。",
+      "description_zh": "采用反射多项式 0xEDB88320UL 逐字节按位运算，尚未执行最终取反异或。",
+      "declaration": "static uint32_t crc32_update(uint32_t crc, const uint8_t *data, uint16_t length)",
+      "parameters": [
+        {
+          "name": "crc",
+          "type": "uint32_t crc",
+          "summary_zh": "当前的 CRC32 累计中间校验值。"
+        },
+        {
+          "name": "data",
+          "type": "const uint8_t *data",
+          "summary_zh": "待合入校验的数据输入缓冲指针。"
+        },
+        {
+          "name": "length",
+          "type": "uint16_t length",
+          "summary_zh": "待合入数据的字节长度。"
+        }
+      ],
+      "returns_zh": "更新后可继续累计的 CRC32 中间值",
+      "scope": "dfu.c",
+      "source": {
+        "file": "dfu.c",
+        "line": 95
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "parse_frame",
+      "kind": "function",
+      "name_zh": "解析协议帧",
+      "summary_zh": "检查协议帧长度、魔数、CRC16 校验和路由并提取载荷。",
+      "description_zh": "执行帧固定开销、EK 标识、帧尾 Modbus CRC16 与版本验证，成功时输出载荷视图。",
+      "declaration": "static dfu_result_t parse_frame(dfu_route_t route, const uint8_t *frame, uint16_t length, dfu_frame_t *parsed)",
+      "parameters": [
+        {
+          "name": "route",
+          "type": "dfu_route_t route",
+          "summary_zh": "协议帧的接收来源通道（控制或数据）。"
+        },
+        {
+          "name": "frame",
+          "type": "const uint8_t *frame",
+          "summary_zh": "原始协议帧的数据缓冲指针。"
+        },
+        {
+          "name": "length",
+          "type": "uint16_t length",
+          "summary_zh": "原始协议帧的总有效字节数。"
+        },
+        {
+          "name": "parsed",
+          "type": "dfu_frame_t *parsed",
+          "summary_zh": "接收命令与载荷视图的输出指针。"
+        }
+      ],
+      "returns_zh": "解析成功返回 DFU_SUCCESS，校验不符或格式错误返回对应错误码",
+      "scope": "dfu.c",
+      "source": {
+        "file": "dfu.c",
+        "line": 127
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "get_block_length",
+      "kind": "function",
+      "name_zh": "获取指定块字节长度",
+      "summary_zh": "计算指定块号对应的实际有效字节数，处理末块不足的情形。",
+      "description_zh": "根据文件总大小和当前块起始偏移，计算出当前块应有的实际字节长度。",
+      "declaration": "static uint16_t get_block_length(uint16_t block_no)",
+      "parameters": [
+        {
+          "name": "block_no",
+          "type": "uint16_t block_no",
+          "summary_zh": "指定计算长度的数据块编号。"
+        }
+      ],
+      "returns_zh": "该数据块的实际字节数（最大为 DFU_BLOCK_SIZE）",
+      "scope": "dfu.c",
+      "source": {
+        "file": "dfu.c",
+        "line": 170
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "handle_start",
+      "kind": "function",
+      "name_zh": "处理开始上传请求",
+      "summary_zh": "解析开始载荷、校验参数、准备 Flash 暂存区并切换为接收状态。",
+      "description_zh": "解析文件大小与校验码，通过板级 prepare 擦除存储区并回读确认，就绪后进入 RECEIVING 状态。",
+      "declaration": "static dfu_result_t handle_start(const uint8_t *data)",
+      "parameters": [
+        {
+          "name": "data",
+          "type": "const uint8_t *data",
+          "summary_zh": "包含文件大小、校验码、块数和片长的 12 字节开始载荷指针。"
+        }
+      ],
+      "returns_zh": "成功返回 DFU_SUCCESS，参数非法或存储失败返回对应错误码",
+      "scope": "dfu.c",
+      "source": {
+        "file": "dfu.c",
+        "line": 187
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "write_and_verify_block",
+      "kind": "function",
+      "name_zh": "写入并回读校验数据块",
+      "summary_zh": "将当前收齐的数据块同步写入 Flash 并分段回读比对确认。",
+      "description_zh": "写入完整块后，以 256 字节为分段通过 Flash 回读比对，确保物理介质写入无误。",
+      "declaration": "static bool write_and_verify_block(uint16_t block_length)",
+      "parameters": [
+        {
+          "name": "block_length",
+          "type": "uint16_t block_length",
+          "summary_zh": "当前已收齐数据块的实际有效字节长度。"
+        }
+      ],
+      "returns_zh": "写入并回读完全一致返回 true，操作失败或内容不符返回 false",
+      "scope": "dfu.c",
+      "source": {
+        "file": "dfu.c",
+        "line": 233
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "handle_data",
+      "kind": "function",
+      "name_zh": "处理文件分片数据",
+      "summary_zh": "校验分片编号与长度，去重组装入块缓冲并在块收齐时写入 Flash。",
+      "description_zh": "支持分片乱序接收与同片幂等去重；首块收齐时触发产品标识合法性校验。",
+      "declaration": "static dfu_result_t handle_data(const uint8_t *data, uint16_t data_length)",
+      "parameters": [
+        {
+          "name": "data",
+          "type": "const uint8_t *data",
+          "summary_zh": "前 4 字节为块号片号的数据载荷指针。"
+        },
+        {
+          "name": "data_length",
+          "type": "uint16_t data_length",
+          "summary_zh": "包含定位字段的数据载荷总字节数。"
+        }
+      ],
+      "returns_zh": "处理成功返回 DFU_SUCCESS，块号/片号非法或硬件写入失败返回错误码",
+      "scope": "dfu.c",
+      "source": {
+        "file": "dfu.c",
+        "line": 275
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "Dfu_Init",
+      "kind": "function",
+      "name_zh": "初始化升级核心",
+      "summary_zh": "清空上下文、绑定板级端口回调表并将状态置为空闲。",
+      "description_zh": "冷启动或重新初始化升级状态机，先清空历史单例数据并检查必须提供的四个函数指针。",
+      "declaration": "bool Dfu_Init(const dfu_port_t *port)",
+      "parameters": [
+        {
+          "name": "port",
+          "type": "const dfu_port_t *port",
+          "summary_zh": "包含 Flash 读写与标识校验的底层端口表指针。"
+        }
+      ],
+      "returns_zh": "端口完整且初始化成功返回 true，参数缺失返回 false",
+      "scope": "dfu.c",
+      "source": {
+        "file": "dfu.c",
+        "line": 373
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "Dfu_HandleFrame",
+      "kind": "function",
+      "name_zh": "处理协议帧",
+      "summary_zh": "校验并分发处理控制请求或文件数据分片帧。",
+      "description_zh": "统一入口解析帧头、CRC 及路由，根据命令分发给开始、分片接收、完成或取消分支。",
+      "declaration": "dfu_result_t Dfu_HandleFrame(dfu_route_t route, const uint8_t *frame, uint16_t length)",
+      "parameters": [
+        {
+          "name": "route",
+          "type": "dfu_route_t route",
+          "summary_zh": "协议帧来源通道（控制通道或数据通道）。"
+        },
+        {
+          "name": "frame",
+          "type": "const uint8_t *frame",
+          "summary_zh": "包含完整帧头、载荷及尾部校验的原始帧数据指针。"
+        },
+        {
+          "name": "length",
+          "type": "uint16_t length",
+          "summary_zh": "原始协议帧的总字节数。"
+        }
+      ],
+      "returns_zh": "帧处理结果状态码，成功返回 DFU_SUCCESS",
+      "scope": "dfu.c",
+      "source": {
+        "file": "dfu.c",
+        "line": 404
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "Dfu_Process",
+      "kind": "function",
+      "name_zh": "推进整文件校验",
+      "summary_zh": "分段从 Flash 读取固件数据并推进整文件 CRC32 校验。",
+      "description_zh": "仅在 VERIFYING 状态有效，每次从 Flash 读取最多 256 字节更新 CRC，全部读完后与预期 CRC 比对更新为 VERIFIED。",
+      "declaration": "dfu_result_t Dfu_Process(void)",
+      "parameters": [],
+      "returns_zh": "成功返回 DFU_SUCCESS（校验中或通过），失败返回 DFU_STORAGE_ERROR 或 DFU_FILE_CRC_MISMATCH",
+      "scope": "dfu.c",
+      "source": {
+        "file": "dfu.c",
+        "line": 478
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "Dfu_GetState",
+      "kind": "function",
+      "name_zh": "获取升级状态",
+      "summary_zh": "返回升级核心当前所处的状态机阶段快照。",
+      "description_zh": "读取单例上下文中的 state 字段，供外部查询任务是否空闲、校验通过或发生错误。",
+      "declaration": "dfu_state_t Dfu_GetState(void)",
+      "parameters": [],
+      "returns_zh": "升级核心当前的任务状态快照",
+      "scope": "dfu.c",
+      "source": {
+        "file": "dfu.c",
+        "line": 514
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "Dfu_GetNextBlockNo",
+      "kind": "function",
+      "name_zh": "获取下一期望块号",
+      "summary_zh": "返回当前升级正在等待接收的数据块编号。",
+      "description_zh": "从零开始计数；当所有块写入完成时返回值等于总块数 block_count。",
+      "declaration": "uint16_t Dfu_GetNextBlockNo(void)",
+      "parameters": [],
+      "returns_zh": "当前等待接收的块编号",
+      "scope": "dfu.c",
+      "source": {
+        "file": "dfu.c",
+        "line": 520
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "Dfu_Crc16Modbus",
+      "kind": "function",
+      "name_zh": "计算 Modbus CRC16",
+      "summary_zh": "按 MODBUS 规范为字节序列计算 CRC16 校验值。",
+      "description_zh": "采用初值 0xFFFF、反射多项式 0xA001、无最终异或的经典标准 CRC16/MODBUS 算法。",
+      "declaration": "uint16_t Dfu_Crc16Modbus(const uint8_t *data, uint32_t length)",
+      "parameters": [
+        {
+          "name": "data",
+          "type": "const uint8_t *data",
+          "summary_zh": "待计算 CRC16 的数据缓冲指针。"
+        },
+        {
+          "name": "length",
+          "type": "uint32_t length",
+          "summary_zh": "待校验数据的字节数。"
+        }
+      ],
+      "returns_zh": "计算出的 16 位 CRC 校验值",
+      "scope": "dfu.c",
+      "source": {
+        "file": "dfu.c",
+        "line": 535
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "Dfu_EncodeFrame",
+      "kind": "function",
+      "name_zh": "编码协议帧",
+      "summary_zh": "将命令与载荷打包并附带头部魔数及 CRC16 生成完整协议帧。",
+      "description_zh": "按小端格式填充 EK 魔数、版本、命令、载荷长度、载荷内容并追加 CRC16，生成可供链路发送的完整报文。",
+      "declaration": "uint16_t Dfu_EncodeFrame(uint8_t command, const uint8_t *data, uint16_t data_length, uint8_t *frame, uint16_t capacity)",
+      "parameters": [
+        {
+          "name": "command",
+          "type": "uint8_t command",
+          "summary_zh": "待打包的协议命令字节。"
+        },
+        {
+          "name": "data",
+          "type": "const uint8_t *data",
+          "summary_zh": "待装配的载荷数据指针，无载荷时可为 NULL。"
+        },
+        {
+          "name": "data_length",
+          "type": "uint16_t data_length",
+          "summary_zh": "载荷数据的实际字节长度。"
+        },
+        {
+          "name": "frame",
+          "type": "uint8_t *frame",
+          "summary_zh": "接收打包生成完整协议帧的目标缓冲指针。"
+        },
+        {
+          "name": "capacity",
+          "type": "uint16_t capacity",
+          "summary_zh": "目标缓冲区的最大可写容量（字节）。"
+        }
+      ],
+      "returns_zh": "打包成功返回完整帧字节数，容量不足或参数非法返回 0",
+      "scope": "dfu.c",
+      "source": {
+        "file": "dfu.c",
+        "line": 569
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "index",
+      "kind": "variable",
+      "name_zh": "字节索引",
+      "summary_zh": "遍历输入数据缓冲区的字节下标。",
+      "description_zh": "在 crc32_update 中循环递增，用于逐字节合入数据。",
+      "declaration": "uint16_t index;",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "dfu.c::crc32_update:L97:C14",
+      "source": {
+        "file": "dfu.c",
+        "line": 97
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "bit",
+      "kind": "variable",
+      "name_zh": "比特位计数",
+      "summary_zh": "处理当前字节中各个二进制位的循环计数。",
+      "description_zh": "在 crc32_update 内部循环 8 次，依次移位并按多项式异或计算 CRC32。",
+      "declaration": "uint8_t bit;",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "dfu.c::crc32_update:L98:C13",
+      "source": {
+        "file": "dfu.c",
+        "line": 98
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "data_length",
+      "kind": "variable",
+      "name_zh": "解码载荷长度",
+      "summary_zh": "从帧头部读取出的载荷声明字节数。",
+      "description_zh": "在 parse_frame 中解码小端 16 位整数，用于核对总帧长与分配载荷指针。",
+      "declaration": "uint16_t data_length;",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "dfu.c::parse_frame:L130:C14",
+      "source": {
+        "file": "dfu.c",
+        "line": 130
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "command",
+      "kind": "variable",
+      "name_zh": "解码命令码",
+      "summary_zh": "从帧头部读取出的协议命令类型字节。",
+      "description_zh": "在 parse_frame 中提取第 4 字节，用于路由检查与分发。",
+      "declaration": "uint8_t command;",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "dfu.c::parse_frame:L131:C13",
+      "source": {
+        "file": "dfu.c",
+        "line": 131
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "offset",
+      "kind": "variable",
+      "name_zh": "块起始偏移",
+      "summary_zh": "计算当前块号在整文件中的字节起始偏移。",
+      "description_zh": "在 get_block_length 中计算 block_no * DFU_BLOCK_SIZE。",
+      "declaration": "uint32_t offset = (uint32_t)block_no * DFU_BLOCK_SIZE;",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "dfu.c::get_block_length:L172:C14",
+      "source": {
+        "file": "dfu.c",
+        "line": 172
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "remaining",
+      "kind": "variable",
+      "name_zh": "文件剩余字节数",
+      "summary_zh": "从当前块起始位置算起的文件剩余总长度。",
+      "description_zh": "在 get_block_length 中用于判断末块是否不足完整块大小。",
+      "declaration": "uint32_t remaining = s_dfu.file_size - offset;",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "dfu.c::get_block_length:L173:C14",
+      "source": {
+        "file": "dfu.c",
+        "line": 173
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "file_size",
+      "kind": "variable",
+      "name_zh": "解析文件大小",
+      "summary_zh": "从开始请求载荷中解析出的固件总字节数。",
+      "description_zh": "在 handle_start 中解码前 4 字节小端无符号整数。",
+      "declaration": "uint32_t file_size = read_u32_le(&data[0]);",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "dfu.c::handle_start:L190:C14",
+      "source": {
+        "file": "dfu.c",
+        "line": 190
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "file_crc32",
+      "kind": "variable",
+      "name_zh": "解析文件 CRC32",
+      "summary_zh": "从开始请求载荷中解析出的整文件期望校验码。",
+      "description_zh": "在 handle_start 中解码第 4~7 字节小端无符号整数。",
+      "declaration": "uint32_t file_crc32 = read_u32_le(&data[4]);",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "dfu.c::handle_start:L191:C14",
+      "source": {
+        "file": "dfu.c",
+        "line": 191
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "block_count",
+      "kind": "variable",
+      "name_zh": "解析总块数",
+      "summary_zh": "从开始请求载荷中解析出的文件划分总块数。",
+      "description_zh": "在 handle_start 中解码第 8~9 字节小端无符号整数，用于合法性检验。",
+      "declaration": "uint16_t block_count = read_u16_le(&data[8]);",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "dfu.c::handle_start:L192:C14",
+      "source": {
+        "file": "dfu.c",
+        "line": 192
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "slice_size",
+      "kind": "variable",
+      "name_zh": "解析分片大小",
+      "summary_zh": "从开始请求载荷中解析出的单片最大载荷字节数。",
+      "description_zh": "在 handle_start 中解码第 10~11 字节小端无符号整数。",
+      "declaration": "uint16_t slice_size = read_u16_le(&data[10]);",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "dfu.c::handle_start:L193:C14",
+      "source": {
+        "file": "dfu.c",
+        "line": 193
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "address",
+      "kind": "variable",
+      "name_zh": "Flash 写入目标地址",
+      "summary_zh": "当前块在外部共享 Flash 中的物理字节起始地址。",
+      "description_zh": "在 write_and_verify_block 中由 DFU_FILE_ADDRESS 加上块序号偏移计算得出。",
+      "declaration": "uint32_t address = DFU_FILE_ADDRESS + (uint32_t)s_dfu.next_block_no * DFU_BLOCK_SIZE;",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "dfu.c::write_and_verify_block:L236:C14",
+      "source": {
+        "file": "dfu.c",
+        "line": 236
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "offset",
+      "kind": "variable",
+      "name_zh": "回读比较偏移",
+      "summary_zh": "块内已完成回读比对的字节偏移量。",
+      "description_zh": "在 write_and_verify_block 中循环分段回读并与 block_buffer 比对。",
+      "declaration": "uint16_t offset = 0U;",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "dfu.c::write_and_verify_block:L237:C14",
+      "source": {
+        "file": "dfu.c",
+        "line": 237
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "read_length",
+      "kind": "variable",
+      "name_zh": "本轮回读字节数",
+      "summary_zh": "当前轮次回读比对所读取的实际数据长度。",
+      "description_zh": "在 write_and_verify_block 中每轮最多读取 256 字节。",
+      "declaration": "uint16_t read_length;",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "dfu.c::write_and_verify_block:L238:C14",
+      "source": {
+        "file": "dfu.c",
+        "line": 238
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "block_no",
+      "kind": "variable",
+      "name_zh": "分片所属块号",
+      "summary_zh": "从数据分片帧前导定位字段中解析出的块编号。",
+      "description_zh": "在 handle_data 中提取载荷前 2 字节小端整数。",
+      "declaration": "uint16_t block_no;",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "dfu.c::handle_data:L277:C14",
+      "source": {
+        "file": "dfu.c",
+        "line": 277
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "slice_no",
+      "kind": "variable",
+      "name_zh": "分片编号",
+      "summary_zh": "从数据分片帧前导定位字段中解析出的片编号。",
+      "description_zh": "在 handle_data 中提取载荷第 2~3 字节小端整数。",
+      "declaration": "uint16_t slice_no;",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "dfu.c::handle_data:L278:C14",
+      "source": {
+        "file": "dfu.c",
+        "line": 278
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "block_length",
+      "kind": "variable",
+      "name_zh": "当前块实际长度",
+      "summary_zh": "当前处理的数据块总有效字节数。",
+      "description_zh": "在 handle_data 中通过 get_block_length 计算获得。",
+      "declaration": "uint16_t block_length;",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "dfu.c::handle_data:L279:C14",
+      "source": {
+        "file": "dfu.c",
+        "line": 279
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "slice_count",
+      "kind": "variable",
+      "name_zh": "当前块总分片数",
+      "summary_zh": "当前块根据分片大小计算出的总分片个数。",
+      "description_zh": "在 handle_data 中由块长除以分片大小向上取整所得。",
+      "declaration": "uint16_t slice_count;",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "dfu.c::handle_data:L280:C14",
+      "source": {
+        "file": "dfu.c",
+        "line": 280
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "slice_offset",
+      "kind": "variable",
+      "name_zh": "分片在块内偏移",
+      "summary_zh": "当前分片在块组装缓冲区中的字节起始位置。",
+      "description_zh": "在 handle_data 中由 slice_no * slice_size 计算获得。",
+      "declaration": "uint32_t slice_offset;",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "dfu.c::handle_data:L281:C14",
+      "source": {
+        "file": "dfu.c",
+        "line": 281
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "expected_length",
+      "kind": "variable",
+      "name_zh": "分片预期长度",
+      "summary_zh": "当前分片应该具备的合法载荷字节长度。",
+      "description_zh": "在 handle_data 中校验分片大小，末片可小于标准片长。",
+      "declaration": "uint16_t expected_length;",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "dfu.c::handle_data:L282:C14",
+      "source": {
+        "file": "dfu.c",
+        "line": 282
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "payload_length",
+      "kind": "variable",
+      "name_zh": "分片实际载荷长度",
+      "summary_zh": "数据帧中除去定位头后的实际固件数据长度。",
+      "description_zh": "在 handle_data 中由 data_length 减去 4 字节定位字段得出。",
+      "declaration": "uint16_t payload_length;",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "dfu.c::handle_data:L283:C14",
+      "source": {
+        "file": "dfu.c",
+        "line": 283
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "bitmap_index",
+      "kind": "variable",
+      "name_zh": "位图字节索引",
+      "summary_zh": "分片编号在分片位图数组中的字节下标。",
+      "description_zh": "在 handle_data 中由 slice_no >> 3 计算得到。",
+      "declaration": "uint16_t bitmap_index;",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "dfu.c::handle_data:L284:C14",
+      "source": {
+        "file": "dfu.c",
+        "line": 284
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "bit_mask",
+      "kind": "variable",
+      "name_zh": "位图掩码",
+      "summary_zh": "分片编号在位图字节内对应比特位的单热点掩码。",
+      "description_zh": "在 handle_data 中由 1U << (slice_no & 0x07U) 计算得出。",
+      "declaration": "uint8_t bit_mask;",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "dfu.c::handle_data:L285:C13",
+      "source": {
+        "file": "dfu.c",
+        "line": 285
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "parsed",
+      "kind": "variable",
+      "name_zh": "帧解析结果快照",
+      "summary_zh": "存放帧解析产出的命令码与载荷指针的临时结构体。",
+      "description_zh": "在 Dfu_HandleFrame 中接收 parse_frame 的输出。",
+      "declaration": "dfu_frame_t parsed;",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "dfu.c::Dfu_HandleFrame:L407:C17",
+      "source": {
+        "file": "dfu.c",
+        "line": 407
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "result",
+      "kind": "variable",
+      "name_zh": "帧校验结果",
+      "summary_zh": "保存帧基本格式与校验和检查的执行结果状态码。",
+      "description_zh": "在 Dfu_HandleFrame 中接收 parse_frame 返回的 dfu_result_t 状态码。",
+      "declaration": "dfu_result_t result;",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "dfu.c::Dfu_HandleFrame:L408:C18",
+      "source": {
+        "file": "dfu.c",
+        "line": 408
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "remaining",
+      "kind": "variable",
+      "name_zh": "整文件校验剩余字节",
+      "summary_zh": "整文件 CRC 校验尚未读取处理的剩余字节长度。",
+      "description_zh": "在 Dfu_Process 中计算 file_size - crc_offset。",
+      "declaration": "uint32_t remaining;",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "dfu.c::Dfu_Process:L480:C14",
+      "source": {
+        "file": "dfu.c",
+        "line": 480
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "length",
+      "kind": "variable",
+      "name_zh": "本轮校验读取长度",
+      "summary_zh": "本轮调度从 Flash 读取并合入 CRC 的数据字节数。",
+      "description_zh": "在 Dfu_Process 中单轮最多为 256 字节。",
+      "declaration": "uint16_t length;",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "dfu.c::Dfu_Process:L481:C14",
+      "source": {
+        "file": "dfu.c",
+        "line": 481
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "crc",
+      "kind": "variable",
+      "name_zh": "CRC16 累计寄存器",
+      "summary_zh": "初值为 0xFFFF 的 CRC16 计算中间变量。",
+      "description_zh": "在 Dfu_Crc16Modbus 中循环进行按位异或计算。",
+      "declaration": "uint16_t crc = 0xFFFFU;",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "dfu.c::Dfu_Crc16Modbus:L538:C14",
+      "source": {
+        "file": "dfu.c",
+        "line": 538
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "index",
+      "kind": "variable",
+      "name_zh": "输入字节遍历索引",
+      "summary_zh": "遍历输入数据缓冲区的字节下标计数器。",
+      "description_zh": "在 Dfu_Crc16Modbus 中按字节逐个提取数据进行校验。",
+      "declaration": "uint32_t index;",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "dfu.c::Dfu_Crc16Modbus:L539:C14",
+      "source": {
+        "file": "dfu.c",
+        "line": 539
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "bit",
+      "kind": "variable",
+      "name_zh": "位遍历计数",
+      "summary_zh": "循环按位异或与移位运算的比特计数器。",
+      "description_zh": "在 Dfu_Crc16Modbus 中对每个字节的 8 个二进制位依次计算。",
+      "declaration": "uint8_t bit;",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "dfu.c::Dfu_Crc16Modbus:L540:C13",
+      "source": {
+        "file": "dfu.c",
+        "line": 540
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "total",
+      "kind": "variable",
+      "name_zh": "编码帧总长度",
+      "summary_zh": "载荷长度加上固定帧开销计算出的完整帧字节数。",
+      "description_zh": "在 Dfu_EncodeFrame 中用于检查是否超出 capacity 缓冲容量。",
+      "declaration": "uint32_t total = (uint32_t)data_length + DFU_FRAME_OVERHEAD;",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "dfu.c::Dfu_EncodeFrame:L573:C14",
+      "source": {
+        "file": "dfu.c",
+        "line": 573
+      },
+      "uncertainty": ""
+    },
+    {
+      "symbol": "crc",
+      "kind": "variable",
+      "name_zh": "计算帧 CRC16",
+      "summary_zh": "为待发送完整帧数据计算出的 Modbus CRC16 校验值。",
+      "description_zh": "在 Dfu_EncodeFrame 中调用 Dfu_Crc16Modbus 计算并按小端写入帧尾。",
+      "declaration": "uint16_t crc;",
+      "parameters": [],
+      "returns_zh": "",
+      "scope": "dfu.c::Dfu_EncodeFrame:L574:C14",
+      "source": {
+        "file": "dfu.c",
+        "line": 574
+      },
+      "uncertainty": ""
+    }
+  ]
+}

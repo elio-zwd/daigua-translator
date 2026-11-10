@@ -1,0 +1,123 @@
+{
+  "task": {
+    "name": "DFU 固件升级模块词库与跨项目通用技术库制作",
+    "description": "基于课程根目录 dfu.h 与 dfu.c 源码，执行 docs/external-ai-handoff.md 规范制作项目精确知识包、提炼通用技术库并生成音标增强包。",
+    "created_at": "2026-11-10T09:07:00+08:00",
+    "host_os": "Windows 10 x64",
+    "shell": "pwsh.exe (PowerShell 7.5.x)"
+  },
+  "inputs": {
+    "translator_repo": "M:\\005869\\My_Elio\\daigua-translator",
+    "source_root": "M:\\Obsidian\\Elio\\课程",
+    "target_scope": "根目录 .c 与 .h 文件（dfu.h 与 dfu.c）",
+    "existing_project_pack": null,
+    "existing_general_terms": null,
+    "existing_phonetic_index": "M:\\005869\\My_Elio\\ECDICT\\daigua-index",
+    "feedback": "首次制作 DFU 模块词库",
+    "output_directory": "knowledge-packs/dfu-20261110"
+  },
+  "git_status": {
+    "source_repo": {
+      "commit": "7323c0ef18fdabd733e055bb15e4738fa6a108b6",
+      "clean": true,
+      "tracked_files": [
+        "dfu.h",
+        "dfu.c"
+      ]
+    },
+    "translator_repo": {
+      "commit": "281176814e6c148cb8d730a9c5eb2de8f674ff65",
+      "worktree_status": "新创建输出目录 knowledge-packs/dfu-20261110/"
+    }
+  },
+  "source_files": [
+    {
+      "relative_path": "dfu.h",
+      "role": "对外接口声明与协议常量",
+      "lines_total": 181,
+      "lines_read": "1-181",
+      "read_status": "complete",
+      "bytes": 9773,
+      "sha256": "8d8ad124fa971aaafc2a7aec179cfc59a561864f7d8ac9940b65105e514295a2"
+    },
+    {
+      "relative_path": "dfu.c",
+      "role": "核心状态机实现、分片组装与 Flash 校验",
+      "lines_total": 595,
+      "lines_read": "1-200, 201-400, 401-595",
+      "read_status": "complete",
+      "bytes": 23608,
+      "sha256": "c2d469158626707ba64e29d6eccb4fc075332a4073aa16ec623f3b8a67a3b750"
+    }
+  ],
+  "outputs": [
+    {
+      "file": "project-pack.json",
+      "description": "项目精确知识包，含 116 个符号条目及完整参数释义",
+      "entries_count": 116,
+      "sha256": "0426fa3d15861e53c3a6aa3ee4b37150a240cb1990bdf2fc15dfb81a731ff874"
+    },
+    {
+      "file": "general-terms.json",
+      "description": "跨项目通用技术词库，含 17 个通用技术词条与完整标识符约定",
+      "entries_count": 17,
+      "sha256": "317b3bec53a9fedd9b3c83b11a96c9a02c6ad3cf0fd3ab5146e094265ed75fac"
+    },
+    {
+      "file": "project-pack.phonetic.json",
+      "description": "基于离线 ECDICT 索引和补充库生成的音标增强包",
+      "entries_count": 116,
+      "sha256": "a1a8cfae22e2acfc05c65024da389b68d98407663e4fdbf7754f481ceb33d8a1"
+    },
+    {
+      "file": "dfu-supplement.json",
+      "description": "AI 提炼的音标回填补充库（12 项常用词与缩写）",
+      "entries_count": 12,
+      "sha256": "2c167863297f1f56ef15a963b1bd35fcf6514e4879903909b172f9cf3775e200"
+    },
+    {
+      "file": "missing.initial.json",
+      "description": "初次离线索引匹配后的缺失音标清单（14 项）",
+      "entries_count": 14,
+      "sha256": "f75495b43055a492e1f13505f196c09c6a9cf675e502326fa03302247127b98a"
+    },
+    {
+      "file": "missing.json",
+      "description": "补充回填后的剩余待确认读音清单（2 项完整标识符约定）",
+      "entries_count": 2,
+      "sha256": "a30f031ecc12f0fef8ff7e525668b7c17a4d67494b9de24233c0df2cf48a31db"
+    },
+    {
+      "file": "report.md",
+      "description": "工程词库制作与通用技术提炼总结报告"
+    }
+  ],
+  "validation": {
+    "pack_validate": {
+      "command": "python -X utf8 validator/validate.py --pack knowledge-packs/dfu-20261110/project-pack.json --src M:\\Obsidian\\Elio\\课程",
+      "exit_code": 0,
+      "errors": 0,
+      "warnings": 0,
+      "status": "PASSED"
+    },
+    "terms_validate": {
+      "command": "python -X utf8 -c 'import json,sys; from pathlib import Path; from phonetics.model import validate_terms; terms=validate_terms(json.loads(Path(sys.argv[1]).read_text(encoding=\"utf-8-sig\"))); print(\"Technical terms validated:\", len(terms))' knowledge-packs/dfu-20261110/general-terms.json",
+      "exit_code": 0,
+      "terms_count": 17,
+      "status": "PASSED"
+    },
+    "phonetic_pack_validate": {
+      "command": "python -X utf8 validator/validate.py --pack knowledge-packs/dfu-20261110/project-pack.phonetic.json --src M:\\Obsidian\\Elio\\课程",
+      "exit_code": 0,
+      "errors": 0,
+      "warnings": 0,
+      "status": "PASSED"
+    },
+    "python_tests": {
+      "command": "python -m unittest discover -s tests -p test_*.py",
+      "exit_code": 0,
+      "tests_run": 33,
+      "status": "PASSED"
+    }
+  }
+}
