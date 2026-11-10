@@ -34,19 +34,20 @@ function documentHtml(content: string, toolbar: string): string {
     const api=acquireVsCodeApi();
     document.addEventListener('click',event=>{const b=event.target.closest('button[data-action]');if(b)api.postMessage({action:b.dataset.action,key:b.dataset.key,index:Number(b.dataset.index)});});
     document.addEventListener('change',event=>{const t=event.target;if(t.dataset.key)api.postMessage({action:'set',key:t.dataset.key,value:t.type==='checkbox'?t.checked:t.type==='number'?Number(t.value):t.value});});
-    window.addEventListener('message',event=>{const m=event.data;if(m.type==='render'){const y=window.scrollY;document.getElementById('content').innerHTML=m.html;if(m.toolbar!==undefined)document.querySelector('nav').innerHTML=m.toolbar;window.scrollTo(0,y);}if(m.type==='notice'){document.getElementById('notice').textContent=m.text;}});
+    window.addEventListener('message',event=>{const m=event.data;if(m.type==='render'){const y=window.scrollY;document.getElementById('content').innerHTML=m.html;if(m.toolbar!==undefined)document.querySelector('nav').innerHTML=m.toolbar;window.scrollTo(0,y);}if(m.type==='notice'){const target=document.getElementById(m.target);if(target)target.textContent=m.text;}});
     </script></body></html>`;
 }
 const button = (label: string, action: string, attrs = '') => `<button data-action="${action}" ${attrs}>${label}</button>`;
-export function settingsHtml(model: SettingsModel): string {
+export function settingsHtml(model: SettingsModel, notices: Record<string, string> = {}): string {
   const v = model.values;
+  const notice = (id: string) => `<p id="${id}" role="status" class="help">${e(notices[id] || '')}</p>`;
   const toggle = (key: string, label: string, help: string) => `<div class="row"><div><label for="${key}">${label}</label><p class="help">${help}</p></div><input id="${key}" data-key="${key}" type="checkbox" ${v[key] ? 'checked' : ''}></div>`;
   const list = (key: string, title: string) => {
     const paths = key === 'dictionaryPath' ? (v[key] ? [v[key] as string] : []) : v[key] as string[];
     return `<h3>${title}</h3>${paths.length ? paths.map((p, index) => `<div class="path"><div><code>${e(p)}</code>${key === 'packPaths' ? `<p class="help">${e(model.packs.find(x => x.path === p)?.status || '等待加载')}</p>` : ''}</div>${button('移除', 'remove', `data-key="${key}" data-index="${index}"`)}</div>`).join('') : '<p class="help">尚未配置</p>'}
-      <div class="actions">${button(key === 'dictionaryPath' ? '选择词典目录' : '添加文件', 'choose', `data-key="${key}"`)}</div>`;
+      <div class="actions">${button(key === 'dictionaryPath' ? '选择词典目录' : '添加文件', 'choose', `data-key="${key}"`)}</div>${notice(key + 'Notice')}`;
   };
-  return `<header><p class="eyebrow">呆瓜 · 设置</p><h1>让查词顺手一点</h1><p class="muted">修改后自动保存到${e(model.scope)}，立即生效。</p><p id="notice" role="status" class="muted"></p></header>
+  return `<header><p class="eyebrow">呆瓜 · 设置</p><h1>让查词顺手一点</h1><p class="muted">修改后自动保存到${e(model.scope)}，立即生效。</p>${notice('notice')}</header>
     <section><h2>日常使用</h2>${toggle('localHover', '悬停查词', '在 C/C++ 名称上显示释义；主动查询始终可用。')}
     <div class="row"><div><label for="hoverFallback">未收录名称</label><p class="help">先查通用词库，再按所选方式回退；关闭时只查项目词条。</p></div><select id="hoverFallback" data-key="hoverFallback">${[['online','自动查词，允许联网回退'],['ecdict','仅查本地词库'],['off','不自动解释']].map(([key,label]) => `<option value="${key}" ${v.hoverFallback === key ? 'selected' : ''}>${label}</option>`).join('')}</select></div>
     ${toggle('bingEnabled','允许联网翻译','关闭后名称只查本地，普通句子无法联网翻译。')}${toggle('showStatusBar','显示状态栏入口','点击状态栏的“呆瓜”打开此设置页。')}
@@ -63,10 +64,11 @@ export function settingsHtml(model: SettingsModel): string {
 export class ReaderPanels implements vscode.Disposable {
   private reader?: vscode.WebviewPanel;
   private settings?: vscode.WebviewPanel;
+  private notices: Record<string, string> = {};
   result?: QueryResult;
   locked = false;
   constructor(private readonly debug: () => boolean, private readonly model: () => SettingsModel,
-    private readonly action: (message: Record<string, unknown>) => Promise<void>,
+    private readonly action: (message: Record<string, unknown>) => Promise<string | void>,
     private readonly follow: () => void) {}
   get follows(): boolean { return !!this.reader?.visible && !this.locked; }
   get isOpen(): boolean { return !!this.reader; }
@@ -89,26 +91,36 @@ export class ReaderPanels implements vscode.Disposable {
   private refreshReader(): void { void this.reader?.webview.postMessage({ type: 'render', html: this.readerContent(), toolbar: this.toolbar() }); }
   refresh(): void {
     this.refreshReader();
-    void this.settings?.webview.postMessage({ type: 'render', html: settingsHtml(this.model()) });
+    void this.settings?.webview.postMessage({ type: 'render', html: settingsHtml(this.model(), this.notices) });
   }
   showSettings(): void {
     if (this.settings) { this.settings.reveal(); this.refresh(); return; }
     this.settings = vscode.window.createWebviewPanel('daigua.settings', '呆瓜 · 设置', vscode.ViewColumn.Active, { enableScripts: true, localResourceRoots: [] });
-    this.settings.webview.html = documentHtml(settingsHtml(this.model()), button('原生设置','nativeSettings'));
+    this.settings.webview.html = documentHtml(settingsHtml(this.model(), this.notices), button('原生设置','nativeSettings'));
     this.settings.onDidDispose(() => { this.settings = undefined; });
     this.settings.webview.onDidReceiveMessage(message => this.handle(message));
   }
   private async handle(message: unknown): Promise<void> {
     if (!message || typeof message !== 'object' || typeof (message as Record<string, unknown>).action !== 'string') return;
     const m = message as Record<string, unknown>;
+    const target = ['choose', 'remove'].includes(m.action as string) && ['packPaths', 'technicalLibraryPaths', 'dictionaryPath'].includes(m.key as string)
+        ? m.key + 'Notice' : 'notice';
+    const notify = (text: string) => {
+      this.notices[target] = text;
+      void this.settings?.webview.postMessage({ type: 'notice', target, text });
+    };
     try {
       if (m.action === 'lock') { this.locked = !this.locked; this.refreshReader(); this.follow(); }
       else if (m.action === 'copy') { if (this.result) await vscode.env.clipboard.writeText(this.result.text); }
       else if (m.action === 'settings') this.showSettings();
-      else await this.action(m);
+      else {
+        if (m.action === 'choose') notify('正在选择文件或目录…');
+        const result = await this.action(m);
+        if (result) notify(result);
+      }
     } catch (error) {
       // Errors are text, never HTML or commands from webview-supplied data.
-      void this.settings?.webview.postMessage({ type: 'notice', text: '未能保存设置：' + String(error) });
+      notify('操作未完成：' + String(error));
     }
   }
   dispose(): void { this.reader?.dispose(); this.settings?.dispose(); }

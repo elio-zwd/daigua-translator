@@ -20,6 +20,9 @@ def main():
         assert 'extension/resources/technical-terms.json' in files
         groups = manifest['contributes']['configuration']
         properties = {key: value for group in groups for key, value in group['properties'].items()}
+        technical_paths = properties['daiguaTranslate.technicalLibraryPaths']
+        assert technical_paths['type'] == 'array' and technical_paths['items']['type'] == 'string'
+        assert technical_paths['default'] == [] and technical_paths['scope'] == 'window'
         assert properties['daiguaTranslate.debugMode']['default'] is False
         commands = {item['command'] for item in manifest['contributes']['commands']}
         assert {'daiguaTranslate.openDetails', 'daiguaTranslate.openSettings'} <= commands

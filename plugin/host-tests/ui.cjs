@@ -27,6 +27,10 @@ exports.run = async function () {
     await vscode.commands.executeCommand('daiguaTranslate.openDetails', name);
   };
   await showWord(names[0]);
+  // Supply a deterministic picker result in this isolated host; no native dialog input.
+  const originalOpenDialog = vscode.window.showOpenDialog;
+  let pickerResult;
+  vscode.window.showOpenDialog = async () => pickerResult;
   await new Promise((resolve, reject) => {
     const server = http.createServer(async (req, res) => {
       try {
@@ -42,6 +46,11 @@ exports.run = async function () {
           const editor = await vscode.window.showTextDocument(document, 1);
           editor.selection = new vscode.Selection(line + 2, 2, line + 2, 2);
         } else if (url.pathname === '/settings') await vscode.commands.executeCommand('daiguaTranslate.openSettings');
+        else if (url.pathname === '/picker') {
+          const mode = url.searchParams.get('mode');
+          pickerResult = mode === 'cancel' ? undefined : [vscode.Uri.file(path.join(root,
+            mode === 'invalid' ? 'plugin/package.json' : 'knowledge-packs/dfu-20261110/general-terms.json'))];
+        }
         else if (url.pathname === '/layout') {
           const ratio = Number(url.searchParams.get('ratio'));
           if (ratio < .2 || ratio > .7) throw Error('Invalid ratio');
@@ -51,8 +60,12 @@ exports.run = async function () {
           await vscode.commands.executeCommand('editor.action.showHover');
         }
         res.end(JSON.stringify({ ok: true, result: api.panels.result?.text, locked: api.panels.locked,
+          technicalLibraryPaths: vscode.workspace.getConfiguration('daiguaTranslate').get('technicalLibraryPaths', []),
           debug: vscode.workspace.getConfiguration('daiguaTranslate').get('debugMode', false), vscode: vscode.version }));
-        if (url.pathname === '/finish') { server.close(); resolve(); }
+        if (url.pathname === '/finish') {
+          vscode.window.showOpenDialog = originalOpenDialog;
+          server.close(); resolve();
+        }
       } catch (error) { res.statusCode = 500; res.end(String(error)); }
     });
     server.on('error', reject);

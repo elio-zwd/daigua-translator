@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([string]$CodePath = 'code.cmd')
+param([string]$CodePath = 'code.cmd', [string]$VsixPath = '')
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 $repositoryRoot = Split-Path -Parent $PSScriptRoot
@@ -19,10 +19,24 @@ $listener.Start()
 $oldPort = $env:DAIGUA_HOST_PORT
 $env:DAIGUA_HOST_PORT = [string]$listener.LocalEndpoint.Port
 try {
+    $developmentPath = Join-Path $repositoryRoot 'plugin'
+    $extensionFlags = @('--disable-extensions')
+    if ($VsixPath) {
+        $packagePath = (Resolve-Path -LiteralPath $VsixPath).Path
+        & $CodePath '--user-data-dir' (Join-Path $taskDirectory 'profile') '--extensions-dir' (Join-Path $taskDirectory 'extensions') `
+            '--install-extension' $packagePath '--force'
+        if ($LASTEXITCODE -ne 0) { throw "VSIX installation failed. Inspect $taskDirectory" }
+        # Develop only a minimal test driver, so the product's manifest is scanned as an installed extension.
+        $developmentPath = Join-Path $taskDirectory 'driver'
+        New-Item -ItemType Directory -Path $developmentPath -Force | Out-Null
+        '{"name":"daigua-host-driver","publisher":"daigua-tests","version":"0.0.0","engines":{"vscode":"^1.85.0"},"main":"./index.js"}' | Set-Content -LiteralPath (Join-Path $developmentPath 'package.json') -Encoding utf8
+        'exports.activate = function () {};' | Set-Content -LiteralPath (Join-Path $developmentPath 'index.js') -Encoding utf8
+        $extensionFlags = @()
+    }
     # --extensionTestsPath closes the isolated host after run(); existing profiles are not used.
-    & $CodePath '--new-window' '--wait' '--disable-extensions' '--disable-workspace-trust' '--skip-welcome' '--skip-release-notes' `
+    & $CodePath '--new-window' '--wait' @extensionFlags '--disable-workspace-trust' '--skip-welcome' '--skip-release-notes' `
         '--user-data-dir' (Join-Path $taskDirectory 'profile') '--extensions-dir' (Join-Path $taskDirectory 'extensions') `
-        "--extensionDevelopmentPath=$(Join-Path $repositoryRoot 'plugin')" `
+        "--extensionDevelopmentPath=$developmentPath" `
         "--extensionTestsPath=$(Join-Path $repositoryRoot 'plugin/host-tests/run.cjs')" $testWorkspace
     if ($LASTEXITCODE -ne 0) { throw "VS Code host failed with exit code $LASTEXITCODE. Inspect $taskDirectory" }
     $pendingClient = $listener.AcceptTcpClientAsync()

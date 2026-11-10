@@ -141,8 +141,9 @@ export async function activate(context: vscode.ExtensionContext) {
       if (!disposed && panels.isOpen && sequence === panelSequence && currentEpoch === epoch) panels.setResult(errorResult(text, error));
     }
   }
-  async function settingsAction(message: Record<string, unknown>) {
+  async function settingsAction(message: Record<string, unknown>): Promise<string | void> {
     const key = message.key;
+    let notice: string | undefined;
     if (message.action === 'set' && typeof key === 'string') {
       const value = message.value;
       const bools = ['localHover', 'bingEnabled', 'showStatusBar', 'autoReload', 'includeParameters', 'debugMode'];
@@ -156,28 +157,46 @@ export async function activate(context: vscode.ExtensionContext) {
         if (!Number.isSafeInteger(message.index) || (message.index as number) < 0) return;
         if (key === 'dictionaryPath') await config().update(key, '', settingTarget());
         else await config().update(key, config().get<string[]>(key, []).filter((_, i) => i !== message.index), settingTarget());
+        notice = '已移除，立即生效。';
       } else {
         const files = await vscode.window.showOpenDialog({ canSelectFolders: key === 'dictionaryPath',
           canSelectFiles: key !== 'dictionaryPath', canSelectMany: key !== 'dictionaryPath',
           title: key === 'dictionaryPath' ? '选择含 manifest.json 的词典目录' : '添加词库 JSON',
           filters: key === 'dictionaryPath' ? undefined : { '词库 JSON': ['json'] } });
-        if (!files?.length) return;
+        if (!files?.length) return '已取消选择。';
         if (key === 'dictionaryPath') {
           const manifest = JSON.parse((await fs.promises.readFile(path.join(files[0].fsPath, 'manifest.json'), 'utf8')).replace(/^\uFEFF/, ''));
           if (manifest.format_version !== 1 || !manifest.shards || !/^[a-f0-9]{64}$/i.test(manifest.source_sha256)) throw Error('词典索引格式不兼容');
           await config().update(key, files[0].fsPath, settingTarget());
+          notice = '已设置离线词典目录，立即生效。';
         } else {
+          let termCount = 0;
           if (key === 'packPaths') {
             const next = await new KnowledgeLoader().loadWithReport(files.map(f => f.fsPath));
-            if (next.failures.length) throw Error('所选知识包无效，当前配置未修改');
-          } else for (const file of files) validateTerms(JSON.parse((await fs.promises.readFile(file.fsPath, 'utf8')).replace(/^\uFEFF/, '')));
-          await config().update(key, [...new Set([...config().get<string[]>(key, []), ...files.map(f => f.fsPath)])], settingTarget());
+            if (next.failures.length) throw Error(next.failures.map(f => `${f.path}：${f.reason}`).join('\n') + '\n当前配置未修改。');
+          } else for (const file of files) {
+            try { termCount += validateTerms(JSON.parse((await fs.promises.readFile(file.fsPath, 'utf8')).replace(/^\uFEFF/, ''))).length; }
+            catch (error) {
+              const reason = `${file.fsPath}：${error instanceof Error ? error.message : String(error)}`;
+              output.appendLine('[添加通用技术库失败] ' + reason);
+              throw Error(reason + '\n当前配置未修改。');
+            }
+          }
+          const previous = config().get<string[]>(key, []);
+          const next = [...new Set([...previous, ...files.map(f => f.fsPath)])];
+          await config().update(key, next, settingTarget());
+          notice = next.length === previous.length ? '所选文件已在列表中，已重新加载。'
+            : key === 'technicalLibraryPaths' ? `已添加 ${next.length - previous.length} 个通用技术库；所选文件共 ${termCount} 条词条，立即生效。`
+              : `已添加 ${next.length - previous.length} 个项目知识包，立即生效。`;
+          // Selecting an existing file also reloads its edited contents.
+          if (next.length === previous.length) await reloadPacks();
         }
       }
     } else if (message.action === 'reload') await reloadPacks(true);
     else if (message.action === 'diagnostics') showStatus();
     else if (message.action === 'nativeSettings') await vscode.commands.executeCommand('workbench.action.openSettings', '@ext:elio-zwd.daigua-translator');
     panels.refresh();
+    return notice;
   }
 
   function refreshStatus() {

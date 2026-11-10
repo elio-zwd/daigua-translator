@@ -17,11 +17,20 @@ exports.run = async function () {
   const textOf = hovers => hovers.flatMap(h => h.contents.map(c => typeof c === 'string' ? c : c.value)).join('\n').replace(/&nbsp;/g, ' ');
   const hoverAt = async (doc, position) => textOf(await vscode.commands.executeCommand('vscode.executeHoverProvider', doc.uri, position));
   try {
+    const extension = vscode.extensions.getExtension('elio-zwd.daigua-translator');
+    assert.ok(extension);
+    const groups = extension.packageJSON.contributes.configuration;
+    for (const group of Array.isArray(groups) ? groups : [groups]) {
+      for (const [key, property] of Object.entries(group.properties)) {
+        const inspected = vscode.workspace.getConfiguration().inspect(key);
+        assert.ok(inspected, `Configuration was not registered: ${key}`);
+        assert.deepEqual(inspected.defaultValue, property.default, `Missing registered default: ${key}`);
+      }
+    }
+    checks.push(`all configuration keys registered from extension manifest ${extension.packageJSON.version}`);
     await config.update('bingEnabled', false, vscode.ConfigurationTarget.Workspace);
     await config.update('hoverFallback', 'ecdict', vscode.ConfigurationTarget.Workspace);
     await config.update('packPaths', [path.join(repository, 'knowledge-packs/enhanced/05_createtask-pack.phonetic.json')], vscode.ConfigurationTarget.Workspace);
-    const extension = vscode.extensions.getExtension('elio-zwd.daigua-translator');
-    assert.ok(extension);
     const api = await extension.activate();
     assert.equal(api.extendTranslate, undefined);
     await vscode.commands.executeCommand('daiguaTranslate.reloadPacks');
@@ -71,6 +80,21 @@ exports.run = async function () {
     result = await hoverAt(document, new vscode.Position(1, 1));
     assert.doesNotMatch(result, /发光二极管/);
     checks.push('real dictionary/off hover modes');
+
+    const generalFile = path.join(repository, 'knowledge-packs/dfu-20261110/general-terms.json');
+    const generalTerms = require('../out/offline-dictionary').validateTerms(
+      JSON.parse(require('node:fs').readFileSync(generalFile, 'utf8').replace(/^\uFEFF/, '')));
+    assert.equal(generalTerms.length, 17);
+    await config.update('technicalLibraryPaths', [generalFile], vscode.ConfigurationTarget.Workspace);
+    await config.update('hoverFallback', 'ecdict', vscode.ConfigurationTarget.Workspace);
+    const generalDocument = await vscode.workspace.openTextDocument({ language: 'c', content: 'parse_frame\nDFU' });
+    result = await hoverAt(generalDocument, new vscode.Position(0, 3));
+    assert.match(result, /解析帧/);
+    result = await hoverAt(generalDocument, new vscode.Position(1, 1));
+    assert.match(result, /设备固件升级/);
+    await config.update('technicalLibraryPaths', [], vscode.ConfigurationTarget.Workspace);
+    await config.update('hoverFallback', 'off', vscode.ConfigurationTarget.Workspace);
+    checks.push('DFU general library: real file validation, configuration and offline hover');
 
     editor.selection = new vscode.Selection(0, 1, 0, 1);
     // Let the selection event settle before starting an explicit request.

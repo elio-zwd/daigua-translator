@@ -585,11 +585,49 @@ test('settings path buttons append validated files, reject bad files and remove 
     assert.deepEqual(h.mock.values.packPaths,[first]);assert.equal(view.messages.at(-1).type,'notice');
     h.mock.dialog=[{fsPath:second}];await view.receive({action:'choose',key:'packPaths'});
     assert.deepEqual(h.mock.values.packPaths,[first,second]);
-    assert.match(view.messages.at(-1).html,/已加载/);
+    assert.match(view.messages.findLast(m=>m.type==='render').html,/已加载/);
+    assert.match(view.messages.at(-1).text,/已添加 1 个项目知识包/);
     await view.receive({action:'remove',key:'packPaths',index:0});assert.deepEqual(h.mock.values.packPaths,[second]);
     h.mock.dialog=[{fsPath:bad}];await view.receive({action:'choose',key:'technicalLibraryPaths'});
     assert.equal(h.mock.values.technicalLibraryPaths,undefined);
     h.mock.dialog=[{fsPath:directory}];await view.receive({action:'choose',key:'dictionaryPath'});
     assert.equal(h.mock.values.dictionaryPath,undefined);
   }finally{h.dispose();fs.rmSync(directory,{recursive:true,force:true});}
+});
+
+test('DFU general library picker reports local success, duplicates, cancellation and validation errors across refreshes', async () => {
+  const file = path.resolve(__dirname, '../../knowledge-packs/dfu-20261110/general-terms.json');
+  const h = await extensionHarness([]);
+  try {
+    await h.commands.get('daiguaTranslate.openSettings')();
+    const view = h.mock.panels.at(-1);
+    h.mock.dialog = [{fsPath:file}];
+    await view.receive({action:'choose',key:'technicalLibraryPaths'});
+    assert.deepEqual(h.mock.values.technicalLibraryPaths, [file]);
+    assert.equal(view.messages.at(-1).target, 'technicalLibraryPathsNotice');
+    assert.match(view.messages.at(-1).text, /已添加 1 个通用技术库.*17 条词条/);
+    const {document,position} = documentFixture('parse_frame');
+    const hover = await h.mock.hover.provideHover(document,position,{isCancellationRequested:false});
+    assert.match(hover.contents.value, /解析帧/);
+    h.panels.refresh();
+    assert.match(view.messages.at(-1).html, /technicalLibraryPathsNotice[^>]*>已添加 1 个通用技术库/);
+    await view.receive({action:'choose',key:'technicalLibraryPaths'});
+    assert.deepEqual(h.mock.values.technicalLibraryPaths, [file]);
+    assert.match(view.messages.at(-1).text, /已在列表中.*重新加载/);
+    h.mock.dialog = undefined;
+    await view.receive({action:'choose',key:'technicalLibraryPaths'});
+    assert.match(view.messages.at(-1).text, /已取消/);
+    const bad = path.join(__dirname, 'missing-<bad>.json');
+    h.mock.dialog = [{fsPath:file},{fsPath:bad}];
+    await view.receive({action:'choose',key:'technicalLibraryPaths'});
+    assert.deepEqual(h.mock.values.technicalLibraryPaths, [file]);
+    assert.equal(view.messages.at(-1).target, 'technicalLibraryPathsNotice');
+    assert.ok(view.messages.at(-1).text.includes(bad));
+    assert.match(view.messages.at(-1).text, /当前配置未修改/);
+    h.panels.refresh();
+    assert.match(view.messages.at(-1).html, /missing-&lt;bad&gt;\.json/);
+    await view.receive({action:'remove',key:'technicalLibraryPaths',index:0});
+    assert.deepEqual(h.mock.values.technicalLibraryPaths, []);
+    assert.match(view.messages.at(-1).text, /已移除/);
+  } finally { h.dispose(); }
 });
