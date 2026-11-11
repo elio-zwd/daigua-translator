@@ -8,6 +8,7 @@ export interface SettingsModel {
   scope: string;
   packs: { path: string; status: string }[];
   count: number;
+  aiHandoff?: string;
 }
 const css = `
 :root{color-scheme:light dark}*{box-sizing:border-box}body{margin:0;background:var(--vscode-editor-background);color:var(--vscode-editor-foreground);font:var(--vscode-font-size)/1.7 var(--vscode-font-family)}
@@ -19,7 +20,8 @@ article{margin:24px 0;padding:22px 0;border-top:1px solid var(--vscode-panel-bor
 .phonetic,.muted,.help{color:var(--vscode-descriptionForeground);font-size:13px;overflow-wrap:anywhere}.phonetic span{margin-right:8px}.note{border-left:3px solid var(--vscode-textLink-foreground);padding:8px 14px;white-space:pre-wrap}
 button,select,input{font:inherit;color:var(--vscode-input-foreground);background:var(--vscode-input-background);border:1px solid var(--vscode-input-border,var(--vscode-panel-border));border-radius:4px;padding:6px 10px;max-width:100%}
 button{cursor:pointer;background:var(--vscode-button-secondaryBackground);color:var(--vscode-button-secondaryForeground)}button:hover{background:var(--vscode-button-secondaryHoverBackground)}button.primary{background:var(--vscode-button-background);color:var(--vscode-button-foreground)}
-button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible,a:focus-visible{outline:2px solid var(--vscode-focusBorder);outline-offset:3px}button[aria-pressed=true]{border-color:var(--vscode-focusBorder)}
+button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible,a:focus-visible,pre:focus-visible{outline:2px solid var(--vscode-focusBorder);outline-offset:3px}button[aria-pressed=true]{border-color:var(--vscode-focusBorder)}
+button:disabled{opacity:.6;cursor:default}.ai-handoff{margin:20px 0;padding:16px;border:1px solid var(--vscode-panel-border);border-radius:6px}.ai-handoff pre{max-height:320px;overflow-y:auto;margin-bottom:0}
 section{margin:28px 0;border-top:1px solid var(--vscode-panel-border);padding-top:24px}.row{display:flex;align-items:center;justify-content:space-between;gap:20px;margin:18px 0}.row>div{flex:1}.row p{margin:3px 0}.row label{font-weight:600}input[type=checkbox]{width:19px;height:19px;accent-color:var(--vscode-focusBorder)}
 select{min-width:170px}input[type=number]{width:110px}.path{padding:12px 0;border-bottom:1px solid var(--vscode-panel-border);display:flex;gap:12px;align-items:center}.path>div{flex:1;min-width:0}.path code{font-family:var(--vscode-editor-font-family);font-size:12px;overflow-wrap:anywhere;display:block}.path p{margin:0}.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
 details{margin:16px 0}summary{cursor:pointer;color:var(--vscode-textLink-foreground)}pre{white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.7 var(--vscode-editor-font-family);padding:14px;background:var(--vscode-textCodeBlock-background)}.debug{border-top:1px solid var(--vscode-panel-border);padding-top:18px}
@@ -53,6 +55,10 @@ export function settingsHtml(model: SettingsModel, notices: Record<string, strin
     ${toggle('bingEnabled','允许联网翻译','关闭后名称只查本地，普通句子无法联网翻译。')}${toggle('showStatusBar','显示状态栏入口','点击状态栏的“呆瓜”打开此设置页。')}
     <p class="help">音标以英式读音为主；词典没有完整区分口音，不能保证每条都是英式。没有可靠读音时显示“音标暂缺”。</p></section>
     <section><h2>词库管理</h2><p class="help">已加载 ${model.count} 条项目释义。内置通用词库无需配置；扩充词库时可添加外部 AI 或维护者生成的文件。</p>
+    <div class="ai-handoff"><h3>让外部 AI 完善词库</h3><p class="help">复制后填写工程路径，连同工程代码和已有词库发给外部 AI，生成项目释义并积累跨项目通用释义。完整内容包含任务模板、文件格式、校验与加载说明。</p>
+    <div class="actions">${button('复制完整提示词','copyAiHandoff', `class="primary" ${model.aiHandoff ? '' : 'disabled'}`)}</div>
+    ${notice('aiHandoffNotice')}
+    ${model.aiHandoff ? `<details><summary>查看完整提示词</summary><pre tabindex="0" aria-label="外部 AI 完整提示词">${e(model.aiHandoff)}</pre></details>` : '<p class="help">提示词未能加载，请重新安装插件后重试。</p>'}</div>
     ${list('packPaths','项目知识包')}<div class="actions">${button('重新加载','reload')}</div><br>${list('technicalLibraryPaths','通用技术库')}<br>${list('dictionaryPath','离线词典')}
     ${toggle('autoReload','保存知识包后自动更新','加载失败时保留上次可用内容。')}${toggle('includeParameters','查询函数参数','将知识包中的参数说明加入查词，同名候选分别展示。')}</section>
     <section><h2>调试与诊断</h2>${toggle('debugMode','显示调试信息','在结果末尾显示原始详细说明、来源编号、文件位置与匹配依据。日常可保持关闭。')}
@@ -103,7 +109,8 @@ export class ReaderPanels implements vscode.Disposable {
   private async handle(message: unknown): Promise<void> {
     if (!message || typeof message !== 'object' || typeof (message as Record<string, unknown>).action !== 'string') return;
     const m = message as Record<string, unknown>;
-    const target = ['choose', 'remove'].includes(m.action as string) && ['packPaths', 'technicalLibraryPaths', 'dictionaryPath'].includes(m.key as string)
+    const target = m.action === 'copyAiHandoff' ? 'aiHandoffNotice'
+      : ['choose', 'remove'].includes(m.action as string) && ['packPaths', 'technicalLibraryPaths', 'dictionaryPath'].includes(m.key as string)
         ? m.key + 'Notice' : 'notice';
     const notify = (text: string) => {
       this.notices[target] = text;
@@ -112,6 +119,12 @@ export class ReaderPanels implements vscode.Disposable {
     try {
       if (m.action === 'lock') { this.locked = !this.locked; this.refreshReader(); this.follow(); }
       else if (m.action === 'copy') { if (this.result) await vscode.env.clipboard.writeText(this.result.text); }
+      else if (m.action === 'copyAiHandoff') {
+        const prompt = this.model().aiHandoff;
+        if (!prompt) throw Error('提示词未能加载，请重新安装插件后重试。');
+        await vscode.env.clipboard.writeText(prompt);
+        notify('已复制完整提示词。填写工程路径后，连同工程代码和已有词库发给外部 AI。');
+      }
       else if (m.action === 'settings') this.showSettings();
       else {
         if (m.action === 'choose') notify('正在选择文件或目录…');

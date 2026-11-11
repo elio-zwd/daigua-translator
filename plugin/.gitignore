@@ -1,3 +1,4 @@
 out/
 node_modules/
 *.vsix
+resources/external-ai-handoff.md

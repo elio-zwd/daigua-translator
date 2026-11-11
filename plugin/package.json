@@ -196,8 +196,8 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./",
+    "compile": "node ../scripts/sync-ai-handoff.cjs && tsc -p ./",
+    "watch": "node ../scripts/sync-ai-handoff.cjs && tsc -watch -p ./",
     "test": "npm run compile && node --test",
     "package": "npm test && node ../scripts/test-plugin.js && vsce package --out daigua-translator.vsix"
   },

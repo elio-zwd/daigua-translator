@@ -22,6 +22,8 @@ export async function activate(context: vscode.ExtensionContext) {
   let debounce: ReturnType<typeof setTimeout> | undefined;
   let watchers: vscode.Disposable[] = [];
   const output = vscode.window.createOutputChannel('呆瓜翻译器');
+  const aiHandoff = await fs.promises.readFile(path.join(__dirname, '../resources/external-ai-handoff.md'), 'utf8')
+    .catch(error => { output.appendLine('[提示词加载失败] ' + String(error)); return undefined; });
   const status = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
   status.command = 'daiguaTranslate.quickSettings';
   const config = () => vscode.workspace.getConfiguration('daiguaTranslate');
@@ -92,6 +94,7 @@ export async function activate(context: vscode.ExtensionContext) {
     showStatusBar: true, autoReload: true, includeParameters: true, debugMode: false,
     bingTimeoutMs: 5000, packPaths: [], technicalLibraryPaths: [], dictionaryPath: '' };
   const panels = new ReaderPanels(debugMode, () => ({
+    aiHandoff,
     values: Object.fromEntries(Object.entries(defaultValues).map(([k, v]) => [k, config().get(k, v)])),
     scope: vscode.workspace.workspaceFolders?.length ? '当前工作区' : '用户设置', count: countEntries(),
     packs: config().get<string[]>('packPaths', []).map(file => ({ path: file,

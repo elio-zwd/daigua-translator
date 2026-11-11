@@ -80,6 +80,8 @@ pwsh.exe -NoProfile -File scripts/test-vscode.ps1 -VsixPath plugin/daigua-transl
 
 界面截图包括 `reader-dark.png`、`reader-light.png`、`reader-contrast.png`、`reader-narrow.png`、`settings.png` 和 `settings-debug.png`。失败时某些截图可能尚未生成；界面测试目录中另有 `host.log` 可供排查。
 
+设置页提示词检查还会输出 `settings-ai-dark.png`、`settings-ai-light.png`、`settings-ai-contrast.png`、`settings-ai-narrow.png`，通过真实 Webview 按钮验证预览和剪贴板全文一致。完成后仅在剪贴板仍为本次测试内容时恢复测试前的文本。编译会将 `docs/external-ai-handoff.md` 同步到安装包资源，修改说明后需重新编译。
+
 通用技术库添加检查使用 `knowledge-packs/dfu-20261110/general-terms.json`，在隔离宿主中替代文件选择返回值，通过真实 Webview 按钮验证 17 条词条的添加提示、重复选择、无效文件、取消和移除。输出 `settings-library-added.png` 与 `settings-library-error.png`；不操作原生文件窗口。真实宿主检查另行验证该文件的离线悬停查询。
 
 若 VS Code 不在默认命令路径中，可以指定其位置：

@@ -631,3 +631,22 @@ test('DFU general library picker reports local success, duplicates, cancellation
     assert.match(view.messages.at(-1).text, /已移除/);
   } finally { h.dispose(); }
 });
+
+test('settings copies the complete maintained AI handoff and reports clipboard errors beside the button', async () => {
+  const h = await extensionHarness([]);
+  try {
+    await h.commands.get('daiguaTranslate.openSettings')();
+    const view = h.mock.panels.at(-1);
+    assert.match(view.webview.html, /复制完整提示词/);
+    assert.match(view.webview.html, /查看完整提示词/);
+    await view.receive({action:'copyAiHandoff', value:'untrusted replacement'});
+    assert.equal(h.mock.copied, fs.readFileSync(path.resolve(__dirname, '../../docs/external-ai-handoff.md'), 'utf8'));
+    assert.match(view.messages.at(-1).text, /已复制完整提示词/);
+    assert.equal(view.messages.at(-1).target, 'aiHandoffNotice');
+    assert.equal(h.mock.updates.length, 0);
+    h.mock.vscode.env.clipboard.writeText = async () => { throw Error('clipboard unavailable'); };
+    await view.receive({action:'copyAiHandoff'});
+    assert.match(view.messages.at(-1).text, /操作未完成.*clipboard unavailable/);
+    assert.equal(view.messages.at(-1).target, 'aiHandoffNotice');
+  } finally { h.dispose(); }
+});

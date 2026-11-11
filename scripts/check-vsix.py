@@ -18,6 +18,9 @@ def main():
         manifest = json.loads(archive.read('extension/package.json'))
         assert 'translates' not in manifest['contributes']
         assert 'extension/resources/technical-terms.json' in files
+        prompt = archive.read('extension/resources/external-ai-handoff.md').decode('utf-8')
+        assert archive.read('extension/resources/external-ai-handoff.md') == (Path(__file__).resolve().parents[1] / 'docs/external-ai-handoff.md').read_bytes()
+        assert 'project-pack.json' in prompt and 'general-terms.json' in prompt
         groups = manifest['contributes']['configuration']
         properties = {key: value for group in groups for key, value in group['properties'].items()}
         technical_paths = properties['daiguaTranslate.technicalLibraryPaths']

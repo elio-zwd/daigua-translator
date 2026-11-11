@@ -157,6 +157,29 @@ async function main() {
     await cdp.evaluate(settings, `document.querySelector('[data-action=remove][data-key=technicalLibraryPaths]').click()`);
     await until(async () => (await bridge('/state')).technicalLibraryPaths.length === 0, 'remove general library');
     checks.push('general library button: DFU file selection, 17 entries, visible persistent feedback, duplicate, invalid file, cancel and removal');
+    const prompt = fs.readFileSync(path.join(root, 'docs/external-ai-handoff.md'), 'utf8');
+    await cdp.evaluate(settings, `document.querySelector('[data-action=copyAiHandoff]').scrollIntoView({block:'center'})`);
+    await cdp.evaluate(settings, `document.querySelector('[data-action=copyAiHandoff]').click()`);
+    await until(async () => cdp.evaluate(settings, `document.querySelector('#aiHandoffNotice').textContent.includes('已复制完整提示词')`), 'prompt copy confirmation');
+    assert.equal((await bridge('/clipboard')).clipboard, prompt);
+    await cdp.evaluate(settings, `document.querySelector('.ai-handoff details').open=true`);
+    assert.equal(await cdp.evaluate(settings, `document.querySelector('.ai-handoff pre').textContent`), prompt);
+    for (const [name, theme, cls] of [['dark','Default Dark Modern','vscode-dark'], ['light','Default Light Modern','vscode-light'], ['contrast','Default High Contrast','vscode-high-contrast']]) {
+      await bridge('/theme?name=' + encodeURIComponent(theme));
+      await until(async () => cdp.evaluate(settings, `document.body.classList.contains(${JSON.stringify(cls)})`), 'settings ' + name);
+      await cdp.evaluate(settings, `document.querySelector('.ai-handoff details').open=true`);
+      assert.equal(await cdp.evaluate(settings, `document.querySelector('.ai-handoff pre').textContent`), prompt);
+      assert.equal(await cdp.evaluate(settings, 'document.documentElement.scrollWidth>innerWidth'), false);
+      await screenshot('settings-ai-' + name);
+    }
+    await cdp.call('Emulation.setDeviceMetricsOverride', { width: 850, height: 900, deviceScaleFactor: 1, mobile: false });
+    await until(async () => cdp.evaluate(settings, 'innerWidth<=440'), 'narrow settings');
+    await cdp.evaluate(settings, `document.querySelector('.ai-handoff details').open=true; document.querySelector('[data-action=copyAiHandoff]').scrollIntoView({block:'center'})`);
+    assert.equal(await cdp.evaluate(settings, 'document.documentElement.scrollWidth>innerWidth'), false);
+    await screenshot('settings-ai-narrow');
+    await cdp.call('Emulation.clearDeviceMetricsOverride');
+    await bridge('/theme?name=Default%20Dark%20Modern');
+    checks.push('complete AI prompt preview and clipboard match maintained document; settings themes and narrow layout');
     await cdp.evaluate(settings, `(()=>{const t=document.querySelector('#debugMode');t.checked=true;t.dispatchEvent(new Event('change',{bubbles:true}));})()`);
     await until(async () => (await bridge('/state')).debug, 'settings persistence');
     await screenshot('settings');

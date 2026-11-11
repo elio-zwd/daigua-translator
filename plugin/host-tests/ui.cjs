@@ -2,6 +2,7 @@
 const vscode = require('vscode');
 const path = require('node:path');
 const http = require('node:http');
+const fs = require('node:fs');
 
 exports.run = async function () {
   const port = Number(process.env.DAIGUA_UI_PORT);
@@ -27,6 +28,8 @@ exports.run = async function () {
     await vscode.commands.executeCommand('daiguaTranslate.openDetails', name);
   };
   await showWord(names[0]);
+  const originalClipboard = await vscode.env.clipboard.readText();
+  const expectedClipboard = fs.readFileSync(path.join(root, 'plugin/resources/external-ai-handoff.md'), 'utf8');
   // Supply a deterministic picker result in this isolated host; no native dialog input.
   const originalOpenDialog = vscode.window.showOpenDialog;
   let pickerResult;
@@ -60,10 +63,14 @@ exports.run = async function () {
           await vscode.commands.executeCommand('editor.action.showHover');
         }
         res.end(JSON.stringify({ ok: true, result: api.panels.result?.text, locked: api.panels.locked,
+          clipboard: url.pathname === '/clipboard' ? await vscode.env.clipboard.readText() : undefined,
           technicalLibraryPaths: vscode.workspace.getConfiguration('daiguaTranslate').get('technicalLibraryPaths', []),
           debug: vscode.workspace.getConfiguration('daiguaTranslate').get('debugMode', false), vscode: vscode.version }));
         if (url.pathname === '/finish') {
           vscode.window.showOpenDialog = originalOpenDialog;
+          // Restore only the clipboard value written by this test.
+          if (await vscode.env.clipboard.readText() === expectedClipboard)
+            await vscode.env.clipboard.writeText(originalClipboard);
           server.close(); resolve();
         }
       } catch (error) { res.statusCode = 500; res.end(String(error)); }
