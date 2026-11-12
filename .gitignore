@@ -23,3 +23,6 @@ Thumbs.db
 # Local ECDICT index (full data stays outside the repository by default)
 dictionary-index/
 .local/
+
+# 词库由独立 Git 仓库维护
+/dictionaries/

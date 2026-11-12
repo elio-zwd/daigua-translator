@@ -45,7 +45,7 @@ exports.run = async function () {
   await config.update('libraryDirectory', libraryDirectory, 2);
   await vscode.commands.executeCommand('daiguaTranslate.reloadPacks');
   const names = ['course_board_init' , 'app_board_init', 'uint16_t', 'very_long_project_prefix_with_many_words_board_init',
-    'ek_indication_is_terminal', 'markup', 'cross_function', 'shared_arg'];
+    'ek_indication_is_terminal_sample', 'markup', 'cross_function', 'shared_arg'];
   fs.mkdirSync(currentRoot, { recursive: true });
   const sourceFile = path.join(currentRoot, 'probe.c');
   fs.writeFileSync(sourceFile, '// Concise word lookup\n\n' + names.map(name => `${name};`).join('\n') + '\n');

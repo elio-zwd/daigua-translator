@@ -118,7 +118,8 @@ async function main() {
       await screenshot('reader-' + name); checks.push(`${name} theme, concise content and no horizontal overflow`);
     }
     await bridge('/theme?name=Default%20Dark%20Modern');
-    const phoneticName = 'ek_indication_is_terminal';
+    // Use a name outside the catalog so this checks dictionary fallback even as source libraries grow.
+    const phoneticName = 'ek_indication_is_terminal_sample';
     await bridge('/reader?word=' + phoneticName);
     await until(async () => cdp.evaluate(await reader(), `document.querySelector('h1').textContent === ${JSON.stringify(phoneticName)}`), 'phonetic reader');
     const panelText = await cdp.evaluate(await reader(), `document.querySelector('main').innerText`);
@@ -206,7 +207,7 @@ async function main() {
     await cdp.evaluate(settings, `${libraryButton}.click()`);
     await until(async () => (await bridge('/state')).libraryDirectory === configuredDirectory, 'restore directory');
     checks.push('directory picker: three category counts, only catalog data, invalid directory, cancel, removal and restore');
-    const prompt = fs.readFileSync(path.join(root, 'docs/external-ai-handoff.md'), 'utf8');
+    const prompt = fs.readFileSync(path.join(root, 'docs/external-ai-handoff.md'), 'utf8').replace('{{LIBRARY_DIRECTORY}}', () => configuredDirectory);
     // HTML parsing normalizes CRLF to LF; clipboard still preserves exact source bytes.
     const previewPrompt = prompt.replace(/\r\n/g, '\n');
     await cdp.evaluate(settings, `document.querySelector('[data-action=copyAiHandoff]').scrollIntoView({block:'center'})`);

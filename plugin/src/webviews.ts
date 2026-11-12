@@ -63,7 +63,7 @@ export function settingsHtml(model: SettingsModel, notices: Record<string, strin
     ${model.libraryErrors ? `<p class="help">${model.libraryErrors} 个文件加载失败，查看加载诊断了解详情。</p>` : ''}
     <p class="help">源码目录自动识别本工程；其他工程最多显示 3 条不同释义。词库目录默认保存到用户设置，可跨工程共用。</p>
     <div class="actions">${button('选择词库目录','choose','data-key="libraryDirectory" class="primary"')}${v.libraryDirectory ? button('移除目录','remove','data-key="libraryDirectory"') : ''}${button('重新加载','reload')}${button('查看加载诊断','diagnostics')}</div>${notice('libraryDirectoryNotice')}</div>
-    <div class="ai-handoff"><h3>让外部 AI 完善词库</h3><p class="help">复制后填写工程路径，连同工程代码和已有词库发给外部 AI，维护词语释义、命名约定和源码符号三类数据。完整内容包含任务模板、目录清单、校验与加载说明。</p>
+    <div class="ai-handoff"><h3>让外部 AI 完善词库</h3><p class="help">复制提示词并附上要处理的 .c、.h 文件路径，AI 将分析工程并维护词库。</p>
     <div class="actions">${button('复制完整提示词','copyAiHandoff', `class="primary" ${model.aiHandoff ? '' : 'disabled'}`)}</div>
     ${notice('aiHandoffNotice')}
     ${model.aiHandoff ? `<details><summary>查看完整提示词</summary><pre tabindex="0" aria-label="外部 AI 完整提示词">${e(model.aiHandoff)}</pre></details>` : '<p class="help">提示词未能加载，请重新安装插件后重试。</p>'}</div>
@@ -131,7 +131,7 @@ export class ReaderPanels implements vscode.Disposable {
         const prompt = this.model().aiHandoff;
         if (!prompt) throw Error('提示词未能加载，请重新安装插件后重试。');
         await vscode.env.clipboard.writeText(prompt);
-        notify('已复制完整提示词。填写工程路径后，连同工程代码和已有词库发给外部 AI。');
+        notify('已复制完整提示词，请附上要处理的 .c、.h 文件路径。');
       }
       else if (m.action === 'settings') this.showSettings();
       else {

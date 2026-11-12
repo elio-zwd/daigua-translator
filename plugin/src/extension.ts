@@ -103,7 +103,7 @@ export async function activate(context: vscode.ExtensionContext) {
     showStatusBar: true, autoReload: true, includeParameters: true, debugMode: false,
     bingTimeoutMs: 5000, libraryDirectory: '', packPaths: [], technicalLibraryPaths: [], dictionaryPath: '' };
   const panels = new ReaderPanels(debugMode, () => ({
-    aiHandoff,
+    aiHandoff: aiHandoff?.replace('{{LIBRARY_DIRECTORY}}', () => libraryDirectory() || '（未设置，请填写含 library.json 的词库目录）'),
     libraryCounts: library?.counts,
     libraryErrors: library?.failures.length || report?.failures.length || 0,
     values: Object.fromEntries(Object.entries(defaultValues).map(([k, v]) => [k, k === 'libraryDirectory' ? libraryDirectory() : config().get(k, v)])),

@@ -650,7 +650,14 @@ test('settings copies the complete maintained AI handoff and reports clipboard e
     assert.match(view.webview.html, /复制完整提示词/);
     assert.match(view.webview.html, /查看完整提示词/);
     await view.receive({action:'copyAiHandoff', value:'untrusted replacement'});
-    assert.equal(h.mock.copied, fs.readFileSync(path.resolve(__dirname, '../../docs/external-ai-handoff.md'), 'utf8'));
+    const template = fs.readFileSync(path.resolve(__dirname, '../../docs/external-ai-handoff.md'), 'utf8');
+    assert.equal(h.mock.copied, template.replace('{{LIBRARY_DIRECTORY}}', '（未设置，请填写含 library.json 的词库目录）'));
+    h.mock.values.libraryDirectory = 'M:\\测试 $& <词库>';
+    h.panels.refresh();
+    await view.receive({action:'copyAiHandoff'});
+    assert.equal(h.mock.copied, template.replace('{{LIBRARY_DIRECTORY}}', () => h.mock.values.libraryDirectory));
+    assert.ok(view.messages.some(m => m.html?.includes('M:\\测试 $&amp; &lt;词库&gt;')));
+    delete h.mock.values.libraryDirectory;
     assert.match(view.messages.at(-1).text, /已复制完整提示词/);
     assert.equal(view.messages.at(-1).target, 'aiHandoffNotice');
     assert.equal(h.mock.updates.length, 0);
@@ -708,6 +715,8 @@ test('stale registration still saves directory, queries it, shows it in settings
     assert.match((await h.mock.hover.provideHover(document,position,{isCancellationRequested:false})).contents.value,/熠日照明/);
     await h.commands.get('daiguaTranslate.openSettings')();
     const settings=h.mock.panels.at(-1);assert.ok(settings.webview.html.includes('dictionaries'));
+    await settings.receive({action:'copyAiHandoff'});
+    assert.ok(h.mock.copied.includes(path.resolve(__dirname,'../../dictionaries')));
     await settings.receive({action:'remove',key:'libraryDirectory'});
     assert.match(settings.messages.at(-1).text,/已移除/);
     assert.doesNotMatch((await h.mock.hover.provideHover(document,position,{isCancellationRequested:false})).contents.value,/熠日照明/);
