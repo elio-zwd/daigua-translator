@@ -37,6 +37,7 @@ npm.cmd --prefix plugin run compile
 | 安装包宿主检查 | `pwsh.exe -NoProfile -File scripts/test-vscode.ps1 -VsixPath plugin/daigua-translator.vsix` | 将 VSIX 安装到隔离扩展目录，检查实际安装后的配置注册、保存和查询 |
 | 界面检查 | `node scripts/test-ui.cjs` | 查词面板、设置页、样式与真实页面交互 |
 | 打包 | `npm.cmd --prefix plugin run package` | 交付 VSIX；包含插件测试和离线冒烟检查 |
+| 独立词库校验 | `python -X utf8 validator/validate.py --library dictionaries` | 清单、三类文件归属、工程元数据与结构 |
 | 安装包检查 | `python scripts/check-vsix.py plugin/daigua-translator.vsix` | 检查运行模块、资源、配置及打包排除规则 |
 
 完整基础验证默认不发送 Bing 翻译请求。需要验证联网翻译时，可显式运行 `pwsh.exe -NoProfile -File scripts/verify.ps1 -Online`，该检查发送一个普通英文句子。
@@ -66,7 +67,7 @@ pwsh.exe -NoProfile -File scripts/test-vscode.ps1 -VsixPath plugin/daigua-transl
 - 宿主测试通过 VS Code API 调用命令、查询悬停并核对结果。
 - 宿主测试逐项检查安装清单中的配置是否已注册、默认值是否一致。`-VsixPath` 模式将产品作为普通扩展安装，使用单独的临时测试驱动；不以产品开发模式代替安装验证。
 - 界面测试通过 Chromium 调试接口读取真实 Webview DOM、触发页面事件并获取截图。
-- 界面脚本检查深色、浅色、高对比度主题，窄面板与长名称换行，锁定与跟随行为，以及设置保存和调试来源展示。
+- 界面脚本检查深色、浅色、高对比度主题，窄面板与长名称换行，锁定与跟随行为，目录选择及三类计数，以及跨工程排序、合并、参数归属和调试来源展示。
 - 截图用于检查排版效果，自动断言用于验证行为；只有截图文件不能证明所有功能通过。
 
 ## 报告与失败排查
@@ -82,7 +83,9 @@ pwsh.exe -NoProfile -File scripts/test-vscode.ps1 -VsixPath plugin/daigua-transl
 
 设置页提示词检查还会输出 `settings-ai-dark.png`、`settings-ai-light.png`、`settings-ai-contrast.png`、`settings-ai-narrow.png`，通过真实 Webview 按钮验证预览和剪贴板全文一致。完成后仅在剪贴板仍为本次测试内容时恢复测试前的文本。编译会将 `docs/external-ai-handoff.md` 同步到安装包资源，修改说明后需重新编译。
 
-通用技术库添加检查使用 `knowledge-packs/dfu-20261110/general-terms.json`，在隔离宿主中替代文件选择返回值，通过真实 Webview 按钮验证 17 条词条的添加提示、重复选择、无效文件、取消和移除。输出 `settings-library-added.png` 与 `settings-library-error.png`；不操作原生文件窗口。真实宿主检查另行验证该文件的离线悬停查询。
+目录选择检查复制 `dictionaries/` 到隔离工作区，使用 `tests/fixtures/cross-project.cjs` 添加统一测试工程，并替代文件选择结果。验证目录添加、无效目录、取消、移除和恢复；输出 `settings-library-added.png` 与 `settings-library-error.png`。真实宿主与界面共用同一组本工程、重复释义及多个参考工程，检查函数、变量、参数、类型、宏和枚举。界面另输出 `cross-project-cross_function.png`、`cross-project-shared_arg.png`、`hover-phonetics.png` 与 `hover-literal-text.png`。不操作原生文件窗口。旧文件列表兼容行为继续由插件测试覆盖。
+
+独立词库只加载清单启用项；额外验证未启用文件不会被读取、角色归属、重复路径、损坏保留、主动移除、Windows 根目录边界及冲突。Python 与插件共用 `tests/fixtures/catalog-validation.json`。迁移使用 `scripts/migrate-libraries.py`，仅写新目录，验证原始输入不变；补音标测试显式提供词库目录，另检查未提供目录时没有隐式规则。
 
 若 VS Code 不在默认命令路径中，可以指定其位置：
 
@@ -101,3 +104,16 @@ Remove-Item Env:DAIGUA_CODE_EXE
 若添加文件时提示“没有注册配置 daiguaTranslate.technicalLibraryPaths，因此无法写入工作区设置”，表示当前 VS Code 会话未注册该配置项。先核对安装包声明，并运行上面的安装包宿主检查；JSON 词库校验通过不能证明配置可以保存。
 
 本次 0.5.2 的实际安装验证中，全部配置注册、路径保存和 DFU 离线查询均通过。用户保存文件并关闭所有 VS Code 窗口、重新打开工程后，确认添加成功。遇到同类会话状态问题时，应完整重启 VS Code；仅重启扩展宿主可能不足以恢复配置注册。
+
+
+## 0.6.1 配置登记恢复回归
+
+```powershell
+pwsh.exe -NoProfile -File scripts/test-vscode.ps1 -VsixPath plugin/daigua-translator.vsix -SchemaRecovery
+```
+
+此检查在临时目录制作缺少目录配置声明的测试包，重现原生“没有注册配置”错误，再通过产品的目录选择入口验证立即查询；随后在同一隔离配置中安装正常包，重新打开并验证持久化选择同步到用户设置。测试驱动替代产品所属 API 的文件选择结果，不操作原生文件对话框。
+
+VS Code 的 `--extensionTestsPath` 模式使用内存存储，因此跨进程恢复检查改用普通隔离窗口的自动激活驱动。报告为 `report-missing.json` 和 `report-restored.json`，均须 passed=true；`host-missing.log`、`host-restored.log` 保留启动诊断。目录状态仅保存路径，不包含任何词库数据。正常安装与界面检查仍按上文执行。
+
+遇到相同错误时，先安装 0.6.1 或更新版本并重新加载窗口，再选择词库目录。加载诊断会输出目录配置是否注册、是否有待同步选择；无需手工修改日常 settings.json。

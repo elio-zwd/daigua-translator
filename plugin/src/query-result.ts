@@ -9,6 +9,8 @@ export interface Meaning {
   source: string;
 }
 export interface ResultCandidate {
+  relation?: 'current' | 'reference';
+  origins?: KnowledgePackEntry[];
   name: string;
   summary?: string;
   owner?: string;
@@ -26,16 +28,26 @@ export interface QueryResult {
   diagnostics: string[];
   message?: string;
 }
-export function projectResult(text: string, entries: KnowledgePackEntry[]): QueryResult {
-  return { text, kind: 'project', match: 'exact', diagnostics: [], candidates: entries.map(entry => ({
-    name: entry.name_zh, summary: entry.summary_zh, owner: typeof entry.owner === 'string' ? entry.owner : undefined,
-    pronunciation: entry.pronunciation, entry,
-  })) };
+export function projectResult(text: string, entries: KnowledgePackEntry[], currentProject?: string, diagnostics: string[] = []): QueryResult {
+  const normalize = (s?: string) => (s || '').trim().replace(/\s+/g, ' ');
+  const current = (e: KnowledgePackEntry) => !!currentProject && e.origin?.projectId === currentProject;
+  const ordered = [...entries.filter(current), ...entries.filter(e => !current(e))];
+  const groups = new Map<string, ResultCandidate>();
+  for (const entry of ordered) {
+    const key = JSON.stringify([entry.symbol, entry.kind, entry.owner || '', normalize(entry.name_zh), normalize(entry.summary_zh)]);
+    const old = groups.get(key);
+    if (old) { old.origins!.push(entry); continue; }
+    groups.set(key, { name: entry.name_zh, summary: entry.summary_zh, owner: entry.owner,
+      pronunciation: entry.pronunciation, entry, origins: [entry], relation: current(entry) ? 'current' : 'reference' });
+  }
+  let references = 0;
+  const candidates = [...groups.values()].filter(c => c.relation === 'current' || references++ < 3);
+  return { text, kind: 'project', match: 'exact', diagnostics, candidates };
 }
 export function resultLabel(result: QueryResult): string {
-  return result.kind === 'project' ? '项目释义' : result.kind === 'general'
-    ? `通用释义${result.match === 'inferred' ? ' · 名称推测' : ''}`
-    : result.kind === 'online' ? '联网翻译' : result.kind === 'error' ? '查询提示' : '词典释义';
+  return result.kind === 'project' ? '源码释义' : result.kind === 'general'
+    ? `命名约定${result.match === 'inferred' ? ' · 名称推测' : ''}`
+    : result.kind === 'online' ? '联网翻译' : result.kind === 'error' ? '查询提示' : '词语释义';
 }
 export function errorResult(text: string, error: unknown): QueryResult {
   const detail = error instanceof Error ? error.message : String(error);

@@ -2,7 +2,9 @@ import { QueryResult, resultLabel } from './query-result';
 import { Pronunciation } from './types';
 
 export const escapeHtml = (s: string) => s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
-export const escapeMarkdown = (s: string) => escapeHtml(s).replace(/[\\`*_{}\[\]()#+.!|>~-]/g, '\\$&').replace(/\r?\n/g, '  \n');
+// VS Code's hover renderer preserves HTML entities as text. Escape Markdown
+// directly so apostrophes stay readable and HTML/entity input stays literal.
+export const escapeMarkdown = (s: string) => s.replace(/[\\`*_{}\[\]()#+.!|<>~&-]/g, '\\$&').replace(/\r?\n/g, '  \n');
 
 export function pronunciationText(p?: Pronunciation): string {
   if (!p?.segments.length) return '音标暂缺';
@@ -29,6 +31,7 @@ export function hoverMarkdown(r: QueryResult, debug = false): string {
     if (i) lines.push('---', '');
     if (r.candidates.length > 1) lines.push(`候选 ${i + 1} / ${r.candidates.length}`, '');
     lines.push(`**${e(c.name)}**`, '');
+    if (c.relation) lines.push(c.relation === 'current' ? '本工程' : '其他工程参考', '');
     if (c.summary) lines.push(e(c.summary), '');
     if (c.owner) lines.push(`所属函数：${e(c.owner)}`, '');
     lines.push(e(pronunciationLine(c.pronunciation)), '');
@@ -44,6 +47,7 @@ export function hoverMarkdown(r: QueryResult, debug = false): string {
 export function resultHtml(r: QueryResult, debug = false): string {
   const e = escapeHtml;
   const candidates = r.candidates.map((c, i) => `<article>${r.candidates.length > 1 ? `<p class="eyebrow">候选 ${i + 1} / ${r.candidates.length}</p>` : ''}<h2>${e(c.name)}</h2>${c.summary ? `<p class="summary">${e(c.summary)}</p>` : ''}
+    ${c.relation ? `<p class="eyebrow">${c.relation === 'current' ? '本工程' : '其他工程参考'}</p>` : ''}
     ${c.owner ? `<p class="muted">所属函数：${e(c.owner)}</p>` : ''}<p class="phonetic">${e(pronunciationLine(c.pronunciation))}</p>
     </article>`).join('');
   const components = (r.components || []).map(c => `<article><h2 class="component">${e(c.text)}</h2><p class="summary">${e(c.meanings[0] || '释义暂缺')}</p>

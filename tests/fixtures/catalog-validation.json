@@ -1,0 +1,12 @@
+[
+  {"name":"empty catalog","valid":true,"catalog":{"format_version":1,"word_libraries":[],"naming_libraries":[],"projects":[]}},
+  {"name":"boolean version","valid":false,"catalog":{"format_version":true,"word_libraries":[],"naming_libraries":[],"projects":[]}},
+  {"name":"missing category","valid":false,"catalog":{"format_version":1,"word_libraries":[],"projects":[]}},
+  {"name":"unbound project","valid":true,"catalog":{"format_version":1,"word_libraries":[],"naming_libraries":[],"projects":[{"id":"a","name":"A","source_roots":[],"symbol_libraries":["symbols/a.json"]}]}},
+  {"name":"duplicate role path","valid":false,"catalog":{"format_version":1,"word_libraries":["words/a.json"],"naming_libraries":["WORDS/a.json"],"projects":[]}},
+  {"name":"parent traversal","valid":false,"catalog":{"format_version":1,"word_libraries":["../a.json"],"naming_libraries":[],"projects":[]}},
+  {"name":"drive relative path","valid":false,"catalog":{"format_version":1,"word_libraries":["C:a.json"],"naming_libraries":[],"projects":[]}},
+  {"name":"duplicate project id","valid":false,"catalog":{"format_version":1,"word_libraries":[],"naming_libraries":[],"projects":[{"id":"a","name":"A","source_roots":[],"symbol_libraries":[]},{"id":"a","name":"B","source_roots":[],"symbol_libraries":[]}]}},
+  {"name":"invalid roots","valid":false,"catalog":{"format_version":1,"word_libraries":[],"naming_libraries":[],"projects":[{"id":"a","name":"A","source_roots":[null],"symbol_libraries":[]}]}},
+  {"name":"external dictionary index","valid":true,"catalog":{"format_version":1,"word_libraries":[],"naming_libraries":[],"dictionary_path":"M:/ECDICT/index","projects":[]}}
+]

@@ -3,7 +3,8 @@ import { OfflineDictionary } from './offline-dictionary';
 import { splitIdentifier } from './identifier-words';
 import { KnowledgeIndex } from './knowledge-index';
 import { QueryResult, projectResult, legacyResult } from './query-result';
-import { isLikelySingleSymbol, normalizeSymbol, formatEntries } from './symbol-matcher';
+import { isLikelySingleSymbol, normalizeSymbol } from './symbol-matcher';
+import { identifyProject, LibraryProject } from './library-catalog';
 
 import { BingTranslator, defaultBingTranslator, translateWithBing } from './bing';
 export { BingTranslator } from './bing';
@@ -28,7 +29,8 @@ export class DaiguaTranslate {
   constructor(
     packs: KnowledgePack[] | (() => KnowledgePack[]) = [],
     private readonly bingTranslator: BingTranslator = defaultBingTranslator,
-    private readonly getSettings: () => TranslatorSettings = () => defaultSettings
+    private readonly getSettings: () => TranslatorSettings = () => defaultSettings,
+    private readonly getContext: () => { documentPath?: string; projects: LibraryProject[] } = () => ({ projects: [] })
   ) {
     this.getPacks = typeof packs === 'function' ? packs : () => packs;
   }
@@ -42,17 +44,25 @@ export class DaiguaTranslate {
     return this.index.find(normalizeSymbol(content), this.getPacks(), this.getSettings().includeParameters);
   }
 
+  sourceResult(content: string, documentPath = this.getContext().documentPath): QueryResult | undefined {
+    const entries = this.findLocalEntries(content);
+    if (!entries.length) return;
+    const project = identifyProject(documentPath, this.getContext().projects);
+    return projectResult(normalizeSymbol(content), entries, project.id, project.diagnostics);
+  }
+
   /** Structured data shared by hover, commands and the fixed reader. */
-  async queryResult(content: string, mode: 'online' | 'ecdict' | 'off', offline: OfflineDictionary): Promise<QueryResult | undefined> {
+  async queryResult(content: string, mode: 'online' | 'ecdict' | 'off', offline: OfflineDictionary, documentPath = this.getContext().documentPath): Promise<QueryResult | undefined> {
     if (!content.trim()) return;
     if (content.length > this.maxLen) throw Error(`单次最多 ${this.maxLen} 字符，请缩小选区；原文未被截断。`);
-    const matches = this.findLocalEntries(content);
-    if (matches.length) return projectResult(normalizeSymbol(content), matches);
+    const source = this.sourceResult(content, documentPath);
+    if (source) return source;
     if (mode === 'off') return;
     const symbol = isLikelySingleSymbol(content) ? normalizeSymbol(content) : undefined;
     if (symbol) {
       const general = await offline.generalResult(symbol);
       if (general) return general;
+      if (await offline.hasLocalTerms(symbol)) return offline.explainResult(symbol);
     }
     if (mode === 'ecdict' || !this.getSettings().bingEnabled) {
       if (!symbol) throw Error('联网翻译已关闭，无法提供整句译文；可查询单个名称的离线词典释义。');
@@ -81,8 +91,8 @@ export class DaiguaTranslate {
     }
     if (content.length > this.maxLen) throw Error(`单次最多 ${this.maxLen} 字符，请缩小选区。`);
 
-    const matches = this.findLocalEntries(content);
-    if (matches.length) return formatEntries(matches);
+    const source = this.sourceResult(content);
+    if (source) return legacyResult(source);
     const settings = this.getSettings();
     if (!settings.bingEnabled) {
       throw new Error('本地知识包未命中，Bing 回退已关闭。可用“呆瓜翻译器：本地查询”检查加载和词条。');

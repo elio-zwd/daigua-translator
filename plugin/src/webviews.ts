@@ -4,6 +4,8 @@ import { QueryResult } from './query-result';
 import { escapeHtml as e, resultHtml } from './result-renderer';
 
 export interface SettingsModel {
+  libraryCounts?: { words: number; naming: number; symbols: number };
+  libraryErrors?: number;
   values: Record<string, unknown>;
   scope: string;
   packs: { path: string; status: string }[];
@@ -12,6 +14,7 @@ export interface SettingsModel {
 }
 const css = `
 :root{color-scheme:light dark}*{box-sizing:border-box}body{margin:0;background:var(--vscode-editor-background);color:var(--vscode-editor-foreground);font:var(--vscode-font-size)/1.7 var(--vscode-font-family)}
+.library-directory code{overflow-wrap:anywhere;font-size:12px}.library-directory{padding:16px 0}
 nav{position:sticky;top:0;z-index:2;display:flex;flex-wrap:wrap;gap:8px;padding:12px 20px;background:var(--vscode-editor-background);border-bottom:1px solid var(--vscode-panel-border)}
 main{max-width:900px;margin:0 auto;padding:24px clamp(16px,5vw,44px) 48px}h1{font-size:clamp(22px,3vw,30px);line-height:1.4;margin:6px 0 16px;overflow-wrap:anywhere}.word{font-family:var(--vscode-editor-font-family)}
 h2{font-size:21px;line-height:1.5;margin:0 0 10px;font-weight:650}h3{font-size:16px;margin:0 0 8px}.eyebrow{font-size:12px;letter-spacing:.08em;color:var(--vscode-descriptionForeground);margin:0}
@@ -51,16 +54,21 @@ export function settingsHtml(model: SettingsModel, notices: Record<string, strin
   };
   return `<header><p class="eyebrow">呆瓜 · 设置</p><h1>让查词顺手一点</h1><p class="muted">修改后自动保存到${e(model.scope)}，立即生效。</p>${notice('notice')}</header>
     <section><h2>日常使用</h2>${toggle('localHover', '悬停查词', '在 C/C++ 名称上显示释义；主动查询始终可用。')}
-    <div class="row"><div><label for="hoverFallback">未收录名称</label><p class="help">先查通用词库，再按所选方式回退；关闭时只查项目词条。</p></div><select id="hoverFallback" data-key="hoverFallback">${[['online','自动查词，允许联网回退'],['ecdict','仅查本地词库'],['off','不自动解释']].map(([key,label]) => `<option value="${key}" ${v.hoverFallback === key ? 'selected' : ''}>${label}</option>`).join('')}</select></div>
+    <div class="row"><div><label for="hoverFallback">未收录名称</label><p class="help">先查命名约定和词语释义，再按所选方式回退；关闭时只查源码符号。</p></div><select id="hoverFallback" data-key="hoverFallback">${[['online','自动查词，允许联网回退'],['ecdict','仅查本地词库'],['off','不自动解释']].map(([key,label]) => `<option value="${key}" ${v.hoverFallback === key ? 'selected' : ''}>${label}</option>`).join('')}</select></div>
     ${toggle('bingEnabled','允许联网翻译','关闭后名称只查本地，普通句子无法联网翻译。')}${toggle('showStatusBar','显示状态栏入口','点击状态栏的“呆瓜”打开此设置页。')}
     <p class="help">音标以英式读音为主；词典没有完整区分口音，不能保证每条都是英式。没有可靠读音时显示“音标暂缺”。</p></section>
-    <section><h2>词库管理</h2><p class="help">已加载 ${model.count} 条项目释义。内置通用词库无需配置；扩充词库时可添加外部 AI 或维护者生成的文件。</p>
-    <div class="ai-handoff"><h3>让外部 AI 完善词库</h3><p class="help">复制后填写工程路径，连同工程代码和已有词库发给外部 AI，生成项目释义并积累跨项目通用释义。完整内容包含任务模板、文件格式、校验与加载说明。</p>
+    <section><h2>词库管理</h2><p class="help">插件不内置词库。选择独立目录后，只加载 library.json 清单启用的文件。</p>
+    <div class="library-directory"><h3>词库目录</h3>${v.libraryDirectory ? `<code>${e(String(v.libraryDirectory))}</code>` : '<p class="help">尚未选择词库目录。</p>'}
+    <p id="libraryCounts">词语释义库：${model.libraryCounts?.words || 0} 条 · 命名约定库：${model.libraryCounts?.naming || 0} 条 · 源码符号库：${model.libraryCounts?.symbols || model.count} 条</p>
+    ${model.libraryErrors ? `<p class="help">${model.libraryErrors} 个文件加载失败，查看加载诊断了解详情。</p>` : ''}
+    <p class="help">源码目录自动识别本工程；其他工程最多显示 3 条不同释义。词库目录默认保存到用户设置，可跨工程共用。</p>
+    <div class="actions">${button('选择词库目录','choose','data-key="libraryDirectory" class="primary"')}${v.libraryDirectory ? button('移除目录','remove','data-key="libraryDirectory"') : ''}${button('重新加载','reload')}${button('查看加载诊断','diagnostics')}</div>${notice('libraryDirectoryNotice')}</div>
+    <div class="ai-handoff"><h3>让外部 AI 完善词库</h3><p class="help">复制后填写工程路径，连同工程代码和已有词库发给外部 AI，维护词语释义、命名约定和源码符号三类数据。完整内容包含任务模板、目录清单、校验与加载说明。</p>
     <div class="actions">${button('复制完整提示词','copyAiHandoff', `class="primary" ${model.aiHandoff ? '' : 'disabled'}`)}</div>
     ${notice('aiHandoffNotice')}
     ${model.aiHandoff ? `<details><summary>查看完整提示词</summary><pre tabindex="0" aria-label="外部 AI 完整提示词">${e(model.aiHandoff)}</pre></details>` : '<p class="help">提示词未能加载，请重新安装插件后重试。</p>'}</div>
-    ${list('packPaths','项目知识包')}<div class="actions">${button('重新加载','reload')}</div><br>${list('technicalLibraryPaths','通用技术库')}<br>${list('dictionaryPath','离线词典')}
-    ${toggle('autoReload','保存知识包后自动更新','加载失败时保留上次可用内容。')}${toggle('includeParameters','查询函数参数','将知识包中的参数说明加入查词，同名候选分别展示。')}</section>
+    ${!v.libraryDirectory ? `<details class="legacy-libraries"><summary>旧版文件配置（迁移兼容）</summary><p class="help">选择词库目录后仅使用清单，不再叠加这些旧配置。</p>${list('packPaths','源码符号文件')}<br>${list('technicalLibraryPaths','旧版混合词库文件')}<br>${list('dictionaryPath','ECDICT 索引')}</details>` : ''}
+    ${toggle('autoReload','保存词库后自动更新','清单和启用文件保存后自动更新，失败时保留上次可用内容。')}${toggle('includeParameters','查询函数参数','将源码符号库中的参数说明加入查词，同名候选保留所属函数。')}</section>
     <section><h2>调试与诊断</h2>${toggle('debugMode','显示调试信息','在结果末尾显示原始详细说明、来源编号、文件位置与匹配依据。日常可保持关闭。')}
     <div class="row"><div><label for="bingTimeoutMs">联网等待上限（毫秒）</label><p class="help">超时后名称改查本地词典。</p></div><input id="bingTimeoutMs" data-key="bingTimeoutMs" type="number" min="100" max="30000" value="${Number(v.bingTimeoutMs)}"></div>
     <div class="actions">${button('查看加载诊断','diagnostics')}${button('打开原生设置','nativeSettings')}</div></section>`;
@@ -110,7 +118,7 @@ export class ReaderPanels implements vscode.Disposable {
     if (!message || typeof message !== 'object' || typeof (message as Record<string, unknown>).action !== 'string') return;
     const m = message as Record<string, unknown>;
     const target = m.action === 'copyAiHandoff' ? 'aiHandoffNotice'
-      : ['choose', 'remove'].includes(m.action as string) && ['packPaths', 'technicalLibraryPaths', 'dictionaryPath'].includes(m.key as string)
+      : ['choose', 'remove'].includes(m.action as string) && ['libraryDirectory', 'packPaths', 'technicalLibraryPaths', 'dictionaryPath'].includes(m.key as string)
         ? m.key + 'Notice' : 'notice';
     const notify = (text: string) => {
       this.notices[target] = text;

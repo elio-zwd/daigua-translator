@@ -17,7 +17,13 @@ function pack(label) {
 }
 
 function vscodeMock(paths) {
+  const definitions = Object.assign({}, ...require('../package.json').contributes.configuration.map(g => g.properties));
+  const memento = () => {
+    const values = new Map();
+    return { get: key => values.get(key), update: async (key, value) => { if (value === undefined) values.delete(key); else values.set(key, value); } };
+  };
   const state = {
+    globalState: memento(), workspaceState: memento(), missingKeys: new Set(),
     values: { packPaths: paths }, source: 'elio-zwd.daigua-translator-daigua',
     messages: { info: [], warning: [], log: [] }, commands: new Map(), watchers: [],
     panels: [], hover: undefined, dialog: undefined, input: undefined, status: {}, updates: [], executions: [],
@@ -38,8 +44,9 @@ function vscodeMock(paths) {
       workspaceFolders: [{ uri: { fsPath: '/workspace' } }],
       getConfiguration: section => ({
         get: (key, fallback) => section === 'mtrancode' ? state.source : (state.values[key] ?? fallback),
-        inspect: key => ({ workspaceValue: state.values[key] }),
+        inspect: key => state.missingKeys.has(key) ? undefined : ({ defaultValue: definitions[section + '.' + key]?.default, workspaceValue: state.values[key] }),
         update: async (key, value, target) => {
+          if (state.missingKeys.has(key)) throw Error(`CodeExpectedError: 没有注册配置 ${section}.${key}，因此无法写入 用户设置。`);
           state.updates.push({ section, key, value, target });
           if (section === 'mtrancode') state.source = value; else state.values[key] = value;
           await state.fireSettings(`${section}.${key}`);
@@ -155,7 +162,7 @@ test('independent extension keeps the same translator alive across reload', asyn
     Module._load = originalLoad;
   }
   try {
-    const exports = await extension.activate({ subscriptions: [], extension: { packageJSON: { version: '0.3.0' } } });
+    const exports = await extension.activate({ subscriptions: [], globalState: mock.globalState, workspaceState: mock.workspaceState, extension: { packageJSON: { version: '0.3.0' } } });
     const translator = exports.translator;
     assert.equal(exports.extendTranslate, undefined);
     assert.match(await translator.translate('Motor_Start', {}), /初始释义/);
@@ -174,8 +181,9 @@ test('independent extension keeps the same translator alive across reload', asyn
 });
 
 
-async function extensionHarness(paths) {
+async function extensionHarness(paths, withTerms = true) {
   const mock = vscodeMock(paths);
+  if (withTerms) mock.values.technicalLibraryPaths = require('../../tests/fixtures/library-paths.cjs');
   const { vscode, messages, commands } = mock;
   const originalLoad = Module._load;
   let extension;
@@ -188,7 +196,7 @@ async function extensionHarness(paths) {
     delete require.cache[require.resolve('../out/webviews')];
     extension = require('../out/extension');
   } finally { Module._load = originalLoad; }
-  const api = await extension.activate({ subscriptions: [], extension: { packageJSON: { version: '0.3.0' } } });
+  const api = await extension.activate({ subscriptions: [], globalState: mock.globalState, workspaceState: mock.workspaceState, extension: { packageJSON: { version: '0.3.0' } } });
   const translator = api.translator;
   translator.bingTranslator = async () => ({ translation: 'fallback' });
   return { translator, panels: api.panels, messages, mock, commands, dispose: () => extension.deactivate(),
@@ -332,10 +340,10 @@ test('diagnostics expose effective paths and local query bypasses fallback; loca
     assert.match(harness.messages.log.join('\n'), /诊断探针/);
     harness.mock.input = 'not_in_pack';
     await harness.commands.get('daiguaTranslate.queryLocal')();
-    assert.match(harness.messages.log.at(-1), /本地未命中/);
+    assert.match(harness.messages.log.join('\n'), /本地未命中/);
     const document = { languageId: 'c', getWordRangeAtPosition: () => ({}), getText: () => 'Motor_Start' };
     const hover = harness.mock.hover.provideHover(document, {});
-    assert.match(hover.contents.value, /项目释义/);
+    assert.match(hover.contents.value, /源码释义/);
     assert.match(hover.contents.value, /诊断探针/);
     harness.mock.values.localHover = false;
     assert.equal(harness.mock.hover.provideHover(document, {}), undefined);
@@ -348,28 +356,30 @@ test('diagnostics expose effective paths and local query bypasses fallback; loca
   } finally { harness.dispose(); fs.rmSync(dir, { recursive: true, force: true }); }
 });
 
-test('file picker rejects invalid files before updating settings, switches packs and respects no-workspace scope', async () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'daigua-picker-'));
-  const file = path.join(dir, 'old.json'), other = path.join(dir, 'new.json'), invalid = path.join(dir, 'manifest.json');
-  fs.writeFileSync(file, JSON.stringify(pack('原始')));
-  fs.writeFileSync(other, JSON.stringify(pack('切换成功')));
-  fs.writeFileSync(invalid, '{}');
-  const harness = await extensionHarness([file]);
+test('directory picker rejects invalid catalogs, saves global scope and supersedes legacy paths', async () => {
+  const directory=fs.mkdtempSync(path.join(os.tmpdir(),'daigua-directory-picker-'));
+  const h=await extensionHarness([],false);
   try {
-    harness.mock.dialog = [{ fsPath: invalid }];
-    await harness.commands.get('daiguaTranslate.choosePacks')();
-    assert.deepEqual(harness.mock.values.packPaths, [file]);
-    assert.equal(harness.mock.updates.length, 0);
-    assert.match(harness.messages.warning.at(-1), /未修改当前路径/);
-    harness.mock.dialog = [{ fsPath: other }];
-    await harness.commands.get('daiguaTranslate.choosePacks')();
-    assert.equal(harness.mock.updates.at(-1).target, 2);
-    assert.match(await harness.translator.translate('Motor_Start', {}), /切换成功/);
-    harness.mock.vscode.workspace.workspaceFolders = [];
-    harness.mock.dialog = [{ fsPath: file }];
-    await harness.commands.get('daiguaTranslate.choosePacks')();
-    assert.equal(harness.mock.updates.at(-1).target, 1);
-  } finally { harness.dispose(); fs.rmSync(dir, { recursive: true, force: true }); }
+    h.mock.dialog=[{fsPath:directory}];
+    await h.commands.get('daiguaTranslate.choosePacks')();
+    assert.equal(h.mock.values.libraryDirectory,undefined);assert.equal(h.mock.updates.length,0);
+    assert.match(h.messages.warning.at(-1),/当前配置未修改/);
+    h.mock.dialog=[{fsPath:path.resolve(__dirname,'../../dictionaries')}];
+    await h.commands.get('daiguaTranslate.choosePacks')();
+    assert.equal(h.mock.updates.at(-1).target,1);
+    assert.equal(h.mock.values.libraryDirectory,path.resolve(__dirname,'../../dictionaries'));
+    const {document,position}=documentFixture('EK');
+    h.mock.values.bingEnabled=false;
+    const hover=await h.mock.hover.provideHover(document,position,{isCancellationRequested:false});
+    assert.match(hover.contents.value,/熠日照明/);
+    await h.paths([path.join(directory,'not-a-pack.json')]);
+    assert.ok(!h.messages.warning.some(x=>x.includes('部分知识包加载失败')));
+    await h.commands.get('daiguaTranslate.openSettings')();
+    const view=h.mock.panels.at(-1);
+    assert.match(view.webview.html,/词语释义库/);assert.ok(!view.webview.html.includes('legacy-libraries'));
+    await view.receive({action:'remove',key:'libraryDirectory'});
+    assert.equal(h.mock.values.libraryDirectory,'');
+  } finally { h.dispose();fs.rmSync(directory,{recursive:true,force:true}); }
 });
 
 test('auto reload filters unrelated files, debounces edits, retains invalid edits and disposes watchers', async () => {
@@ -482,7 +492,7 @@ test('cancelled, superseded, edited or reconfigured automatic hover never shows 
   }
 });
 
-test('automatic off never calls Bing; dictionary mode and global-off use the bundled library', async () => {
+test('automatic off never calls Bing; dictionary mode and global-off use explicitly configured libraries', async () => {
   const h = await extensionHarness([]);
   const { document, position } = documentFixture('LED');
   let calls = 0;
@@ -578,7 +588,7 @@ test('settings path buttons append validated files, reject bad files and remove 
   const directory=fs.mkdtempSync(path.join(os.tmpdir(),'daigua-settings-path-'));
   const first=path.join(directory,'first.json'),second=path.join(directory,'second.json'),bad=path.join(directory,'bad.json');
   fs.writeFileSync(first,JSON.stringify(pack('第一个')));fs.writeFileSync(second,JSON.stringify(pack('第二个')));fs.writeFileSync(bad,'{}');
-  const h=await extensionHarness([first]);
+  const h=await extensionHarness([first], false);
   try {
     await h.commands.get('daiguaTranslate.openSettings')();const view=h.mock.panels.at(-1);
     h.mock.dialog=[{fsPath:bad}];await view.receive({action:'choose',key:'packPaths'});
@@ -597,7 +607,7 @@ test('settings path buttons append validated files, reject bad files and remove 
 
 test('DFU general library picker reports local success, duplicates, cancellation and validation errors across refreshes', async () => {
   const file = path.resolve(__dirname, '../../knowledge-packs/dfu-20261110/general-terms.json');
-  const h = await extensionHarness([]);
+  const h = await extensionHarness([], false);
   try {
     await h.commands.get('daiguaTranslate.openSettings')();
     const view = h.mock.panels.at(-1);
@@ -649,4 +659,72 @@ test('settings copies the complete maintained AI handoff and reports clipboard e
     assert.match(view.messages.at(-1).text, /操作未完成.*clipboard unavailable/);
     assert.equal(view.messages.at(-1).target, 'aiHandoffNotice');
   } finally { h.dispose(); }
+});
+
+
+test('directory watchers reload enabled words and catalog, retain invalid data, and forget removed files', async () => {
+  const directory=fs.mkdtempSync(path.join(os.tmpdir(),'daigua-watch-directory-'));
+  fs.cpSync(path.resolve(__dirname,'../../dictionaries'),directory,{recursive:true});
+  const manifest=path.join(directory,'library.json');
+  const catalog=JSON.parse(fs.readFileSync(manifest,'utf8')); delete catalog.dictionary_path;
+  fs.writeFileSync(manifest,JSON.stringify(catalog));
+  const h=await extensionHarness([],false);
+  const {document,position}=documentFixture('EK');
+  const hover=async()=> (await h.mock.hover.provideHover(document,position,{isCancellationRequested:false})).contents.value;
+  const changed=file=>{for(const watcher of h.mock.watchers.filter(w=>!w.disposed)) watcher.callbacks.Change?.({fsPath:file});};
+  try {
+    h.mock.dialog=[{fsPath:directory}];await h.commands.get('daiguaTranslate.choosePacks')();
+    h.mock.values.bingEnabled=false;h.mock.values.hoverFallback='ecdict';
+    const words=path.join(directory,catalog.word_libraries[0]);
+    const data=JSON.parse(fs.readFileSync(words,'utf8'));
+    assert.match(await hover(),/熠日照明/);
+    data.entries.find(t=>t.token==='EK').translation='组织修正';
+    fs.writeFileSync(words,JSON.stringify(data));changed(words);
+    await new Promise(r=>setTimeout(r,400));assert.match(await hover(),/组织修正/);
+    fs.writeFileSync(words,'{broken');changed(words);
+    await new Promise(r=>setTimeout(r,400));assert.match(await hover(),/组织修正/);
+    assert.ok(h.messages.log.some(t=>t.includes('保留旧内容：true')));
+    fs.writeFileSync(manifest,'{broken');changed(manifest);
+    await new Promise(r=>setTimeout(r,400));assert.match(await hover(),/组织修正/);
+    catalog.word_libraries=catalog.word_libraries.slice(1);
+    fs.writeFileSync(manifest,JSON.stringify(catalog));changed(manifest);
+    await new Promise(r=>setTimeout(r,400));assert.doesNotMatch(await hover(),/组织修正/);
+    const count=h.messages.log.length;changed(words);changed(path.join(directory,'not-enabled.json'));
+    await new Promise(r=>setTimeout(r,350));assert.equal(h.messages.log.length,count);
+  } finally {h.dispose();fs.rmSync(directory,{recursive:true,force:true});}
+});
+
+
+test('stale registration still saves directory, queries it, shows it in settings and removes it', async()=>{
+  const h=await extensionHarness([],false);
+  const {document,position}=documentFixture('EK');
+  try {
+    h.mock.missingKeys.add('libraryDirectory');
+    h.mock.dialog=[{fsPath:path.resolve(__dirname,'../../dictionaries')}];
+    h.mock.values.bingEnabled=false;
+    await h.commands.get('daiguaTranslate.choosePacks')();
+    assert.equal(h.mock.values.libraryDirectory,undefined);
+    assert.equal(h.messages.warning.length,0);
+    assert.match((await h.mock.hover.provideHover(document,position,{isCancellationRequested:false})).contents.value,/熠日照明/);
+    await h.commands.get('daiguaTranslate.openSettings')();
+    const settings=h.mock.panels.at(-1);assert.ok(settings.webview.html.includes('dictionaries'));
+    await settings.receive({action:'remove',key:'libraryDirectory'});
+    assert.match(settings.messages.at(-1).text,/已移除/);
+    assert.doesNotMatch((await h.mock.hover.provideHover(document,position,{isCancellationRequested:false})).contents.value,/熠日照明/);
+  } finally {h.dispose();}
+});
+
+test('switching to an invalid directory clears a following panel instead of leaving old source results', async()=>{
+  const directory=fs.mkdtempSync(path.join(os.tmpdir(),'daigua-invalid-switch-'));
+  const file=path.join(directory,'pack.json');fs.writeFileSync(file,JSON.stringify(pack('旧目录释义')));
+  const h=await extensionHarness([file]);const {editor}=documentFixture('Motor_Start');
+  try {
+    h.mock.vscode.window.activeTextEditor=editor;
+    await h.commands.get('daiguaTranslate.openDetails')('Motor_Start');
+    assert.equal(h.panels.result.candidates[0].name,'旧目录释义');
+    h.mock.values.libraryDirectory=path.join(directory,'missing');
+    await h.mock.fireSettings('daiguaTranslate.libraryDirectory');
+    assert.equal(h.panels.result,undefined);
+    assert.ok(h.mock.watchers.filter(w=>!w.disposed).some(w=>w.pattern.pattern==='**/*'));
+  } finally {h.dispose();fs.rmSync(directory,{recursive:true,force:true});}
 });

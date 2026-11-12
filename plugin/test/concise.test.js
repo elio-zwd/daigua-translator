@@ -6,17 +6,17 @@ const path = require('node:path');
 const { OfflineDictionary } = require('../out/offline-dictionary');
 const { DaiguaTranslate } = require('../out/daigua-translate');
 const { projectResult } = require('../out/query-result');
-const { hoverMarkdown, resultHtml } = require('../out/result-renderer');
+const { escapeMarkdown, hoverMarkdown, resultHtml } = require('../out/result-renderer');
 const { KnowledgeLoader } = require('../out/knowledge-loader');
 
-function offline(paths = []) { return new OfflineDictionary(() => ({ dictionaryPath: '', technicalLibraryPaths: paths })); }
+function offline(paths = []) { return new OfflineDictionary(() => ({ dictionaryPath: '', technicalLibraryPaths: [...require('../../tests/fixtures/library-paths.cjs'), ...paths] })); }
 test('general names normalize tokens, infer longest complete suffix, and never infer integer types', async () => {
   const d = offline();
   for (const [name, match] of [['board_init','exact'], ['BoardInit','exact'], ['course_board_init','inferred'],
     ['MyCourseBoardInit','inferred'], ['app_system_clock_config','inferred']]) {
     const r = await d.generalResult(name);
     assert.equal(r.match, match, name); assert.ok(r.candidates[0].summary);
-    assert.match(hoverMarkdown(r), match === 'inferred' ? /名称推测/ : /通用释义/);
+    assert.match(hoverMarkdown(r), match === 'inferred' ? /名称推测/ : /命名约定/);
   }
   for (const name of ['board_deinit', 'init', 'my_init', 'my_uint16_t', 'UINT16_T', 'my_board_init_extra']) {
     assert.equal(await d.generalResult(name), undefined, name);
@@ -80,6 +80,21 @@ test('untrusted Markdown, HTML and command content is escaped in all result fiel
   assert.ok(!prose.includes('[click](command:evil)'));
   assert.match(md,/\\\[click\\\]/);
   assert.equal((prose.match(/\]\(command:/g)||[]).length,2);
+});
+
+test('hover preserves phonetic apostrophes for candidates and dictionary components', () => {
+  const pronunciation = (text, phonetic) => ({ segments: [{ text, phonetic, reading:'word', status:'resolved', source:'fixture' }] });
+  const r = { text:'ek_indication_is_terminal', kind:'dictionary', match:'components', candidates:[], diagnostics:[],
+    components:[{ text:'indication', meanings:['指示'], pronunciation:pronunciation('indication', ".indi'keiʃәn") },
+      { text:'terminal', meanings:['终端机'], pronunciation:pronunciation('terminal', "'tә:minәl") }] };
+  for (const result of [r, { ...r, components:[], candidates:r.components.map(c => ({ name:c.meanings[0], pronunciation:c.pronunciation })) }]) {
+    const md = hoverMarkdown(result);
+    assert.ok(md.includes("indication /\\.indi'keiʃәn/"));
+    assert.ok(md.includes("terminal /'tә:minәl/"));
+    assert.doesNotMatch(md, /&#39;|&amp;/);
+    assert.ok(resultHtml(result).includes('&#39;'), 'HTML panel retains its own escaping');
+  }
+  assert.equal(escapeMarkdown('"quoted" & <tag> &#39;'), '"quoted" \\& \\<tag\\> \\&\\#39;');
 });
 test('dictionary output presents first sense, keeps other senses expandable, and hides fallback errors', async t => {
   const dir=fs.mkdtempSync(path.join(os.tmpdir(),'daigua-senses-'));t.after(()=>fs.rmSync(dir,{recursive:true,force:true}));

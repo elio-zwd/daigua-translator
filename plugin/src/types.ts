@@ -32,6 +32,8 @@ export interface SourceRef {
 
 /** 单条知识包词条（对应 entries[] 中的一个元素） */
 export interface KnowledgePackEntry {
+  /** Runtime provenance; never replaces the authored source or review state. */
+  origin?: { projectId?: string; libraryPath: string };
   symbol: string;
   kind: 'function' | 'variable' | 'macro' | 'enum' | 'typedef';
   name_zh: string;
@@ -50,6 +52,7 @@ export interface KnowledgePackEntry {
 
 /** 知识包顶层结构（对应一个 JSON 文件） */
 export interface KnowledgePack {
+  origin?: { projectId?: string; libraryPath: string };
   name: string;
   version: string;
   source_version?: string;

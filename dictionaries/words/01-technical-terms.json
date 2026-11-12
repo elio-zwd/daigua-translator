@@ -4,6 +4,14 @@
   "description": "MCU/C/C++ 常见约定，保留来源；默认直接使用，按反馈改进",
   "entries": [
     {
+      "token": "EK",
+      "match": "insensitive",
+      "translation": "熠日照明",
+      "reading": "unknown",
+      "source": "user-confirmed:2026-11-11：用户确认 EK 为熠日照明的缩写",
+      "review_status": "confirmed"
+    },
+    {
       "token": "LED",
       "match": "insensitive",
       "expansion": "light-emitting diode",
@@ -289,196 +297,6 @@
       "source": "AI-initial:2026-11-09",
       "review_status": "unreviewed",
       "phonetic": "stæts"
-    },
-    {
-      "token": "x",
-      "match": "prefix",
-      "translation": "FreeRTOS 类型命名前缀",
-      "reading": "silent",
-      "source": "AI-initial:2026-11-09",
-      "review_status": "unreviewed"
-    },
-    {
-      "token": "v",
-      "match": "prefix",
-      "translation": "FreeRTOS void 返回值前缀",
-      "reading": "silent",
-      "source": "AI-initial:2026-11-09",
-      "review_status": "unreviewed"
-    },
-    {
-      "token": "px",
-      "match": "prefix",
-      "translation": "FreeRTOS 指针命名前缀",
-      "reading": "silent",
-      "source": "AI-initial:2026-11-09",
-      "review_status": "unreviewed"
-    },
-    {
-      "token": "ul",
-      "match": "prefix",
-      "translation": "FreeRTOS unsigned long 前缀",
-      "reading": "silent",
-      "source": "AI-initial:2026-11-09",
-      "review_status": "unreviewed"
-    },
-    {
-      "token": "ux",
-      "match": "prefix",
-      "translation": "FreeRTOS 无符号类型前缀",
-      "reading": "silent",
-      "source": "AI-initial:2026-11-09",
-      "review_status": "unreviewed"
-    },
-    {
-      "token": "pv",
-      "match": "prefix",
-      "translation": "FreeRTOS void 指针前缀",
-      "reading": "silent",
-      "source": "AI-initial:2026-11-09",
-      "review_status": "unreviewed"
-    },
-    {
-      "token": "pc",
-      "match": "prefix",
-      "translation": "FreeRTOS char 指针前缀",
-      "reading": "silent",
-      "source": "AI-initial:2026-11-09",
-      "review_status": "unreviewed"
-    },
-    {
-      "token": "uc",
-      "match": "prefix",
-      "translation": "FreeRTOS unsigned char 前缀",
-      "reading": "silent",
-      "source": "AI-initial:2026-11-09",
-      "review_status": "unreviewed"
-    },
-    {
-      "token": "int8_t",
-      "match": "identifier",
-      "expansion": "signed 8-bit integer type",
-      "translation": "8 位有符号整数类型",
-      "reading": "unknown",
-      "source": "AI-type-convention:2026-11-09",
-      "review_status": "unreviewed"
-    },
-    {
-      "token": "int16_t",
-      "match": "identifier",
-      "expansion": "signed 16-bit integer type",
-      "translation": "16 位有符号整数类型",
-      "reading": "unknown",
-      "source": "AI-type-convention:2026-11-09",
-      "review_status": "unreviewed"
-    },
-    {
-      "token": "int32_t",
-      "match": "identifier",
-      "expansion": "signed 32-bit integer type",
-      "translation": "32 位有符号整数类型",
-      "reading": "unknown",
-      "source": "AI-type-convention:2026-11-09",
-      "review_status": "unreviewed"
-    },
-    {
-      "token": "int64_t",
-      "match": "identifier",
-      "expansion": "signed 64-bit integer type",
-      "translation": "64 位有符号整数类型",
-      "reading": "unknown",
-      "source": "AI-type-convention:2026-11-09",
-      "review_status": "unreviewed"
-    },
-    {
-      "token": "uint8_t",
-      "match": "identifier",
-      "expansion": "unsigned 8-bit integer type",
-      "translation": "8 位无符号整数类型",
-      "reading": "unknown",
-      "source": "AI-type-convention:2026-11-09",
-      "review_status": "unreviewed"
-    },
-    {
-      "token": "uint16_t",
-      "match": "identifier",
-      "expansion": "unsigned 16-bit integer type",
-      "translation": "16 位无符号整数类型",
-      "reading": "unknown",
-      "source": "AI-type-convention:2026-11-09",
-      "review_status": "unreviewed"
-    },
-    {
-      "token": "uint32_t",
-      "match": "identifier",
-      "expansion": "unsigned 32-bit integer type",
-      "translation": "32 位无符号整数类型",
-      "reading": "unknown",
-      "source": "AI-type-convention:2026-11-09",
-      "review_status": "unreviewed"
-    },
-    {
-      "token": "uint64_t",
-      "match": "identifier",
-      "expansion": "unsigned 64-bit integer type",
-      "translation": "64 位无符号整数类型",
-      "reading": "unknown",
-      "source": "AI-type-convention:2026-11-09",
-      "review_status": "unreviewed"
-    },
-    {
-      "token": "board_init",
-      "match": "identifier",
-      "translation": "板级初始化",
-      "summary_zh": "配置开发板的时钟和基础外设，为程序运行做好准备。",
-      "reading": "unknown",
-      "source": "AI-general-convention:2026-11-09",
-      "review_status": "unreviewed"
-    },
-    {
-      "token": "system_clock_config",
-      "match": "identifier",
-      "translation": "系统时钟配置",
-      "summary_zh": "配置系统时钟，为处理器和外设提供运行时基准。",
-      "reading": "unknown",
-      "source": "AI-general-convention:2026-11-09",
-      "review_status": "unreviewed"
-    },
-    {
-      "token": "led_set",
-      "match": "identifier",
-      "translation": "设置 LED",
-      "summary_zh": "设置指定 LED 的亮灭状态。",
-      "reading": "unknown",
-      "source": "AI-general-convention:2026-11-09",
-      "review_status": "unreviewed"
-    },
-    {
-      "token": "led_toggle",
-      "match": "identifier",
-      "translation": "翻转 LED",
-      "summary_zh": "将指定 LED 的亮灭状态反转。",
-      "reading": "unknown",
-      "source": "AI-general-convention:2026-11-09",
-      "review_status": "unreviewed"
-    },
-    {
-      "token": "uart_write",
-      "match": "identifier",
-      "translation": "串口写入",
-      "summary_zh": "通过串口发送数据。",
-      "reading": "unknown",
-      "source": "AI-general-convention:2026-11-09",
-      "review_status": "unreviewed"
-    },
-    {
-      "token": "uart_read",
-      "match": "identifier",
-      "translation": "串口读取",
-      "summary_zh": "读取串口接收到的数据。",
-      "reading": "unknown",
-      "source": "AI-general-convention:2026-11-09",
-      "review_status": "unreviewed"
     }
   ]
 }

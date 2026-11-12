@@ -39,7 +39,7 @@ class PhoneticTests(unittest.TestCase):
         self.output, self.missing = self.root / "增强.json", self.root / "缺失.json"
 
     def run_enrich(self, **kwargs):
-        return enrich(self.pack, self.index, self.output, self.missing, **kwargs)
+        return enrich(self.pack, self.index, self.output, self.missing, library_dir=ROOT / 'dictionaries', **kwargs)
 
     def test_shared_split_contract(self):
         for symbol, expected in read_json(ROOT / "tests/fixtures/identifier-words.json"):

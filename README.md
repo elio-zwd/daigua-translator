@@ -2,19 +2,19 @@
 
 ![呆瓜翻译器 MCU 代码翻译形象](docs/assets/daigua-mcu-illustration.png)
 
-面向 MCU C/C++ 的独立 VS Code 插件，帮助理解英文函数、变量和参数。0.5.1 提供简明悬停、可锁定的查词面板、中文设置页与通用名称释义，并保留选区翻译、离线词典和音标；设置页支持复制外部 AI 完善词库的完整提示词。无需 MTranCode，运行时不调用 AI，不需要 API Key。
+面向 MCU C/C++ 的独立 VS Code 插件，帮助理解英文函数、变量和参数。0.6.1 提供简明悬停、可锁定的查词面板、中文设置页、独立词库目录与跨工程参考，并保留选区翻译、离线词典和音标；设置页支持复制外部 AI 完善词库的完整提示词。无需 MTranCode，运行时不调用 AI，不需要 API Key。
 
 ## 安装与使用
 
 1. 从 VSIX 安装 `plugin/daigua-translator.vsix`，重新加载窗口。
-2. 运行“呆瓜翻译器：选择知识包文件”，选择旧包或 `knowledge-packs/enhanced/05_createtask-pack.phonetic.json` 增强样本。
+2. 运行“呆瓜翻译器：选择词库目录”，选择独立的 `dictionaries` 文件夹。
 3. 在 C/C++ 名称上悬停，查看中文名、一句话用途与音标；右键可“翻译选区或当前名称”，命令面板可“输入文本翻译”。
 4. 右键“在面板中查看”可固定查词；点击状态栏打开中文设置页，可选择自动联网／ECDICT 词典／关闭未收录名称释义，或关闭联网总开关。
-5. 离线词典索引配置为 `M:\005869\My_Elio\ECDICT\daigua-index`（本机已生成）；其他电脑按指南从自己的 CSV 生成。
+5. 清单中的可选离线词典索引指向 `M:\005869\My_Elio\ECDICT\daigua-index`（本机已生成）；其他电脑按指南从自己的 CSV 生成。
 
-项目知识包优先，其次查通用词库；推测复用显示“名称推测”。来源编号和实现细节放到默认关闭的调试模式。联网失败或关闭联网后，名称可以查离线词典；普通句子需要联网。旧包无须迁移；缺少简明用途时仅显示中文名，缺少音标时显示“音标暂缺”。
+源码符号优先，其次查命名约定与词语释义；本工程优先，其他工程最多再显示 3 条不同释义，文字相同的合并。命名约定推测显示“名称推测”。来源编号和实现细节放到默认关闭的调试模式。联网失败或关闭联网后，名称可以查离线词典；普通句子需要联网。旧包无须迁移；缺少简明用途时仅显示中文名，缺少音标时显示“音标暂缺”。
 
-新版界面与无鼠标验证见[0.5.0 使用与验证](docs/concise-lookup-0.5.0.md)。完整操作、设置、命令及 AI 音标补充流程见[第一期使用指南](docs/phase-one-guide.md)。[0.4.0 历史验证记录](docs/acceptance-2026-11-09.md)保留自动检查和真实宿主检查结果；[0.4.1 反馈调整](docs/feedback-0.4.1.md)记录直接使用、按反馈改进的约定。
+当前目录格式与加载方式见[0.6.0 独立词库说明](docs/library-directory-0.6.0.md)。[0.5.0 使用与验证](docs/concise-lookup-0.5.0.md)保留历史行为记录。完整操作、设置、命令及 AI 音标补充流程见[第一期使用指南](docs/phase-one-guide.md)。[0.4.0 历史验证记录](docs/acceptance-2026-11-09.md)保留自动检查和真实宿主检查结果；[0.4.1 反馈调整](docs/feedback-0.4.1.md)记录直接使用、按反馈改进的约定。
 
 ## 开发与验证（Windows 10 x64）
 
@@ -39,13 +39,13 @@ python -X utf8 scripts/check-vsix.py plugin/daigua-translator.vsix
 
 在中文设置页的“词库管理 → 让外部 AI 完善词库”点击“复制完整提示词”，填写工程路径后，连同工程代码和已有词库发送给外部 AI。可展开预览；复制内容已包含格式、校验与加载说明。
 
-将工程代码、已有词库和[外部 AI 交接提示词](docs/external-ai-handoff.md)一起交给 AI，直接阅读源码，生成项目精确知识包并积累跨项目通用技术库，再调用 `phonetics/tool.py enrich` 补音标。[旧直接阅读方案](docs/ai-direct-read-plan.md)保留为历史试验记录。ECDICT 索引只需用 `phonetics/tool.py index` 生成一次。未找到的词及不确定读法导出清单，由外部 AI 回填，仍不确定的保留缺失。始终保留原始 JSON，不改已有中文说明。
+将工程代码、已有词库和[外部 AI 交接提示词](docs/external-ai-handoff.md)一起交给 AI，直接阅读源码，按词语释义库、命名约定库、源码符号库三类维护独立目录，再调用 `phonetics/tool.py enrich` 补音标。[旧直接阅读方案](docs/ai-direct-read-plan.md)保留为历史试验记录。ECDICT 索引只需用 `phonetics/tool.py index` 生成一次。未找到的词及不确定读法导出清单，由外部 AI 回填，仍不确定的保留缺失。始终保留原始 JSON，不改已有中文说明。
 
-常见 MCU 缩写、单位和读法存入 `plugin/resources/technical-terms.json`；可用额外文件补充，便于持续完善。默认直接使用，有问题再反馈，无须逐条人工审核；保留来源和缺失记录。ECDICT 子集样本附带许可证。
+所有词库均在插件之外维护，使用 `library.json` 清单启用；插件与补音标工具不加载隐藏词库。默认直接使用，有问题再反馈，无须逐条人工审核；保留来源和缺失记录。ECDICT 子集样本附带许可证。
 
 - [制包与复核说明](docs/knowledge-pack-guide.md)
 - [提取器（可选辅助工具）](extractor/README.md)
 - [校验器](validator/README.md)
 - [项目目的与发展规划](docs/project-purpose-and-roadmap.md)
 
-旧版 MTranCode 集成归档在 `archive/mtrancode-v0.3`，基线 `f8910af`。历史文档保留用于查阅，主线不再提供该集成。本期增加基础词库文件管理；上下文自动消歧与源码定位仍属于后续方向。
+旧版 MTranCode 集成归档在 `archive/mtrancode-v0.3`，基线 `f8910af`。历史文档保留用于查阅，主线不再提供该集成。本期支持按源码目录识别本工程和跨工程参考；源码语义分析仍由外部 AI 在维护阶段完成。

@@ -16,12 +16,14 @@ export class KnowledgeIndex {
       };
       for (const pack of packs) {
         for (const entry of pack.entries) {
-          add(entry);
+          const owner = entry.owner || entry.scope?.match(/::([^:]+):L\d+/)?.[1];
+          add(pack.origin || owner ? { ...entry, owner, origin: pack.origin } : entry);
           if (includeParameters && entry.kind === 'function') {
             for (const parameter of entry.parameters || []) {
-              if (!/^[A-Za-z_]\w*$/.test(parameter.name) || !parameter.description_zh?.trim()) continue;
+              if (!/^[A-Za-z_]\w*$/.test(parameter.name) || !(parameter.summary_zh?.trim() || parameter.description_zh?.trim())) continue;
               add({
                 symbol: parameter.name, kind: 'variable',
+                origin: pack.origin,
                 name_zh: `${entry.symbol} 的参数 ${parameter.name}`,
                 description_zh: parameter.description_zh,
                 summary_zh: parameter.summary_zh,

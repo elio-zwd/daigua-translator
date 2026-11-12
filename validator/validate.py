@@ -194,10 +194,21 @@ def validate_pack(pack_path, src_root=None, out_path=None):
 
 def main():
     parser = argparse.ArgumentParser(description="校验并导出 MCU 知识包")
-    parser.add_argument("--pack", required=True, help="知识包 JSON")
+    inputs = parser.add_mutually_exclusive_group(required=True)
+    inputs.add_argument("--pack", help="源码符号库 JSON")
+    inputs.add_argument("--library", help="独立词库目录，校验清单及全部启用文件")
     parser.add_argument("--src", help="真实源码根目录，用于检查源文件")
     parser.add_argument("--out", help="成功后导出标准 JSON")
     args = parser.parse_args()
+    if args.library:
+        from phonetics.library import validate_library
+        try:
+            _, _, _, counts = validate_library(args.library)
+            print("[OK] 词库目录通过校验：" + json.dumps(counts, ensure_ascii=False))
+            return 0
+        except (OSError, ValueError, TypeError) as error:
+            print("[ERROR] 词库目录校验失败：" + str(error))
+            return 1
     return 0 if validate_pack(args.pack, args.src, args.out) else 1
 
 

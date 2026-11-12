@@ -18,7 +18,7 @@ function fixture(t) {
   write('mo.json', { motor: [{ word: 'motor', translation: '马达\\n发动机', phonetic: "'mәutә" }] });
   write('st.json', { start: [{ word: 'start', translation: '启动', phonetic: 'stɑ:t' }] });
   const warnings = [];
-  let paths = [];
+  let paths = require('../../tests/fixtures/library-paths.cjs');
   const offline = new OfflineDictionary(() => ({ dictionaryPath: directory, technicalLibraryPaths: paths }), m => warnings.push(m));
   return { directory, write, warnings, offline, setPaths: p => { paths = p; } };
 }
@@ -56,7 +56,15 @@ test('model-like fragments touching digits do not inherit ordinary-word IPA', as
 });
 
 test('technical terms override false dictionary meanings and prefixes are position-specific', async t => {
-  const { offline } = fixture(t);
+  const { offline, write } = fixture(t);
+  write('manifest.json', { format_version: 1, source_sha256: 'a'.repeat(64), shards: { ek: 'ek.json' } });
+  write('ek.json', { ek: [{ word: 'ek', translation: '柯达公司', phonetic: '' }] });
+  for (const name of ['EK', 'ek', 'Ek', 'ek_indication_is_terminal', 'EKIndication']) {
+    const result = await offline.explainResult(name);
+    assert.deepEqual(result.components[0].meanings, ['熠日照明'], name);
+    assert.match(result.components[0].source, /user-confirmed:2026-11-11/);
+    assert.equal(result.components[0].pronunciation.segments[0].review_status, 'confirmed');
+  }
   const text = await offline.explain('xLED_ms');
   assert.match(text, /x：FreeRTOS/);
   assert.match(text, /不发音/);

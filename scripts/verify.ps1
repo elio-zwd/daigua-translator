@@ -13,6 +13,7 @@ $demoOutput = Join-Path ([IO.Path]::GetTempPath()) ('daigua-verify-' + [guid]::N
 try {
     Invoke-Checked 'python' @('-m', 'unittest', 'discover', '-s', 'tests', '-p', 'test_*.py', '-v')
     Invoke-Checked 'npm.cmd' @('--prefix', 'plugin', 'test')
+    Invoke-Checked 'python' @('-X', 'utf8', 'validator/validate.py', '--library', 'dictionaries')
     Invoke-Checked 'python' @('extractor/extract.py', '--src', 'examples/mcu-demo', '--root', 'examples/mcu-demo', '--include-locals', '--out', $demoOutput)
     foreach ($pack in @('knowledge-packs/05_createtask-pack.json', 'knowledge-packs/example/example-pack.json', 'knowledge-packs/enhanced/05_createtask-pack.phonetic.json')) {
         Invoke-Checked 'python' @('validator/validate.py', '--pack', $pack)

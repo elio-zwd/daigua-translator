@@ -2,19 +2,22 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { KnowledgePack } from './types';
 import * as fs from 'fs';
-import { QueryResult, projectResult, errorResult } from './query-result';
+import { QueryResult, errorResult } from './query-result';
 import { hoverMarkdown } from './result-renderer';
 import { ReaderPanels } from './webviews';
 import { OfflineDictionary, validateTerms } from './offline-dictionary';
 import { DaiguaTranslate, TranslatorSettings } from './daigua-translate';
 import { KnowledgeLoader, PackLoadReport, resolvePackPaths } from './knowledge-loader';
 import { formatEntries } from './symbol-matcher';
+import { LibrarySnapshot, loadLibrary } from './library-catalog';
+import { LibraryPreference } from './library-preference';
 
 let stop: (() => void) | undefined;
 
 export async function activate(context: vscode.ExtensionContext) {
   let loadedByPath = new Map<string, KnowledgePack>();
   let loadedPacks: KnowledgePack[] = [];
+  let library: LibrarySnapshot | undefined;
   let reloadRequestId = 0;
   let disposed = false;
   let report: PackLoadReport | undefined;
@@ -27,15 +30,21 @@ export async function activate(context: vscode.ExtensionContext) {
   const status = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
   status.command = 'daiguaTranslate.quickSettings';
   const config = () => vscode.workspace.getConfiguration('daiguaTranslate');
+  const directoryPreference = new LibraryPreference(config, { global: context.globalState, workspace: context.workspaceState },
+    message => output.appendLine('[目录设置] ' + message));
+  const libraryDirectory = () => directoryPreference.get();
   const settings = (): TranslatorSettings => ({
     bingEnabled: config().get<boolean>('bingEnabled', true),
     bingTimeoutMs: config().get<number>('bingTimeoutMs', 5000),
     includeParameters: config().get<boolean>('includeParameters', true),
   });
-  const local = new DaiguaTranslate(() => loadedPacks, undefined, settings);
+  const local = new DaiguaTranslate(() => loadedPacks, undefined, settings, () => ({
+    documentPath: vscode.window.activeTextEditor?.document.uri?.fsPath, projects: library?.projects || [],
+  }));
   const offline = new OfflineDictionary(() => ({
-    dictionaryPath: config().get<string>('dictionaryPath', ''),
-    technicalLibraryPaths: config().get<string[]>('technicalLibraryPaths', []),
+    dictionaryPath: libraryDirectory() ? library?.dictionaryPath || '' : config().get<string>('dictionaryPath', ''),
+    technicalLibraryPaths: libraryDirectory() ? [] : config().get<string[]>('technicalLibraryPaths', []),
+    termLibraries: libraryDirectory() ? [...(library?.words || []), ...(library?.naming || [])] : [],
   }), message => output.appendLine('[词典诊断] ' + message));
   let epoch = 0;
   let hoverSequence = 0;
@@ -92,10 +101,12 @@ export async function activate(context: vscode.ExtensionContext) {
   const debugMode = () => config().get<boolean>('debugMode', false);
   const defaultValues: Record<string, unknown> = { localHover: true, bingEnabled: true, hoverFallback: 'online',
     showStatusBar: true, autoReload: true, includeParameters: true, debugMode: false,
-    bingTimeoutMs: 5000, packPaths: [], technicalLibraryPaths: [], dictionaryPath: '' };
+    bingTimeoutMs: 5000, libraryDirectory: '', packPaths: [], technicalLibraryPaths: [], dictionaryPath: '' };
   const panels = new ReaderPanels(debugMode, () => ({
     aiHandoff,
-    values: Object.fromEntries(Object.entries(defaultValues).map(([k, v]) => [k, config().get(k, v)])),
+    libraryCounts: library?.counts,
+    libraryErrors: library?.failures.length || report?.failures.length || 0,
+    values: Object.fromEntries(Object.entries(defaultValues).map(([k, v]) => [k, k === 'libraryDirectory' ? libraryDirectory() : config().get(k, v)])),
     scope: vscode.workspace.workspaceFolders?.length ? '当前工作区' : '用户设置', count: countEntries(),
     packs: config().get<string[]>('packPaths', []).map(file => ({ path: file,
       status: report?.failures.some(f => f.path === path.resolve(file))
@@ -119,7 +130,7 @@ export async function activate(context: vscode.ExtensionContext) {
     panelTimer = setTimeout(async () => {
       if (!panels.follows || disposed || sequence !== panelSequence) return;
       let result: QueryResult | undefined;
-      try { result = await local.queryResult(value, hoverMode(), offline); }
+      try { result = await local.queryResult(value, hoverMode(), offline, editor.document.uri?.fsPath); }
       catch (error) { output.appendLine(String(error)); result = errorResult(value, error); }
       if (disposed || !panels.follows || sequence !== panelSequence || currentEpoch !== epoch ||
         editor.document.version !== version || vscode.window.activeTextEditor !== editor) return;
@@ -154,6 +165,21 @@ export async function activate(context: vscode.ExtensionContext) {
           key === 'bingTimeoutMs' && typeof value === 'number' && Number.isFinite(value) && value >= 100 && value <= 30000) {
         await config().update(key, value, settingTarget());
       } else throw Error('设置值无效');
+    } else if ((message.action === 'choose' || message.action === 'remove') && key === 'libraryDirectory') {
+      if (message.action === 'remove') {
+        await directoryPreference.save('');
+        await reloadPacks();
+        notice = '已移除词库目录；仅兼容读取旧配置中明确指定的文件。';
+      } else {
+        const selected = await vscode.window.showOpenDialog({ canSelectFolders: true, canSelectFiles: false, canSelectMany: false,
+          title: '选择含 library.json 的词库目录', openLabel: '使用此词库目录' });
+        if (!selected?.length) return '已取消选择。';
+        const candidate = await loadLibrary(selected[0].fsPath);
+        if (candidate.failures.length) throw Error(candidate.failures.map(f => `${f.path}：${f.reason}`).join('\n') + '\n当前配置未修改。');
+        await directoryPreference.save(selected[0].fsPath);
+        await reloadPacks();
+        notice = `已加载词库目录：词语 ${candidate.counts.words} 条，命名 ${candidate.counts.naming} 条，源码 ${candidate.counts.symbols} 条。`;
+      }
     } else if ((message.action === 'choose' || message.action === 'remove') &&
         typeof key === 'string' && ['packPaths','technicalLibraryPaths','dictionaryPath'].includes(key)) {
       if (message.action === 'remove') {
@@ -204,9 +230,11 @@ export async function activate(context: vscode.ExtensionContext) {
 
   function refreshStatus() {
     const errors = report?.failures.length || 0;
-    status.text = `$(book) 呆瓜 ${countEntries()}条 · ${settings().bingEnabled ? 'Bing 开' : '仅本地'}${errors ? ' $(warning)' : ''}`;
+    const total = library ? library.counts.words + library.counts.naming + library.counts.symbols : countEntries();
+    status.text = `$(book) 呆瓜 ${total}条 · ${settings().bingEnabled ? 'Bing 开' : '仅本地'}${errors ? ' $(warning)' : ''}`;
     status.tooltip = `知识包 ${loadedPacks.length} 个，词条 ${countEntries()} 条\n` +
-      `悬停模式：${hoverMode()}；词典：${config().get<string>('dictionaryPath', '') || '未配置'}\n` +
+      (library ? `词语 ${library.counts.words} 条，命名 ${library.counts.naming} 条，源码 ${library.counts.symbols} 条\n` : '') +
+      `悬停模式：${hoverMode()}；词典：${(libraryDirectory() ? library?.dictionaryPath : config().get<string>('dictionaryPath', '')) || '未配置'}\n` +
       `最近加载：${loadedAt || '尚未完成'}${errors ? `\n加载失败 ${errors} 项（点击查看诊断）` : ''}\n点击打开快捷设置`;
     if (config().get<boolean>('showStatusBar', true)) status.show(); else status.hide();
     panels.refresh();
@@ -217,10 +245,21 @@ export async function activate(context: vscode.ExtensionContext) {
     const scopes = cfg.inspect<string[]>('packPaths');
     output.appendLine(`\n=== 呆瓜翻译器加载诊断 ${new Date().toLocaleString()} ===`);
     output.appendLine(`插件版本：${context.extension.packageJSON.version}`);
-    output.appendLine(`悬停模式：${hoverMode()}；ECDICT：${config().get<string>('dictionaryPath', '') || '未配置'}；技术库：${JSON.stringify(config().get<string[]>('technicalLibraryPaths', []))}`);
-    output.appendLine(`用户路径：${JSON.stringify(scopes?.globalValue || [])}`);
-    output.appendLine(`工作区路径：${JSON.stringify(scopes?.workspaceValue || [])}`);
-    output.appendLine(`当前生效路径：${JSON.stringify(cfg.get<string[]>('packPaths', []))}`);
+    output.appendLine(`词库目录：${libraryDirectory() || '未选择（旧配置兼容模式，无内置数据）'}`);
+    output.appendLine(directoryPreference.diagnostics());
+    if (library) {
+      output.appendLine(`分类计数：${JSON.stringify(library.counts)}`);
+      for (const project of library.projects) output.appendLine(`[工程] ${project.id} ${project.name} | ${JSON.stringify(project.source_roots)}`);
+      for (const failure of library.failures) output.appendLine(`[词库失败] ${failure.path} | ${failure.reason} | 保留旧内容：${failure.retained}`);
+    }
+    const hasDirectory = !!libraryDirectory();
+    output.appendLine(`悬停模式：${hoverMode()}；ECDICT：${(hasDirectory ? library?.dictionaryPath : cfg.get<string>('dictionaryPath', '')) || '未配置'}；旧版技术库：${JSON.stringify(hasDirectory ? [] : cfg.get<string[]>('technicalLibraryPaths', []))}`);
+    if (libraryDirectory()) output.appendLine(`当前生效路径：${JSON.stringify(library?.files || [])}`);
+    else {
+      output.appendLine(`用户路径：${JSON.stringify(scopes?.globalValue || [])}`);
+      output.appendLine(`工作区路径：${JSON.stringify(scopes?.workspaceValue || [])}`);
+      output.appendLine(`当前生效路径：${JSON.stringify(cfg.get<string[]>('packPaths', []))}`);
+    }
     output.appendLine(`最近完成加载：${loadedAt || '尚未完成'}；有效 ${countEntries()} 条词条`);
     for (const [file, pack] of loadedByPath) {
       output.appendLine(`[${report?.failures.some(f => f.path === file) ? '保留旧内容' : '已加载'}] ${file}\n  ${pack.name} v${pack.version}，${pack.entries.length} 条`);
@@ -234,6 +273,39 @@ export async function activate(context: vscode.ExtensionContext) {
     invalidate();
     offline.reset();
     const requestId = ++reloadRequestId;
+    const directory = libraryDirectory();
+    if (directory) {
+      const previous = library?.directory.toLowerCase() === path.resolve(directory).toLowerCase() ? library : undefined;
+      if (!previous) {
+        library = undefined; loadedByPath = new Map(); loadedPacks = [];
+        if (panels.follows) panels.setResult();
+      }
+      let next: LibrarySnapshot | undefined;
+      try { next = await loadLibrary(directory, previous); }
+      catch (error) {
+        if (disposed || requestId !== reloadRequestId) return null;
+        if (previous) next = { ...previous, failures: [{ path: path.join(directory, 'library.json'), reason: String(error), retained: true }] };
+        else {
+          report = { byPath: new Map(), packs: [], loadedCount: 0, warnings: [], failures: [{ path: path.join(directory, 'library.json'), reason: String(error), retained: false }] };
+          output.appendLine('[词库目录加载失败] ' + String(error));
+          watchPacks(); refreshStatus(); schedulePanel();
+          return report;
+        }
+      }
+      if (disposed || requestId !== reloadRequestId) return null;
+      library = next; loadedPacks = next!.packs;
+      loadedByPath = new Map(loadedPacks.map(p => [p.origin!.libraryPath, p]));
+      report = { byPath: loadedByPath, packs: loadedPacks, loadedCount: loadedPacks.length, failures: next!.failures, warnings: next!.warnings };
+      loadedAt = new Date().toLocaleString(); invalidate(); offline.reset(); watchPacks(); refreshStatus(); schedulePanel();
+      const summary = `词库已更新：词语 ${next!.counts.words} 条，命名 ${next!.counts.naming} 条，源码 ${next!.counts.symbols} 条。`;
+      output.appendLine(summary);
+      for (const warning of next!.warnings) output.appendLine('[音标诊断] ' + warning);
+      for (const failure of next!.failures) output.appendLine(`[失败] ${failure.path}：${failure.reason}；保留旧内容：${failure.retained}`);
+      if (next!.failures.length) void vscode.window.showWarningMessage(summary + ' 部分文件加载失败，详情见加载诊断。');
+      else if (notify) void vscode.window.showInformationMessage(summary);
+      return report;
+    }
+    library = undefined;
     const paths = config().get<string[]>('packPaths', []);
     const active = new Set(resolvePackPaths(paths));
     loadedByPath = new Map([...loadedByPath].filter(([file]) => active.has(file)));
@@ -246,6 +318,7 @@ export async function activate(context: vscode.ExtensionContext) {
     for (const warning of next.warnings) output.appendLine('[音标诊断] ' + warning);
     loadedByPath = next.byPath;
     loadedPacks = next.packs;
+    watchPacks();
     loadedAt = new Date().toLocaleString();
     const retained = next.failures.filter(f => f.retained).length;
     const summary = `呆瓜翻译器：加载成功 ${next.loadedCount} 个包，保留旧包 ${retained} 个，当前有效 ${countEntries()} 条词条。`;
@@ -265,7 +338,11 @@ export async function activate(context: vscode.ExtensionContext) {
     watchers = [];
     if (debounce) clearTimeout(debounce);
     if (!config().get<boolean>('autoReload', true)) return;
-    const paths = resolvePackPaths(config().get<string[]>('packPaths', []));
+    const directory = libraryDirectory();
+    const paths = directory ? (library?.files || [path.join(directory, 'library.json')]) : resolvePackPaths([
+      ...config().get<string[]>('packPaths', []), ...config().get<string[]>('technicalLibraryPaths', []),
+      ...(config().get<string>('dictionaryPath', '') ? [path.join(config().get<string>('dictionaryPath', ''), 'manifest.json')] : []),
+    ]);
     const key = (file: string) => process.platform === 'win32' ? path.resolve(file).toLowerCase() : path.resolve(file);
     const files = new Set(paths.map(key));
     const onChange = (uri: vscode.Uri) => {
@@ -273,28 +350,22 @@ export async function activate(context: vscode.ExtensionContext) {
       if (debounce) clearTimeout(debounce);
       debounce = setTimeout(() => { void reloadPacks(); }, 250);
     };
-    for (const directory of new Set(paths.map(file => path.dirname(file)))) {
-      const watcher = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(directory, '*'));
+    const bases = directory ? new Set([path.resolve(directory), ...paths.filter(file => !key(file).startsWith(key(directory) + path.sep)).map(file => path.dirname(file))])
+      : new Set(paths.map(file => path.dirname(file)));
+    for (const base of bases) {
+      const watcher = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(base, directory && key(base) === key(directory) ? '**/*' : '*'));
       watchers.push(watcher, watcher.onDidChange(onChange), watcher.onDidCreate(onChange), watcher.onDidDelete(onChange));
     }
   }
 
   async function choosePacks() {
-    const files = await vscode.window.showOpenDialog({
-      title: '选择要使用的知识包（替换当前路径列表，可多选）',
-      canSelectMany: true, canSelectFiles: true, canSelectFolders: false,
-      filters: { '知识包 JSON': ['json'] }, openLabel: '使用这些知识包',
-    });
-    if (!files?.length) return;
-    const candidate = await new KnowledgeLoader().loadWithReport(files.map(file => file.fsPath));
-    if (candidate.failures.length) {
-      for (const failure of candidate.failures) output.appendLine(`[未切换] ${failure.path}\n${failure.reason}`);
-      output.show(true);
-      void vscode.window.showWarningMessage('所选文件有无效知识包，未修改当前路径。请选择 pack-revised.json 等含 entries 的知识包。');
-      return;
+    try {
+      const notice = await settingsAction({ action: 'choose', key: 'libraryDirectory' });
+      if (notice) void vscode.window.showInformationMessage(notice);
+    } catch (error) {
+      output.appendLine('[词库目录选择失败] ' + String(error));
+      void vscode.window.showWarningMessage('词库目录无效，当前配置未修改。详情见加载诊断。');
     }
-    await config().update('packPaths', files.map(file => file.fsPath), settingTarget());
-    await reloadPacks(true);
   }
 
   async function queryLocal() {
@@ -304,7 +375,7 @@ export async function activate(context: vscode.ExtensionContext) {
     const value = selection || (word ? editor!.document.getText(word) : '');
     const symbol = await vscode.window.showInputBox({
       title: '呆瓜翻译器：本地查询（不联网）',
-      prompt: '输入一个符号，例如 interval、worker 或 arg；同名候选全部显示', value,
+      prompt: '输入一个符号，例如 interval、worker 或 arg；本工程优先，其他工程最多 3 条', value,
       validateInput: text => /^[A-Za-z_]\w*(?:\s*\(\s*\))?$/.test(text.trim()) ? undefined : '请输入单个符号名称，可带空括号。',
     });
     if (symbol === undefined) return;
@@ -313,7 +384,7 @@ export async function activate(context: vscode.ExtensionContext) {
     const entries = local.findLocalEntries(symbol);
     output.appendLine(`\n[本地查询] ${symbol.trim()} | ${loadedPacks.length} 个包，${countEntries()} 条词条 | ${new Date().toLocaleString()}`);
     output.appendLine(entries.length ? `[本地命中 ${entries.length} 项]\n${formatEntries(entries)}` : '本地未命中。请检查生效路径、加载诊断及名称大小写；参数查询需在设置中开启。');
-    const result = entries.length ? projectResult(symbol.trim(), entries) : { text: symbol.trim(), kind: 'error' as const, match: 'none' as const, candidates: [], diagnostics: [], message: '本地知识包未收录此名称。' };
+    const result = await local.queryResult(symbol, 'ecdict', offline) || { text: symbol.trim(), kind: 'error' as const, match: 'none' as const, candidates: [], diagnostics: [], message: '本地词库未收录此名称。' };
     await display(result, editorNow, snapshot);
   }
 
@@ -321,9 +392,10 @@ export async function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.commands.registerCommand(`daiguaTranslate.${name}`, callback));
   }
   context.subscriptions.push(output, status, vscode.workspace.onDidChangeConfiguration(async event => {
+    if (event.affectsConfiguration('daiguaTranslate.libraryDirectory')) await directoryPreference.reconcile();
     if (Object.keys(defaultValues).filter(key => key !== 'debugMode').some(key => event.affectsConfiguration('daiguaTranslate.' + key))) { invalidate(); offline.reset(); schedulePanel(); }
-    if (event.affectsConfiguration('daiguaTranslate.packPaths') || event.affectsConfiguration('daiguaTranslate.autoReload')) watchPacks();
-    if (event.affectsConfiguration('daiguaTranslate.packPaths')) await reloadPacks();
+    if (event.affectsConfiguration('daiguaTranslate.autoReload')) watchPacks();
+    if (['packPaths', 'technicalLibraryPaths', 'dictionaryPath', 'libraryDirectory'].some(k => event.affectsConfiguration('daiguaTranslate.' + k))) await reloadPacks();
     refreshStatus();
   }));
   context.subscriptions.push(vscode.window.onDidChangeTextEditorSelection(() => { invalidate(); schedulePanel(); }),
@@ -342,11 +414,11 @@ export async function activate(context: vscode.ExtensionContext) {
       const range = document.getWordRangeAtPosition(position, /[A-Za-z_]\w*/);
       if (!range) return;
       const value = document.getText(range);
-      const entries = local.findLocalEntries(value);
-      if (entries.length) return asHover(projectResult(value, entries), range);
+      const source = local.sourceResult(value, document.uri?.fsPath);
+      if (source) return asHover(source, range);
       if (hoverMode() === 'off' || token.isCancellationRequested) return;
       const snapshot = { epoch, version: document.version };
-      return local.queryResult(value, hoverMode(), offline).then(result => {
+      return local.queryResult(value, hoverMode(), offline, document.uri?.fsPath).then(result => {
         if (!result || disposed || token.isCancellationRequested || sequence !== hoverSequence ||
             snapshot.epoch !== epoch || snapshot.version !== document.version) return;
         logResult(result);
@@ -371,8 +443,11 @@ export async function activate(context: vscode.ExtensionContext) {
     panels.dispose();
     loadedByPath.clear();
     loadedPacks = [];
+    library = undefined;
+    offline.reset();
   };
   context.subscriptions.push({ dispose: stop });
+  await directoryPreference.reconcile();
   watchPacks();
   await reloadPacks();
   return { translator: local, panels };

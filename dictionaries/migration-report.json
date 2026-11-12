@@ -1,0 +1,21 @@
+{
+  "inputs": [
+    {
+      "file": "M:\\005869\\My_Elio\\daigua-translator\\plugin\\resources\\technical-terms.json",
+      "sha256": "a05599a01c7550ca5c0671cd7d65e38208558744cfb632400e9a9cbf310a38d7"
+    },
+    {
+      "file": "M:\\005869\\My_Elio\\daigua-translator\\knowledge-packs\\dfu-20261110\\general-terms.json",
+      "sha256": "317b3bec53a9fedd9b3c83b11a96c9a02c6ad3cf0fd3ab5146e094265ed75fac"
+    },
+    {
+      "file": "M:\\005869\\My_Elio\\daigua-translator\\knowledge-packs\\enhanced\\05_createtask-pack.phonetic.json",
+      "sha256": "3e8794989c7e90ae1b56f5170fd2eecd821df676a8f8fef820d0710f58341990"
+    },
+    {
+      "file": "M:\\005869\\My_Elio\\daigua-translator\\knowledge-packs\\dfu-20261110\\project-pack.phonetic.json",
+      "sha256": "a1a8cfae22e2acfc05c65024da389b68d98407663e4fdbf7754f481ceb33d8a1"
+    }
+  ],
+  "note": "原始文件保持不变；未提供源码根目录的包按跨工程参考使用。"
+}

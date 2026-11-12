@@ -10,17 +10,18 @@ def main():
     target = Path(sys.argv[1])
     with zipfile.ZipFile(target) as archive:
         files = archive.namelist()
-        for name in ('extension', 'bing', 'pack-validation', 'knowledge-loader', 'knowledge-index', 'daigua-translate', 'symbol-matcher', 'pronunciation', 'identifier-words', 'offline-dictionary', 'query-result', 'result-renderer', 'webviews'):
+        for name in ('extension', 'bing', 'pack-validation', 'knowledge-loader', 'knowledge-index', 'library-catalog', 'library-preference', 'daigua-translate', 'symbol-matcher', 'pronunciation', 'identifier-words', 'offline-dictionary', 'query-result', 'result-renderer', 'webviews'):
             assert f'extension/out/{name}.js' in files, f'missing runtime module: {name}'
         assert 'extension/node_modules/bing-translate-api/src/index.js' in files, 'missing Bing transport'
         assert not any(p.startswith('extension/test/') for p in files), 'test code should not ship'
         assert not any(p.startswith('extension/node_modules/@vscode/vsce/') for p in files), 'build dependency should not ship'
         manifest = json.loads(archive.read('extension/package.json'))
         assert 'translates' not in manifest['contributes']
-        assert 'extension/resources/technical-terms.json' in files
+        assert 'extension/resources/technical-terms.json' not in files, 'no bundled glossary should ship'
+        assert not any(p.startswith('extension/dictionaries/') for p in files), 'data must ship separately'
         prompt = archive.read('extension/resources/external-ai-handoff.md').decode('utf-8')
         assert archive.read('extension/resources/external-ai-handoff.md') == (Path(__file__).resolve().parents[1] / 'docs/external-ai-handoff.md').read_bytes()
-        assert 'project-pack.json' in prompt and 'general-terms.json' in prompt
+        assert 'library.json' in prompt and 'project-pack.json' in prompt
         groups = manifest['contributes']['configuration']
         properties = {key: value for group in groups for key, value in group['properties'].items()}
         technical_paths = properties['daiguaTranslate.technicalLibraryPaths']
@@ -29,8 +30,10 @@ def main():
         assert properties['daiguaTranslate.debugMode']['default'] is False
         commands = {item['command'] for item in manifest['contributes']['commands']}
         assert {'daiguaTranslate.openDetails', 'daiguaTranslate.openSettings'} <= commands
-        terms = json.loads(archive.read('extension/resources/technical-terms.json'))['entries']
-        assert any(t['token'] == 'board_init' and t.get('summary_zh') for t in terms)
+        assert properties['daiguaTranslate.libraryDirectory']['default'] == ''
+        assert properties['daiguaTranslate.libraryDirectory']['type'] == 'string'
+        runtime = archive.read('extension/out/offline-dictionary.js').decode('utf-8')
+        assert 'resources/technical-terms.json' not in runtime
         assert not any(p.endswith('ecdict.csv') or '/dictionary-index/' in p for p in files)
         assert 'extendTranslate' not in archive.read('extension/out/extension.js').decode('utf-8')
         print(f"[OK] VSIX {manifest['version']}: runtime, Bing dependency and exclusions verified")

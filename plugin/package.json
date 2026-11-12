@@ -2,7 +2,7 @@
   "name": "daigua-translator",
   "displayName": "呆瓜翻译器",
   "description": "独立 MCU C/C++ 代码知识查询、文本翻译、离线词典与音标学习。",
-  "version": "0.5.2",
+  "version": "0.6.1",
   "icon": "./images/icon.png",
   "engines": {
     "vscode": "^1.85.0"
@@ -42,9 +42,9 @@
               "off"
             ],
             "enumDescriptions": [
-              "先查通用词库，再联网翻译，失败后回退离线词典",
-              "仅使用通用技术库与离线词典",
-              "只显示项目知识包中已收录的名称"
+              "先查独立词库，再联网翻译，失败后回退离线词典",
+              "仅使用已配置的独立词库与离线词典",
+              "只显示源码符号库中已收录的名称"
             ],
             "default": "online",
             "description": "未收录名称的自动悬停模式；只影响悬停，主动翻译仍受 Bing 总开关约束。",
@@ -77,8 +77,9 @@
               "type": "string"
             },
             "default": [],
-            "description": "知识包 JSON 绝对路径列表。同名候选全部显示。可运行“呆瓜翻译器：选择知识包文件”免手写配置。",
-            "scope": "window"
+            "description": "旧版源码符号 JSON 路径；仅在未选择词库目录时读取，来源不明的包按其他工程参考展示。",
+            "scope": "window",
+            "deprecationMessage": "旧版配置兼容入口；建议迁移至独立词库目录。"
           },
           "daiguaTranslate.technicalLibraryPaths": {
             "type": "array",
@@ -86,21 +87,23 @@
               "type": "string"
             },
             "default": [],
-            "description": "额外通用技术库 JSON 路径。后添加的库优先；修改配置立即生效，修改文件后可重新加载。",
+            "description": "旧版混合词库 JSON 路径；仅在未选择词库目录时读取，后添加的文件优先。",
             "scope": "window",
-            "order": 10
+            "order": 10,
+            "deprecationMessage": "旧版配置兼容入口；建议迁移至独立词库目录。"
           },
           "daiguaTranslate.dictionaryPath": {
             "type": "string",
             "default": "",
             "description": "由 phonetics/tool.py index 生成、包含 manifest.json 的本地 ECDICT 索引目录。运行时不读取 CSV。",
             "scope": "window",
-            "order": 9
+            "order": 9,
+            "deprecationMessage": "旧版配置兼容入口；建议迁移至独立词库目录。"
           },
           "daiguaTranslate.autoReload": {
             "type": "boolean",
             "default": true,
-            "description": "知识包文件保存后自动重新加载（合并 250 毫秒内的连续文件事件）。加载失败保留上次有效内容。",
+            "description": "保存清单或启用的词库文件后自动重新加载；失败保留上次有效内容，移除的文件立即停用。",
             "scope": "window",
             "order": 4
           },
@@ -110,6 +113,13 @@
             "description": "将函数 parameters 中已有中文说明的参数加入本地查询，例如 arg；同名参数全部显示并标注所属函数。不会修改知识包文件。",
             "scope": "window",
             "order": 5
+          },
+          "daiguaTranslate.libraryDirectory": {
+            "type": "string",
+            "default": "",
+            "description": "独立词库目录，包含 library.json。仅加载清单启用的词语释义库、命名约定库和源码符号库；不叠加旧配置。",
+            "scope": "window",
+            "order": 1
           }
         }
       },
@@ -139,7 +149,7 @@
     "commands": [
       {
         "command": "daiguaTranslate.reloadPacks",
-        "title": "呆瓜翻译器：重新加载知识包"
+        "title": "呆瓜翻译器：重新加载词库"
       },
       {
         "command": "daiguaTranslate.quickSettings",
@@ -147,7 +157,7 @@
       },
       {
         "command": "daiguaTranslate.choosePacks",
-        "title": "呆瓜翻译器：选择知识包文件"
+        "title": "呆瓜翻译器：选择词库目录"
       },
       {
         "command": "daiguaTranslate.showStatus",

@@ -63,7 +63,8 @@ async function cdpConnect(url) {
     await refreshContexts();
     for (const c of [...contexts.values()].reverse()) {
       try {
-        if (await evaluate(c, `!!document.querySelector(${JSON.stringify(kind === 'settings' ? '#debugMode' : '.tag')})`)) return c;
+        const selector = kind === 'settings' ? '#debugMode' : kind === 'hover' ? '.monaco-hover .rendered-markdown' : '.tag';
+        if (await evaluate(c, `!!document.querySelector(${JSON.stringify(selector)})`)) return c;
       } catch { /* Stale context from a closed/reloaded webview. */ }
     }
   };
@@ -117,6 +118,50 @@ async function main() {
       await screenshot('reader-' + name); checks.push(`${name} theme, concise content and no horizontal overflow`);
     }
     await bridge('/theme?name=Default%20Dark%20Modern');
+    const phoneticName = 'ek_indication_is_terminal';
+    await bridge('/reader?word=' + phoneticName);
+    await until(async () => cdp.evaluate(await reader(), `document.querySelector('h1').textContent === ${JSON.stringify(phoneticName)}`), 'phonetic reader');
+    const panelText = await cdp.evaluate(await reader(), `document.querySelector('main').innerText`);
+    assert.match(panelText, /熠日照明/); assert.doesNotMatch(panelText, /柯达公司/);
+    for (const text of ["indication /.indi'keiʃәn/", "terminal /'tә:minәl/"]) assert.ok(panelText.includes(text));
+    await bridge('/hover?word=' + phoneticName);
+    const hover = await until(() => cdp.frame('hover'), 'rendered hover DOM');
+    const hoverText = await until(async () => {
+      const text = await cdp.evaluate(hover, `document.querySelector('.monaco-hover .rendered-markdown')?.innerText`);
+      return text?.includes('terminal') && text;
+    }, 'phonetic hover content');
+    assert.match(hoverText, /熠日照明/); assert.doesNotMatch(hoverText, /柯达公司/);
+    for (const text of ["indication /.indi'keiʃәn/", "terminal /'tә:minәl/"]) assert.ok(hoverText.includes(text), hoverText);
+    assert.doesNotMatch(hoverText, /&#39;|&amp;/);
+    await screenshot('hover-phonetics');
+    await bridge('/hide-hover');
+    await bridge('/hover?word=markup');
+    await until(async () => cdp.evaluate(hover, `document.querySelector('.monaco-hover .rendered-markdown')?.innerText.includes('quoted')`), 'literal Markdown hover content');
+    const literal = await cdp.evaluate(hover, `(()=>{const h=document.querySelector('.monaco-hover .rendered-markdown');return {text:h.innerText,images:h.querySelectorAll('img').length,links:[...h.querySelectorAll('a')].map(a=>a.textContent)}})()`);
+    assert.ok(literal.text.includes('"quoted" & <img src=x> [click](command:evil) **bold** &#39;'), literal.text);
+    assert.equal(literal.images, 0);
+    assert.deepEqual(literal.links, ['在面板中查看', '设置']);
+    await screenshot('hover-literal-text');
+    await bridge('/hide-hover');
+    checks.push('rendered hover and panel preserve phonetic apostrophes; Markdown, HTML and entity input stay literal with only app-owned links');
+    for (const word of ['cross_function', 'shared_arg']) {
+      await bridge('/reader?word=' + word);
+      await until(async () => cdp.evaluate(await reader(), `document.querySelector('h1').textContent===${JSON.stringify(word)}`), 'cross-project panel');
+      const cards = await cdp.evaluate(await reader(), `[...document.querySelectorAll('article')].map(e=>e.innerText)`);
+      assert.equal(cards.length, 4); assert.match(cards[0], /本工程解释/); assert.match(cards[0], /本工程/);
+      for (const [i, meaning] of ['参考一','参考二','参考三'].entries()) assert.ok(cards[i+1].includes(meaning));
+      assert.ok(cards.slice(1).every(t=>t.includes('其他工程参考')));
+      assert.ok(cards.every(t=>!t.includes('private/probe.c')&&!t.includes('参考四')));
+      await bridge('/hover?word=' + word);
+      const rendered = await until(async () => cdp.evaluate(hover, `document.querySelector('.monaco-hover .rendered-markdown')?.innerText.includes('参考三') && document.querySelector('.monaco-hover .rendered-markdown').innerText`), 'cross-project hover');
+      assert.ok(rendered.indexOf('本工程解释') < rendered.indexOf('参考一'));
+      assert.ok(rendered.indexOf('参考一') < rendered.indexOf('参考二'));
+      assert.ok(rendered.indexOf('参考二') < rendered.indexOf('参考三'));
+      assert.ok(!rendered.includes('参考四')&&!rendered.includes('private/probe.c'));
+      await screenshot('cross-project-' + word);
+      await bridge('/hide-hover');
+    }
+    checks.push('same fixtures in rendered hover and panel: local first, merged duplicate, three additional references and parameter owners');
     await cdp.call('Emulation.setDeviceMetricsOverride', { width: 850, height: 900, deviceScaleFactor: 1, mobile: false });
     await bridge('/layout?ratio=.5');
     await bridge('/reader?word=very_long_project_prefix_with_many_words_board_init');
@@ -136,39 +181,45 @@ async function main() {
     const settings = await until(() => cdp.frame('settings'), 'settings DOM');
     const headings = await cdp.evaluate(settings, `[...document.querySelectorAll('section h2')].map(e=>e.textContent)`);
     assert.deepEqual(headings, ['日常使用', '词库管理', '调试与诊断']);
-    const libraryButton = `document.querySelector('[data-action=choose][data-key=technicalLibraryPaths]')`;
-    const libraryNotice = `document.querySelector('#technicalLibraryPathsNotice')`;
+    const libraryButton = `document.querySelector('[data-action=choose][data-key=libraryDirectory]')`;
+    const libraryNotice = `document.querySelector('#libraryDirectoryNotice')`;
+    const configuredDirectory = (await bridge('/state')).libraryDirectory;
     await bridge('/picker?mode=valid');
     await cdp.evaluate(settings, `${libraryButton}.scrollIntoView({block:'center'});${libraryButton}.click()`);
-    await until(async () => cdp.evaluate(settings, `${libraryNotice}.textContent.includes('17 条词条')`), 'general library addition feedback');
-    assert.deepEqual((await bridge('/state')).technicalLibraryPaths.map(p=>p.toLowerCase()), [path.join(root, 'knowledge-packs/dfu-20261110/general-terms.json').toLowerCase()]);
-    assert.equal(await cdp.evaluate(settings, `${libraryNotice}.getBoundingClientRect().top<innerHeight && ${libraryNotice}.getBoundingClientRect().bottom>0`), true);
+    await until(async () => cdp.evaluate(settings, `${libraryNotice}.textContent.includes('已加载词库目录')`), 'directory selection feedback');
+    assert.equal((await bridge('/state')).libraryDirectory, configuredDirectory);
+    const counts = await cdp.evaluate(settings, `document.querySelector('#libraryCounts').textContent`);
+    assert.match(counts, /词语释义库：/); assert.match(counts, /命名约定库：/); assert.match(counts, /源码符号库：/);
+    assert.equal(await cdp.evaluate(settings, `!!document.querySelector('.legacy-libraries')`), false);
     await screenshot('settings-library-added');
-    await cdp.evaluate(settings, `${libraryButton}.click()`);
-    await until(async () => cdp.evaluate(settings, `${libraryNotice}.textContent.includes('已在列表中')`), 'duplicate library feedback');
     await bridge('/picker?mode=invalid');
     await cdp.evaluate(settings, `${libraryButton}.click()`);
-    await until(async () => cdp.evaluate(settings, `${libraryNotice}.textContent.includes('当前配置未修改')`), 'invalid library feedback');
-    assert.equal((await bridge('/state')).technicalLibraryPaths.length, 1);
+    await until(async () => cdp.evaluate(settings, `${libraryNotice}.textContent.includes('操作未完成')`), 'invalid directory feedback');
+    assert.equal((await bridge('/state')).libraryDirectory, configuredDirectory);
     await screenshot('settings-library-error');
     await bridge('/picker?mode=cancel');
     await cdp.evaluate(settings, `${libraryButton}.click()`);
-    await until(async () => cdp.evaluate(settings, `${libraryNotice}.textContent.includes('已取消')`), 'cancel library feedback');
-    await cdp.evaluate(settings, `document.querySelector('[data-action=remove][data-key=technicalLibraryPaths]').click()`);
-    await until(async () => (await bridge('/state')).technicalLibraryPaths.length === 0, 'remove general library');
-    checks.push('general library button: DFU file selection, 17 entries, visible persistent feedback, duplicate, invalid file, cancel and removal');
+    await until(async () => cdp.evaluate(settings, `${libraryNotice}.textContent.includes('已取消')`), 'cancel directory feedback');
+    await cdp.evaluate(settings, `document.querySelector('[data-action=remove][data-key=libraryDirectory]').click()`);
+    await until(async () => (await bridge('/state')).libraryDirectory === '', 'remove directory');
+    await bridge('/picker?mode=valid');
+    await cdp.evaluate(settings, `${libraryButton}.click()`);
+    await until(async () => (await bridge('/state')).libraryDirectory === configuredDirectory, 'restore directory');
+    checks.push('directory picker: three category counts, only catalog data, invalid directory, cancel, removal and restore');
     const prompt = fs.readFileSync(path.join(root, 'docs/external-ai-handoff.md'), 'utf8');
+    // HTML parsing normalizes CRLF to LF; clipboard still preserves exact source bytes.
+    const previewPrompt = prompt.replace(/\r\n/g, '\n');
     await cdp.evaluate(settings, `document.querySelector('[data-action=copyAiHandoff]').scrollIntoView({block:'center'})`);
     await cdp.evaluate(settings, `document.querySelector('[data-action=copyAiHandoff]').click()`);
     await until(async () => cdp.evaluate(settings, `document.querySelector('#aiHandoffNotice').textContent.includes('已复制完整提示词')`), 'prompt copy confirmation');
     assert.equal((await bridge('/clipboard')).clipboard, prompt);
     await cdp.evaluate(settings, `document.querySelector('.ai-handoff details').open=true`);
-    assert.equal(await cdp.evaluate(settings, `document.querySelector('.ai-handoff pre').textContent`), prompt);
+    assert.equal(await cdp.evaluate(settings, `document.querySelector('.ai-handoff pre').textContent`), previewPrompt);
     for (const [name, theme, cls] of [['dark','Default Dark Modern','vscode-dark'], ['light','Default Light Modern','vscode-light'], ['contrast','Default High Contrast','vscode-high-contrast']]) {
       await bridge('/theme?name=' + encodeURIComponent(theme));
       await until(async () => cdp.evaluate(settings, `document.body.classList.contains(${JSON.stringify(cls)})`), 'settings ' + name);
       await cdp.evaluate(settings, `document.querySelector('.ai-handoff details').open=true`);
-      assert.equal(await cdp.evaluate(settings, `document.querySelector('.ai-handoff pre').textContent`), prompt);
+      assert.equal(await cdp.evaluate(settings, `document.querySelector('.ai-handoff pre').textContent`), previewPrompt);
       assert.equal(await cdp.evaluate(settings, 'document.documentElement.scrollWidth>innerWidth'), false);
       await screenshot('settings-ai-' + name);
     }

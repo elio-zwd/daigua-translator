@@ -18,7 +18,7 @@ export interface TechnicalTerm {
 }
 interface DictionaryWord { word: string; translation: string; phonetic: string; }
 interface Manifest { format_version: number; source_sha256: string; shards: Record<string, string>; }
-export interface OfflineSettings { dictionaryPath: string; technicalLibraryPaths: string[]; }
+export interface OfflineSettings { dictionaryPath: string; technicalLibraryPaths: string[]; termLibraries?: TechnicalTerm[][]; }
 
 export function validateTerms(value: unknown): TechnicalTerm[] {
   const data = value as { format_version?: number; entries?: TechnicalTerm[] };
@@ -71,13 +71,13 @@ export class OfflineDictionary {
   }
   private async libraries(paths: string[]): Promise<TechnicalTerm[][]> {
     if (!this.terms) this.terms = (async () => {
-      const result: TechnicalTerm[][] = [];
-      const files = [path.join(__dirname, '../resources/technical-terms.json'), ...paths];
+      const result: TechnicalTerm[][] = [...(this.getSettings().termLibraries || [])];
+      const files = paths;
       for (const file of files) {
         try { result.push(validateTerms(JSON.parse((await fs.promises.readFile(file, 'utf8')).replace(/^\uFEFF/, '')))); }
         catch (error) { this.report(`技术库 ${file}：${String(error)}`); }
       }
-      return result.reverse(); // Last user file overrides bundled terms, without merging different meanings.
+      return result.reverse(); // Last explicitly enabled file wins, without merging different meanings.
     })();
     return this.terms;
   }
@@ -208,6 +208,12 @@ export class OfflineDictionary {
     if (generation !== this.generation) throw Error('词典配置已变化，请重新查询');
     return { text: symbol, kind: 'dictionary', match: 'components', candidates: [], components,
       diagnostics: [...this.diagnostics] };
+  }
+
+  async hasLocalTerms(symbol: string): Promise<boolean> {
+    const settings = this.configure();
+    const libraries = await this.libraries(settings.technicalLibraryPaths);
+    return splitIdentifier(symbol).some((token, index) => findTerms(libraries, symbol, token, index).length > 0);
   }
 
   async explain(symbol: string): Promise<string> { return legacyResult(await this.explainResult(symbol)); }

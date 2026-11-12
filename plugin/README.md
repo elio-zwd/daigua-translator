@@ -1,32 +1,33 @@
-# 呆瓜翻译器 0.5.1
+# 呆瓜翻译器 0.6.1
 
-独立的 MCU C/C++ 代码知识查询与文本翻译插件，无需 MTranCode。运行时不调用 AI，不需要模型密钥。
+独立的 MCU C/C++ 代码知识查询与文本翻译插件，无需 MTranCode。0.6.1 修复升级窗口中词库目录配置尚未注册时的保存失败，目录选择可立即生效并在配置恢复后同步。运行时不调用 AI，不需要模型密钥。
 
 ## 快速使用
 
 1. 从 VSIX 安装后重新加载窗口。
-2. 运行“呆瓜翻译器：选择知识包文件”，选择普通或带音标的增强 JSON。
+2. 运行“呆瓜翻译器：选择词库目录”，选择独立目录（仓库提供 `dictionaries/`）。插件不内置词库。
 3. C/C++ 名称悬停显示英文名称、中文名、一句话用途和音标；同名结果保留候选。
 4. 右键“翻译选区或当前名称”，或命令面板“输入文本翻译”。有编辑器时结果显示在悬停浮窗，无编辑器时打开固定查词面板，不替换原文。单次最多 1000 字符。
 5. 右键“在面板中查看”可固定显示释义，面板默认跟随光标，支持锁定与复制名称。
 6. 点击状态栏打开中文设置页，按“日常使用、词库管理、调试与诊断”配置。
-7. 在“词库管理 → 让外部 AI 完善词库”点击“复制完整提示词”，填写工程路径后，连同工程代码和已有词库交给外部 AI。可展开查看全文；内容包含项目包、通用库的格式、校验与加载说明。
+7. 在“词库管理 → 让外部 AI 完善词库”点击“复制完整提示词”，填写工程路径后，连同工程代码和已有词库交给外部 AI。可展开查看全文；内容包含三类词库、目录清单、校验与加载说明。
 
-项目知识包始终优先，其次查询通用技术库。日常以“项目释义、通用释义、词典释义、联网翻译”区分解释类型。自动去除前置项目名称复用通用释义时，标注“名称推测”；不表示读取了当前项目实现。来源编号、文件位置和原始详细说明仅在调试模式中显示。
+查询依次使用源码符号、命名约定和词语释义，再按设置回退。本工程优先，其他工程最多再显示 3 条不同释义；相同文字合并，来源保留在调试数据中。自动去除前置项目名称复用通用释义时，标注“名称推测”；不表示读取了当前项目实现。来源编号、文件位置和原始详细说明仅在调试模式中显示。
 
 ## 设置
 
 | 配置 | 默认值 | 说明 |
 | --- | --- | --- |
-| `daiguaTranslate.packPaths` | `[]` | 知识包绝对路径；可用选择文件命令配置 |
+| `daiguaTranslate.libraryDirectory` | `""` | 独立词库目录，只读取 library.json 启用文件 |
+| `daiguaTranslate.packPaths` | `[]` | 旧版源码路径；仅未选择目录时兼容读取 |
 | `daiguaTranslate.localHover` | `true` | C/C++ 自动悬停总开关；主动命令不受影响 |
 | `daiguaTranslate.hoverFallback` | `online` | 未收录名称：`online` 自动联网、`ecdict` 离线词典、`off` 关闭自动释义 |
 | `daiguaTranslate.bingEnabled` | `true` | 所有入口联网总开关；关闭不发起新请求 |
 | `daiguaTranslate.bingTimeoutMs` | `5000` | 等待上限 100–30000 ms；底层已发请求不能撤回 |
-| `daiguaTranslate.dictionaryPath` | `""` | 含 manifest.json 的 ECDICT 索引目录，不能填 CSV |
-| `daiguaTranslate.technicalLibraryPaths` | `[]` | 额外技术库或项目补充 JSON 的绝对路径，后者优先 |
+| `daiguaTranslate.dictionaryPath` | `""` | 旧版 ECDICT 索引路径；选择目录后由清单提供 |
+| `daiguaTranslate.technicalLibraryPaths` | `[]` | 旧版混合词库路径；选择目录后不再叠加 |
 | `daiguaTranslate.includeParameters` | `true` | 将有中文说明的函数参数加入查询索引 |
-| `daiguaTranslate.autoReload` | `true` | 包保存后自动重载，坏包保留上次有效内容 |
+| `daiguaTranslate.autoReload` | `true` | 清单及启用文件保存后自动重载，坏文件保留上次有效内容 |
 | `daiguaTranslate.debugMode` | `false` | 在结果末尾显示详细说明、来源和诊断 |
 | `daiguaTranslate.showStatusBar` | `true` | 显示数量和 Bing 状态 |
 
@@ -36,12 +37,12 @@
 
 ## ECDICT 与音标工具
 
-运行时不加载完整 CSV、不需要 Python。完整词典不随 VSIX 提供，先在源码仓库用 Python 3.10+ 运行 `phonetics/tool.py index`，再选择生成的索引目录。音标增强用 `phonetics/tool.py enrich`，生成独立增强包及外部 AI 补充清单。
+运行时不加载完整 CSV、不需要 Python。完整词典不随 VSIX 提供，先在源码仓库用 Python 3.10+ 运行 `phonetics/tool.py index`，再在 library.json 配置 dictionary_path。音标增强用 `phonetics/tool.py enrich`，生成独立增强包及外部 AI 补充清单。
 
-完整命令、技术库格式及回填示例见[第一期使用指南](../docs/phase-one-guide.md)；[历史验证记录](../docs/acceptance-2026-11-09.md)保留自动检查结果。默认直接使用，有问题再反馈，无须逐项人工审核。来源与缺失状态保留在数据中，悬停不再反复显示审核提示。`uint16_t` 等常见定宽类型优先整体匹配，避免拆出 `_t` 的无关词典义项。
+完整目录格式、迁移和回填命令见[0.6.0 说明](../docs/library-directory-0.6.0.md)；[历史验证记录](../docs/acceptance-2026-11-09.md)保留自动检查结果。默认直接使用，有问题再反馈，无须逐项人工审核。来源与缺失状态保留在数据中，悬停不再反复显示审核提示。`uint16_t` 等常见定宽类型优先整体匹配，避免拆出 `_t` 的无关词典义项。
 
 ## 词库完善与验证
 
 知识包与技术库可增加 `summary_zh`：用一句话解释核心含义。原始详细说明与来源继续保存。用户提供工程代码，由外部 AI 或维护者更新词库文件；插件运行时无需 AI。
 
-无鼠标、键盘操作的自动验证命令与新版说明见[0.5.0 使用与验证](../docs/concise-lookup-0.5.0.md)。
+自动验证命令见[脚本说明](../scripts/README.md)；[0.5.0 使用与验证](../docs/concise-lookup-0.5.0.md)保留历史记录。

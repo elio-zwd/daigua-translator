@@ -124,13 +124,25 @@ class Dictionary:
         return rows
 
 
-def enrich(pack_file, dictionary_dir, output, missing_file, extra_terms=(), supplement=None):
+def enrich(pack_file, dictionary_dir, output, missing_file, extra_terms=(), supplement=None, library_dir=None):
+    catalog_files = []
+    if library_dir:
+        from phonetics.library import validate_library
+        _, catalog_files, catalog_dictionary, _ = validate_library(library_dir)
+        if not dictionary_dir:
+            dictionary_dir = catalog_dictionary
+        extra_terms = [*[f for f, role, _ in catalog_files if role != "symbols"], *extra_terms]
+    if not dictionary_dir:
+        raise ValueError("请提供 ECDICT 索引目录或在 library.json 配置 dictionary_path")
     original_path = Path(pack_file).resolve()
     output_path, missing_path = Path(output).resolve(), Path(missing_file).resolve()
     if any(p.suffix.lower() != '.json' for p in (output_path, missing_path)):
         raise ValueError("增强包和缺失清单必须使用 .json 文件，避免覆盖其他数据")
     input_files = [original_path, Path(dictionary_dir).resolve() / "manifest.json",
-                   ROOT / "plugin/resources/technical-terms.json", *[Path(p).resolve() for p in extra_terms]]
+                   *[Path(p).resolve() for p in extra_terms]]
+    if library_dir:
+        input_files.append(Path(library_dir).resolve() / "library.json")
+        input_files.extend(file for file, _, _ in catalog_files)
     if supplement:
         input_files.append(Path(supplement).resolve())
     # Reject aliases, symlinks and Windows case-insensitive collisions, including index shards.
@@ -146,7 +158,7 @@ def enrich(pack_file, dictionary_dir, output, missing_file, extra_terms=(), supp
     dictionary = Dictionary(dictionary_dir)
     libraries = []
     versions = []
-    for file in input_files[2:]:
+    for file in [*[Path(p).resolve() for p in extra_terms], *([Path(supplement).resolve()] if supplement else [])]:
         libraries.append(validate_terms(read_json(file)))
         versions.append(dict(file=file.name, sha256=file_hash(file)))
     libraries.reverse()
@@ -238,8 +250,10 @@ def main():
     index.add_argument("--csv", required=True)
     index.add_argument("--out", required=True)
     pack = commands.add_parser("enrich", help="生成增强包及可交给外部 AI 的补充清单")
-    for field in ("pack", "dictionary", "out", "missing"):
+    for field in ("pack", "out", "missing"):
         pack.add_argument("--" + field, required=True)
+    pack.add_argument("--dictionary", default="", help="ECDICT 索引目录；可由词库清单提供")
+    pack.add_argument("--library-dir", help="独立词库目录；只读取清单启用的数据")
     pack.add_argument("--terms", action="append", default=[], help="额外技术库 JSON，可重复，后者优先")
     pack.add_argument("--supplement", help="外部 AI 填写的补充 JSON，优先级最高")
     args = parser.parse_args()
@@ -248,7 +262,7 @@ def main():
             data = build_index(args.csv, args.out)
             print(f"[OK] CSV {data['csv_rows']} 行；索引 {data['indexed_rows']} 条；SHA-256 {data['source_sha256']}")
         else:
-            enhanced, missing = enrich(args.pack, args.dictionary, args.out, args.missing, args.terms, args.supplement)
+            enhanced, missing = enrich(args.pack, args.dictionary, args.out, args.missing, args.terms, args.supplement, args.library_dir)
             print(f"[OK] 增强 {len(enhanced['entries'])} 条；待补充 {len(missing['entries'])} 项；原始包未修改")
         return 0
     except (OSError, ValueError, TypeError, KeyError, csv.Error) as error:
