@@ -25,8 +25,17 @@ export interface QueryResult {
   matchedName?: string;
   candidates: ResultCandidate[];
   components?: Meaning[];
+  onlineTranslation?: string;
   diagnostics: string[];
   message?: string;
+  nameDetails?: NameDetail[];
+}
+export interface NameDetail {
+  text: string;
+  kind: 'expansion' | 'prefix';
+  description: string;
+  pronunciation?: Pronunciation;
+  source: string;
 }
 export function projectResult(text: string, entries: KnowledgePackEntry[], currentProject?: string, diagnostics: string[] = []): QueryResult {
   const normalize = (s?: string) => (s || '').trim().replace(/\s+/g, ' ');
@@ -61,6 +70,7 @@ export function legacyResult(result: QueryResult): string {
   if (result.kind === 'project') return '呆瓜 · 本地知识包\n' + formatEntries(result.candidates.map(c => c.entry!));
   const lines = [result.kind === 'online' ? '呆瓜 · Bing 联网翻译 · 普通名称释义，用途未核对'
     : '普通名称释义，用途未核对（离线词典）'];
+  if (result.onlineTranslation) lines.push(`联网翻译：${result.onlineTranslation}`);
   for (const c of result.candidates) {
     lines.push(`${result.text}：${c.name}${c.summary ? '。' + c.summary : ''}${c.source ? ` [技术库：${c.source}]` : ''}`);
     lines.push(formatPronunciation(c.pronunciation));

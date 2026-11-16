@@ -24,6 +24,21 @@ export function sanitizePronunciation(value: unknown, warn: (message: string) =>
   return segments.length ? { segments } : undefined;
 }
 
+/** Supplement only missing, positionally aligned segments without altering authored data. */
+export function supplementPronunciation(symbol: string, original: Pronunciation | undefined, fallback: Pronunciation): Pronunciation | undefined {
+  // A general prefix convention is not evidence that a source symbol's prefix is silent.
+  const segments = fallback.segments.map(item => item.reading === 'silent'
+    ? { ...item, reading: 'unknown' as const, status: 'pending' as const, phonetic: undefined }
+    : item);
+  if (!segments.some(item => item.status === 'resolved' && !!item.phonetic?.trim())) return original;
+  if (!original?.segments.length) return { segments };
+  const authored = original.segments;
+  if (authored.length === 1 && authored[0].status === 'pending' && authored[0].text === symbol) return { segments };
+  if (authored.length !== segments.length || authored.some((item, index) => item.text !== segments[index].text)) return original;
+  return { segments: authored.map((item, index) => item.status === 'pending' && segments[index].status === 'resolved'
+    ? segments[index] : item) };
+}
+
 export function formatPronunciation(value?: Pronunciation): string {
   const valid = value && sanitizePronunciation(value);
   if (!valid) return '';

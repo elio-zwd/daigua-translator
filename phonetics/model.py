@@ -14,7 +14,7 @@ def is_prefix(symbol, token, index):
 
 def find_terms(libraries, symbol, token, index, whole=False):
     for library in libraries:
-        matches = [t for t in library if (t["match"] == "identifier") == whole
+        matches = [t for t in library if not t.get("panel_only") and (t["match"] == "identifier") == whole
                    and (not t.get("symbol") or t["symbol"] == symbol)
                    and (t["token"].lower() == token.lower() if t["match"] == "insensitive" else t["token"] == token)
                    and (t["match"] != "prefix" or is_prefix(symbol, token, index))]
@@ -59,6 +59,7 @@ def validate_terms(data):
                 or t.get("review_status") not in ("unreviewed", "confirmed")
                 or ("symbol" in t and (not isinstance(t["symbol"], str) or not re.fullmatch(r"[A-Za-z_]\w*", t["symbol"], re.ASCII)))
                 or ("expansion" in t and not isinstance(t["expansion"], str))
+                or ("panel_only" in t and (type(t["panel_only"]) is not bool or t.get("match") != "prefix"))
                 or ("summary_zh" in t and not isinstance(t["summary_zh"], str))
                 or ("phonetic" in t and not isinstance(t["phonetic"], str))
                 or (t.get("reading") in ("word", "letters") and not t.get("phonetic", "").strip())):

@@ -342,7 +342,7 @@ test('diagnostics expose effective paths and local query bypasses fallback; loca
     await harness.commands.get('daiguaTranslate.queryLocal')();
     assert.match(harness.messages.log.join('\n'), /本地未命中/);
     const document = { languageId: 'c', getWordRangeAtPosition: () => ({}), getText: () => 'Motor_Start' };
-    const hover = harness.mock.hover.provideHover(document, {});
+    const hover = await harness.mock.hover.provideHover(document, {}, { isCancellationRequested: false });
     assert.match(hover.contents.value, /源码释义/);
     assert.match(hover.contents.value, /诊断探针/);
     harness.mock.values.localHover = false;
@@ -492,6 +492,70 @@ test('cancelled, superseded, edited or reconfigured automatic hover never shows 
   }
 });
 
+test('source hover survives editor selection events but cancels stale data and requests', async () => {
+  const { OfflineDictionary } = require('../out/offline-dictionary');
+  const original = OfflineDictionary.prototype.pronunciationForSymbol;
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'daigua-source-hover-'));
+  const file = path.join(directory, 'pack.json');
+  fs.writeFileSync(file, JSON.stringify(pack('源码释义')));
+  try {
+    for (const event of ['selection','editor','settings','edit','cancel','supersede']) {
+      const h = await extensionHarness([file]);
+      const { document, position } = documentFixture('Motor_Start');
+      const token = { isCancellationRequested:false };
+      let release;
+      try {
+        OfflineDictionary.prototype.pronunciationForSymbol = () => new Promise(resolve => { release = resolve; });
+        const request = h.mock.hover.provideHover(document, position, token);
+        await waitUntil(() => release);
+        if (event === 'selection') h.mock.changeSelection();
+        if (event === 'editor') h.mock.changeEditor();
+        if (event === 'settings') {
+          h.mock.values.localHover = false;
+          await h.mock.fireSettings('daiguaTranslate.localHover');
+        }
+        if (event === 'edit') document.version++;
+        if (event === 'cancel') token.isCancellationRequested = true;
+        if (event === 'supersede') { h.mock.values.localHover = false; h.mock.hover.provideHover(document, position, token); }
+        release({segments:[{text:'Motor',reading:'word',phonetic:'motor',source:'fixture',status:'resolved'}]});
+        const hover = await request;
+        if (event === 'selection' || event === 'editor') assert.match(hover.contents.value, /源码释义/, event);
+        else assert.equal(hover, undefined, event);
+      } finally { h.dispose(); }
+    }
+  } finally {
+    OfflineDictionary.prototype.pronunciationForSymbol = original;
+    fs.rmSync(directory, {recursive:true,force:true});
+  }
+});
+
+test('source hover retries with fresh data after configuration changes', async () => {
+  const { OfflineDictionary } = require('../out/offline-dictionary');
+  const original = OfflineDictionary.prototype.pronunciationForSymbol;
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'daigua-source-retry-'));
+  const file = path.join(directory, 'pack.json');
+  fs.writeFileSync(file, JSON.stringify(pack('源码释义')));
+  const h = await extensionHarness([file]);
+  const { document, position } = documentFixture('Motor_Start');
+  let release, calls = 0;
+  const reading = phonetic => ({segments:[{text:'Motor',reading:'word',phonetic,source:'fixture',status:'resolved'}]});
+  try {
+    OfflineDictionary.prototype.pronunciationForSymbol = () => ++calls === 1
+      ? new Promise(resolve => { release = resolve; }) : Promise.resolve(reading('fresh'));
+    const request = h.mock.hover.provideHover(document, position, {isCancellationRequested:false});
+    await waitUntil(() => release);
+    await h.mock.fireSettings('daiguaTranslate.bingEnabled');
+    release(reading('stale'));
+    const hover = await request;
+    assert.match(hover.contents.value, /fresh/);
+    assert.doesNotMatch(hover.contents.value, /stale/);
+    assert.equal(calls, 2);
+  } finally {
+    OfflineDictionary.prototype.pronunciationForSymbol = original;
+    h.dispose(); fs.rmSync(directory, {recursive:true,force:true});
+  }
+});
+
 test('automatic off never calls Bing; dictionary mode and global-off use explicitly configured libraries', async () => {
   const h = await extensionHarness([]);
   const { document, position } = documentFixture('LED');
@@ -556,6 +620,56 @@ test('reader rejects late results after replacement, locking and closing', async
       assert.equal(h.panels.result.text,action==='replace'?'led_set':previous.text);
     }finally{h.dispose();}
   }
+});
+
+test('reader shows local components immediately, then adds whole-name Bing translation', async () => {
+  const h = await extensionHarness([]);
+  let finish;
+  try {
+    h.translator.bingTranslator = () => new Promise(resolve => { finish = resolve; });
+    const request = h.commands.get('daiguaTranslate.openDetails')('sFLASH_LowLevel_Init');
+    await waitUntil(() => finish && h.panels.result?.components?.length);
+    assert.equal(h.panels.result.kind,'dictionary');
+    assert.equal(h.panels.result.onlineTranslation,undefined);
+    const initial = h.panels.result.components;
+    finish({translation:'闪存底层初始化'});
+    await request;
+    assert.equal(h.panels.result.onlineTranslation,'闪存底层初始化');
+    assert.deepEqual(h.panels.result.components,initial);
+    const html = h.mock.panels.at(-1).messages.at(-1).html;
+    assert.match(html,/联网翻译/); assert.match(html,/闪存底层初始化/); assert.match(html,/FLASH/);
+  } finally { h.dispose(); }
+});
+
+test('late whole-name translation cannot update a replaced, locked, closed or disabled reader', async () => {
+  for (const action of ['replace','lock','close','settings']) {
+    const h = await extensionHarness([]);
+    let finish;
+    try {
+      h.translator.bingTranslator = () => new Promise(resolve => { finish = resolve; });
+      const request = h.commands.get('daiguaTranslate.openDetails')('sFLASH_LowLevel_Init');
+      await waitUntil(() => finish && h.panels.result?.components?.length);
+      const partial = h.panels.result;
+      if (action === 'replace') await h.commands.get('daiguaTranslate.openDetails')('board_init');
+      if (action === 'lock') await h.mock.panels.at(-1).receive({action:'lock'});
+      if (action === 'close') h.mock.panels.at(-1).dispose();
+      if (action === 'settings') { h.mock.values.bingEnabled = false; await h.mock.fireSettings('daiguaTranslate.bingEnabled'); }
+      finish({translation:'过期译文'}); await request;
+      assert.equal(h.panels.result.text,action === 'replace' ? 'board_init' : partial.text,action);
+      assert.equal(h.panels.result.onlineTranslation,undefined,action);
+    } finally { h.dispose(); }
+  }
+});
+
+test('automatic hover includes whole-name translation alongside local components', async () => {
+  const h=await extensionHarness([]);
+  const {document,position}=documentFixture('sFLASH_LowLevel_Init');
+  try {
+    h.translator.bingTranslator=async()=>({translation:'闪存底层初始化'});
+    const hover=await h.mock.hover.provideHover(document,position,{isCancellationRequested:false});
+    assert.match(hover.contents.value,/联网翻译/); assert.match(hover.contents.value,/闪存底层初始化/);
+    assert.match(hover.contents.value,/FLASH/); assert.match(hover.contents.value,/初始化/);
+  } finally {h.dispose();}
 });
 
 test('settings page validates messages, saves scope, updates locked reader debug without querying again', async () => {

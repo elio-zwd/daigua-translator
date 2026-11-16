@@ -16,12 +16,42 @@ function fixture(t) {
   const write = (file, data) => fs.writeFileSync(path.join(directory, file), JSON.stringify(data));
   write('manifest.json', { format_version: 1, source_sha256: 'a'.repeat(64), shards: { mo: 'mo.json', st: 'st.json' } });
   write('mo.json', { motor: [{ word: 'motor', translation: '马达\\n发动机', phonetic: "'mәutә" }] });
-  write('st.json', { start: [{ word: 'start', translation: '启动', phonetic: 'stɑ:t' }] });
+  write('st.json', { start: [{ word: 'start', translation: '启动', phonetic: 'stɑ:t' }],
+    static: [{ word: 'static', translation: '静态', phonetic: "'stætik" }] });
   const warnings = [];
   let paths = require('../../tests/fixtures/library-paths.cjs');
   const offline = new OfflineDictionary(() => ({ dictionaryPath: directory, technicalLibraryPaths: paths }), m => warnings.push(m));
   return { directory, write, warnings, offline, setPaths: p => { paths = p; } };
 }
+
+test('online symbol translations use available local pronunciation without changing the translation', async t => {
+  const { offline, write, setPaths } = fixture(t);
+  setPaths([]); // Exercise the online path without the enabled code-term library.
+  const translator = new DaiguaTranslate([], async () => ({translation:'静态'}));
+  let result = await translator.queryResult('static', 'online', offline);
+  assert.equal(result.kind, 'online'); assert.equal(result.candidates[0].name, '静态');
+  assert.equal(result.candidates[0].pronunciation.segments[0].phonetic, "'stætik");
+  const composite = await translator.queryResult('static_widget', 'online', offline);
+  assert.deepEqual(composite.candidates[0].pronunciation.segments.map(s => s.status), ['resolved','pending']);
+  const sentence = await translator.queryResult('static variable', 'online', offline);
+  assert.equal(sentence.candidates[0].pronunciation, undefined);
+  write('st.json', {static:[{word:'static',translation:'静态',phonetic:'one'},{word:'static',translation:'静态',phonetic:'two'}]});
+  offline.reset(); result = await translator.queryResult('static', 'online', offline);
+  assert.equal(result.candidates[0].pronunciation.segments[0].status, 'pending');
+});
+
+test('static uses the enabled code term in offline and online modes', async t => {
+  const { offline } = fixture(t);
+  let calls = 0;
+  const translator = new DaiguaTranslate([], async () => { calls++; return {translation:'联网内容'}; });
+  for (const mode of ['ecdict', 'online']) {
+    const result = await translator.queryResult('static', mode, offline);
+    assert.equal(result.kind, 'dictionary');
+    assert.match(result.components[0].meanings[0], /静态/);
+    assert.equal(result.components[0].pronunciation.segments[0].phonetic, "'stætik");
+  }
+  assert.equal(calls, 0);
+});
 
 test('Python/TypeScript shared identifier boundaries', () => {
   for (const [symbol, expected] of require('../../tests/fixtures/identifier-words.json')) {

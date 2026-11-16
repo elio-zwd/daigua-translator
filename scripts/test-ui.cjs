@@ -145,6 +145,82 @@ async function main() {
     await screenshot('hover-literal-text');
     await bridge('/hide-hover');
     checks.push('rendered hover and panel preserve phonetic apostrophes; Markdown, HTML and entity input stay literal with only app-owned links');
+    await bridge('/reader?word=gIRQ');
+    await until(async () => cdp.evaluate(await reader(), `document.querySelector('h1').textContent==='gIRQ'`), 'name details');
+    for (const [name, theme, cls] of [['dark', 'Default Dark Modern', 'vscode-dark'], ['light', 'Default Light Modern', 'vscode-light'], ['contrast', 'Default High Contrast', 'vscode-high-contrast']]) {
+      await bridge('/theme?name=' + encodeURIComponent(theme));
+      await until(async () => cdp.evaluate(await reader(), `document.body.classList.contains(${JSON.stringify(cls)})`), `${name} name details theme`);
+      const info = await cdp.evaluate(await reader(), `({text:document.querySelector('.name-details')?.innerText,overflow:document.documentElement.scrollWidth>innerWidth})`);
+      assert.match(info.text, /interrupt request/); assert.match(info.text, /interrupt \/ɪntə\//);
+      assert.match(info.text, /常见命名约定/); assert.match(info.text, /全局变量/); assert.equal(info.overflow, false);
+      await screenshot('name-details-' + name);
+    }
+    await bridge('/hover?word=gIRQ');
+    const conciseHover = await until(async () => cdp.evaluate(hover, `document.querySelector('.monaco-hover .rendered-markdown')?.innerText.includes('IRQ') && document.querySelector('.monaco-hover .rendered-markdown').innerText`), 'name details hover');
+    assert.doesNotMatch(conciseHover, /缩写原词|interrupt request|常见命名约定/);
+    await bridge('/hide-hover');
+    checks.push('name details and original-word phonetics across themes; hover stays concise');
+    for (const [word, meaning] of [['p_mac', '指针变量'], ['s_count', '静态变量']]) {
+      await bridge('/reader?word=' + word);
+      await until(async () => cdp.evaluate(await reader(), `document.querySelector('h1').textContent===${JSON.stringify(word)}`), 'underscore prefix reader');
+      const text = await cdp.evaluate(await reader(), `document.querySelector('.name-details')?.innerText`);
+      assert.ok(text?.includes(meaning), `${word}: ${text}`);
+      await screenshot('prefix-' + word);
+    }
+    for (const [word, expected] of [['g_pBuffer', ['全局变量', '指针变量']], ['pucBuffer', ['指向无符号字符']]]) {
+      await bridge('/reader?word=' + word);
+      await until(async () => cdp.evaluate(await reader(), `document.querySelector('h1').textContent===${JSON.stringify(word)}`), 'combined prefix reader');
+      const text = await cdp.evaluate(await reader(), `document.querySelector('.name-details')?.innerText`);
+      for (const meaning of expected) assert.ok(text?.includes(meaning), `${word}: ${text}`);
+    }
+    await bridge('/reader?word=p_mac');
+    await until(async () => cdp.evaluate(await reader(), `document.querySelector('h1').textContent==='p_mac'`), 'offline prefix meaning');
+    const pMacText = await cdp.evaluate(await reader(), `document.querySelector('main').innerText`);
+    assert.match(pMacText, /指针前缀/); assert.doesNotMatch(pMacText, /便士/);
+    checks.push('offline and combined prefixes use enabled naming conventions');
+    await bridge('/reader?word=static');
+    await until(async () => cdp.evaluate(await reader(), `document.querySelector('h1').textContent==='static'`), 'static code term');
+    const staticText = await cdp.evaluate(await reader(), `document.querySelector('main').innerText`);
+    assert.match(staticText, /静态/); assert.doesNotMatch(staticText, /静电/);
+    assert.ok(staticText.includes("static /'stætik/"), staticText);
+    await screenshot('static-term');
+    await bridge('/online-setup');
+    await bridge('/reader?word=statically');
+    await until(async () => cdp.evaluate(await reader(), `document.querySelector('h1').textContent==='statically' && document.querySelector('main').innerText.includes('联网翻译')`), 'online pronunciation reader');
+    const onlineText = await cdp.evaluate(await reader(), `document.querySelector('main').innerText`);
+    assert.match(onlineText, /联网翻译/); assert.ok(onlineText.includes("statically /'stætikli/"), onlineText);
+    await screenshot('online-pronunciation');
+    await bridge('/online-reset');
+    checks.push('static uses the code term and online translation displays local pronunciation');
+    await bridge('/supplement-setup');
+    await bridge('/reader-start?word=sFLASH_LowLevel_Init');
+    const localText = await until(async () => cdp.evaluate(await reader(), `document.querySelector('h1').textContent==='sFLASH_LowLevel_Init' && document.querySelector('main').innerText.includes('FLASH') && document.querySelector('main').innerText`), 'local components before Bing');
+    assert.match(localText, /初始化/); assert.match(localText, /FLASH \/flæʃ\//); assert.doesNotMatch(localText, /闪存底层初始化/);
+    await bridge('/supplement-release');
+    const combinedText = await until(async () => cdp.evaluate(await reader(), `document.querySelector('main').innerText.includes('闪存底层初始化') && document.querySelector('main').innerText`), 'whole-name Bing translation');
+    assert.match(combinedText, /联网翻译/); assert.match(combinedText, /FLASH \/flæʃ\//); assert.match(combinedText, /初始化/);
+    for (const [name,theme,cls] of [['dark','Default Dark Modern','vscode-dark'], ['light','Default Light Modern','vscode-light'], ['contrast','Default High Contrast','vscode-high-contrast']]) {
+      await bridge('/theme?name=' + encodeURIComponent(theme));
+      await until(async () => cdp.evaluate(await reader(), `document.body.classList.contains(${JSON.stringify(cls)})`), 'combined translation theme');
+      assert.equal(await cdp.evaluate(await reader(), 'document.documentElement.scrollWidth>innerWidth'), false);
+      await screenshot('combined-translation-' + name);
+    }
+    await bridge('/hover?word=sFLASH_LowLevel_Init');
+    const combinedHover = await until(async () => cdp.evaluate(hover, `document.querySelector('.monaco-hover .rendered-markdown')?.innerText.includes('闪存底层初始化') && document.querySelector('.monaco-hover .rendered-markdown').innerText`), 'whole-name Bing hover');
+    assert.match(combinedHover, /FLASH/); assert.match(combinedHover, /初始化/);
+    await bridge('/hide-hover');
+    await bridge('/online-reset');
+    checks.push('local components appear before Bing and remain with the full translation in reader and hover');
+    await bridge('/reader?word=parse_frame');
+    await until(async () => cdp.evaluate(await reader(), `document.querySelector('h1').textContent==='parse_frame'`), 'source pronunciation reader');
+    const sourceText = await cdp.evaluate(await reader(), `document.querySelector('main').innerText`);
+    assert.match(sourceText, /源码释义/); assert.match(sourceText, /parse \/pɑ:s\//); assert.match(sourceText, /frame \/freim\//);
+    await bridge('/hover?word=parse_frame');
+    const sourceHover = await until(async () => cdp.evaluate(hover, `document.querySelector('.monaco-hover .rendered-markdown')?.innerText.includes('parse /pɑ:s/') && document.querySelector('.monaco-hover .rendered-markdown').innerText`), 'source pronunciation hover');
+    assert.ok(sourceHover.includes('frame /freim/'), sourceHover);
+    await screenshot('source-pronunciation');
+    await bridge('/hide-hover');
+    checks.push('source pronunciation fallback is consistent in reader and hover');
     for (const word of ['cross_function', 'shared_arg']) {
       await bridge('/reader?word=' + word);
       await until(async () => cdp.evaluate(await reader(), `document.querySelector('h1').textContent===${JSON.stringify(word)}`), 'cross-project panel');
@@ -170,6 +246,18 @@ async function main() {
     assert.equal(await cdp.evaluate(await reader(), 'document.documentElement.scrollWidth>innerWidth'), false);
     await until(async () => cdp.evaluate(await reader(), 'innerWidth<=440'), 'narrow reader viewport');
     await screenshot('reader-narrow'); checks.push('narrow panel and wrapping long identifier');
+    await bridge('/online-setup');
+    await bridge('/reader?word=sFLASH_LowLevel_Init');
+    await until(async () => cdp.evaluate(await reader(), `document.querySelector('h1').textContent==='sFLASH_LowLevel_Init' && !!document.querySelector('.online-translation')`), 'narrow combined translation');
+    assert.equal(await cdp.evaluate(await reader(), 'document.documentElement.scrollWidth>innerWidth'), false);
+    await screenshot('combined-translation-narrow');
+    await bridge('/online-reset');
+    await bridge('/reader?word=gIRQ');
+    await until(async () => cdp.evaluate(await reader(), `document.querySelector('h1').textContent==='gIRQ'`), 'narrow name details');
+    assert.equal(await cdp.evaluate(await reader(), 'document.documentElement.scrollWidth>innerWidth'), false);
+    await screenshot('name-details-narrow');
+    await bridge('/reader?word=very_long_project_prefix_with_many_words_board_init');
+    await until(async () => cdp.evaluate(await reader(), `document.querySelector('h1').textContent.startsWith('very_long_')`), 'restore long word');
     await cdp.evaluate(await reader(), `document.querySelector('[data-action=lock]').click()`);
     await bridge('/select?line=2'); await pause(500);
     assert.equal((await bridge('/state')).result, 'very_long_project_prefix_with_many_words_board_init');
@@ -206,6 +294,7 @@ async function main() {
     await bridge('/picker?mode=valid');
     await cdp.evaluate(settings, `${libraryButton}.click()`);
     await until(async () => (await bridge('/state')).libraryDirectory === configuredDirectory, 'restore directory');
+    await until(async () => cdp.evaluate(settings, `document.querySelector('.ai-handoff pre')?.textContent.includes(${JSON.stringify(configuredDirectory)})`), 'restored directory in prompt');
     checks.push('directory picker: three category counts, only catalog data, invalid directory, cancel, removal and restore');
     const prompt = fs.readFileSync(path.join(root, 'docs/external-ai-handoff.md'), 'utf8').replace('{{LIBRARY_DIRECTORY}}', () => configuredDirectory);
     // HTML parsing normalizes CRLF to LF; clipboard still preserves exact source bytes.

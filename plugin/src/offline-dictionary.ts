@@ -2,13 +2,14 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { splitIdentifier, isNamingPrefix } from './identifier-words';
 import { Pronunciation, PronunciationSegment } from './types';
-import { QueryResult, Meaning, legacyResult } from './query-result';
+import { QueryResult, Meaning, NameDetail, legacyResult } from './query-result';
 
 export interface TechnicalTerm {
   token: string;
   match: 'exact' | 'insensitive' | 'prefix' | 'identifier';
   symbol?: string;
   expansion?: string;
+  panel_only?: boolean;
   translation: string;
   summary_zh?: string;
   reading: PronunciationSegment['reading'];
@@ -31,6 +32,7 @@ export function validateTerms(value: unknown): TechnicalTerm[] {
         !['unreviewed', 'confirmed'].includes(t.review_status) ||
         (t.symbol !== undefined && (typeof t.symbol !== 'string' || !/^[A-Za-z_]\w*$/.test(t.symbol))) ||
         (t.expansion !== undefined && typeof t.expansion !== 'string') ||
+        (t.panel_only !== undefined && (typeof t.panel_only !== 'boolean' || t.match !== 'prefix')) ||
         (t.summary_zh !== undefined && typeof t.summary_zh !== 'string') ||
         (t.phonetic !== undefined && typeof t.phonetic !== 'string') ||
         (['word', 'letters'].includes(t.reading) && !t.phonetic?.trim())) throw Error('无效技术库词条');
@@ -39,11 +41,12 @@ export function validateTerms(value: unknown): TechnicalTerm[] {
 }
 
 /** Complete-name conventions must not leak into fragments or unrelated single-letter names. */
-function findTerms(libraries: TechnicalTerm[][], symbol: string, token: string, index: number, whole = false): TechnicalTerm[] {
+function findTerms(libraries: TechnicalTerm[][], symbol: string, token: string, index: number, whole = false,
+  prefixMatches = isNamingPrefix, includePanelOnly = false): TechnicalTerm[] {
   for (const library of libraries) {
-    let matches = library.filter(t => (t.match === 'identifier') === whole && (!t.symbol || t.symbol === symbol) &&
+    let matches = library.filter(t => (includePanelOnly || !t.panel_only) && (t.match === 'identifier') === whole && (!t.symbol || t.symbol === symbol) &&
       (t.match === 'insensitive' ? t.token.toLowerCase() === token.toLowerCase() : t.token === token) &&
-      (t.match !== 'prefix' || isNamingPrefix(symbol, token, index)));
+      (t.match !== 'prefix' || prefixMatches(symbol, token, index)));
     if (matches.some(t => t.symbol === symbol)) matches = matches.filter(t => t.symbol === symbol);
     if (matches.length) return matches;
   }
@@ -115,6 +118,66 @@ export class OfflineDictionary {
       status: term.reading === 'unknown' ? 'pending' : 'resolved', review_status: term.review_status }] };
   }
 
+  /** Prefixes used for presentation only; lookup selection remains unchanged. */
+  private displayPrefixes(symbol: string, libraries: TechnicalTerm[][]): Map<number, TechnicalTerm> {
+    const tokens = splitIdentifier(symbol);
+    const found = new Map<number, TechnicalTerm>();
+    const prefixLibraries = libraries.map(library => library.filter(term => term.match === 'prefix'));
+    const select = (token: string, index: number) =>
+      findTerms(prefixLibraries, symbol, token, index, false, () => true, true)[0];
+    const first = tokens[0];
+    if (!first || !(isNamingPrefix(symbol, first, 0) ||
+        symbol.startsWith(first) && /^_[A-Za-z]/.test(symbol.slice(first.length)))) return found;
+    const firstTerm = select(first, 0);
+    if (!firstTerm) return found;
+    found.set(0, firstTerm);
+    // Only explicit scope + pointer combinations are supported, e.g. g_pBuffer.
+    const second = tokens[1];
+    const marker = first + '_' + second;
+    if (['g', 'm', 's'].includes(first) && second && ['p', 'px', 'pv', 'pc', 'puc'].includes(second) &&
+        symbol.startsWith(marker) && /^(?:[A-Z]|_[A-Za-z])/.test(symbol.slice(marker.length))) {
+      const secondTerm = select(second, 1);
+      if (secondTerm) found.set(1, secondTerm);
+    }
+    return found;
+  }
+
+  /** Optional reader-only learning details; they never alter the lookup result. */
+  async nameDetails(symbol: string): Promise<NameDetail[]> {
+    const settings = this.configure(), generation = this.generation;
+    const libraries = await this.libraries(settings.technicalLibraryPaths);
+    const details: NameDetail[] = [];
+    const tokens = splitIdentifier(symbol);
+    const prefixes = this.displayPrefixes(symbol, libraries);
+    for (const [index, token] of tokens.entries()) {
+      // Select each category separately so a naming rule cannot hide a word entry.
+      const words = libraries.map(l => l.filter(t => t.match === 'exact' || t.match === 'insensitive'));
+      const term = findTerms(words, symbol, token, index)[0];
+      if (term?.expansion?.trim()) {
+        const segments: PronunciationSegment[] = [];
+        for (const word of term.expansion.match(/[A-Za-z]+/g) || []) {
+          let phonetic: string | undefined, source = 'unavailable';
+          try {
+            const found = await this.words(word, settings.dictionaryPath, generation);
+            source = found.source;
+            const readings = [...new Set(found.rows.filter(r => r.word === word.toLowerCase() && r.phonetic.trim()).map(r => r.phonetic))];
+            if (readings.length === 1) phonetic = readings[0];
+          } catch (error) {
+            if (generation !== this.generation) throw error;
+          }
+          segments.push({ text: word, reading: phonetic ? 'word' : 'unknown', phonetic, source,
+            status: phonetic ? 'resolved' : 'pending' });
+        }
+        details.push({ text: token, kind: 'expansion', description: term.expansion,
+          pronunciation: { segments }, source: term.source });
+      }
+      const prefix = prefixes.get(index);
+      if (prefix) details.push({ text: token, kind: 'prefix', description: prefix.summary_zh || prefix.translation, source: prefix.source });
+    }
+    if (generation !== this.generation) throw Error('词典配置已变化，请重新查询');
+    return details;
+  }
+
   /** Only entries with an authored summary opt into cross-project normalization/inference. */
   async generalResult(symbol: string): Promise<QueryResult | undefined> {
     const settings = this.configure(), generation = this.generation;
@@ -157,7 +220,8 @@ export class OfflineDictionary {
         try {
           const found = await this.words(token, settings.dictionaryPath, generation);
           source = found.source;
-          phonetic = found.rows.find(r => r.word === token.toLowerCase() && r.phonetic)?.phonetic;
+          const readings = [...new Set(found.rows.filter(r => r.word === token.toLowerCase() && r.phonetic.trim()).map(r => r.phonetic))];
+          if (readings.length === 1) phonetic = readings[0];
         } catch (error) {
           if (generation !== this.generation) throw error;
           this.report(String(error));
@@ -170,11 +234,18 @@ export class OfflineDictionary {
     return { segments };
   }
 
+  async pronunciationForSymbol(symbol: string): Promise<Pronunciation> {
+    const settings = this.configure(), generation = this.generation;
+    const libraries = await this.libraries(settings.technicalLibraryPaths);
+    return this.pronunciationFor(symbol, settings, libraries, generation);
+  }
+
   async explainResult(symbol: string): Promise<QueryResult> {
     const general = await this.generalResult(symbol);
     if (general) return general;
     const settings = this.configure(), generation = this.generation;
     const libraries = await this.libraries(settings.technicalLibraryPaths);
+    const prefixes = this.displayPrefixes(symbol, libraries);
     const components: Meaning[] = [];
     let cursor = 0;
     for (const [index, token] of splitIdentifier(symbol).entries()) {
@@ -183,7 +254,8 @@ export class OfflineDictionary {
       if (/^\d+$/.test(token)) {
         components.push({ text: token, meanings: ['数字，未标注读音'], source: 'identifier' }); continue;
       }
-      const matches = findTerms(libraries, symbol, token, index);
+      const matches = findTerms(libraries, symbol, token, index, false,
+        (_name, _token, position) => prefixes.has(position), true);
       if (matches.length) {
         components.push({ text: token, meanings: matches.map(t => t.translation || '释义暂缺'),
           source: matches.map(t => t.source).join('；'), pronunciation: this.termPronunciation(matches[0], token) });

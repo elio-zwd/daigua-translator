@@ -19,6 +19,7 @@ export async function activate(context: vscode.ExtensionContext) {
   let loadedPacks: KnowledgePack[] = [];
   let library: LibrarySnapshot | undefined;
   let reloadRequestId = 0;
+  let pendingReload: Promise<PackLoadReport | null> | undefined;
   let disposed = false;
   let report: PackLoadReport | undefined;
   let loadedAt = '';
@@ -48,10 +49,16 @@ export async function activate(context: vscode.ExtensionContext) {
   }), message => output.appendLine('[词典诊断] ' + message));
   let epoch = 0;
   let hoverSequence = 0;
+  let hoverRequestSequence = 0;
+  let hoverDataEpoch = 0;
   let commandSequence = 0;
   let manual: { document: vscode.TextDocument; version: number; anchor: vscode.Position;
     range: vscode.Range; result: QueryResult; epoch: number } | undefined;
-  const invalidate = () => { ++epoch; ++hoverSequence; ++commandSequence; manual = undefined; };
+  const invalidate = (dataChanged = true) => {
+    ++epoch; ++hoverSequence; ++commandSequence;
+    if (dataChanged) ++hoverDataEpoch;
+    manual = undefined;
+  };
   const hoverMode = (): 'online' | 'ecdict' | 'off' => {
     const mode = config().get<string>('hoverFallback', 'online');
     return mode === 'ecdict' || mode === 'off' ? mode : 'online';
@@ -88,7 +95,12 @@ export async function activate(context: vscode.ExtensionContext) {
     const snapshot = { version: editor?.document.version || 0, anchor: editor?.selection.active!, epoch, request: ++commandSequence };
     manual = undefined;
     try {
-      const result = await local.queryResult(content, 'online', offline);
+      const result = await local.queryResult(content, 'online', offline, undefined, partial => {
+        if (disposed || snapshot.epoch !== epoch || snapshot.request !== commandSequence) return;
+        if (!editor) { panels.showReader(partial); return; }
+        if (vscode.window.activeTextEditor === editor && editor.document.version === snapshot.version &&
+            editor.selection.active.isEqual(snapshot.anchor) && panels.follows) panels.setResult(partial);
+      });
       if (result) { logResult(result); await display(result, editor, snapshot); }
     } catch (error) { output.appendLine(String(error)); await display(errorResult(content, error), editor, snapshot); }
   }
@@ -129,11 +141,13 @@ export async function activate(context: vscode.ExtensionContext) {
     const value = editor.document.getText(word), version = editor.document.version, currentEpoch = epoch;
     panelTimer = setTimeout(async () => {
       if (!panels.follows || disposed || sequence !== panelSequence) return;
+      const isCurrent = () => !disposed && panels.follows && sequence === panelSequence && currentEpoch === epoch &&
+        editor.document.version === version && vscode.window.activeTextEditor === editor;
       let result: QueryResult | undefined;
-      try { result = await local.queryResult(value, hoverMode(), offline, editor.document.uri?.fsPath); }
+      try { result = await local.queryResult(value, hoverMode(), offline, editor.document.uri?.fsPath,
+        partial => { if (isCurrent()) panels.setResult(partial); }); }
       catch (error) { output.appendLine(String(error)); result = errorResult(value, error); }
-      if (disposed || !panels.follows || sequence !== panelSequence || currentEpoch !== epoch ||
-        editor.document.version !== version || vscode.window.activeTextEditor !== editor) return;
+      if (!isCurrent()) return;
       if (result) logResult(result);
       panels.setResult(result);
     }, 350);
@@ -146,7 +160,9 @@ export async function activate(context: vscode.ExtensionContext) {
     const sequence = ++panelSequence, currentEpoch = epoch;
     if (panelTimer) clearTimeout(panelTimer);
     try {
-      const result = await local.queryResult(text, 'online', offline);
+      const result = await local.queryResult(text, 'online', offline, undefined, partial => {
+        if (!disposed && panels.isOpen && sequence === panelSequence && currentEpoch === epoch) panels.setResult(partial);
+      });
       if (result && !disposed && panels.isOpen && sequence === panelSequence && currentEpoch === epoch) {
         logResult(result); panels.setResult(result);
       }
@@ -269,7 +285,15 @@ export async function activate(context: vscode.ExtensionContext) {
     output.show(true);
   }
 
-  async function reloadPacks(notify = false): Promise<PackLoadReport | null> {
+  function reloadPacks(notify = false): Promise<PackLoadReport | null> {
+    const current = performReloadPacks(notify);
+    pendingReload = current;
+    void current.then(() => { if (pendingReload === current) pendingReload = undefined; },
+      () => { if (pendingReload === current) pendingReload = undefined; });
+    return current;
+  }
+
+  async function performReloadPacks(notify: boolean): Promise<PackLoadReport | null> {
     invalidate();
     offline.reset();
     const requestId = ++reloadRequestId;
@@ -398,13 +422,14 @@ export async function activate(context: vscode.ExtensionContext) {
     if (['packPaths', 'technicalLibraryPaths', 'dictionaryPath', 'libraryDirectory'].some(k => event.affectsConfiguration('daiguaTranslate.' + k))) await reloadPacks();
     refreshStatus();
   }));
-  context.subscriptions.push(vscode.window.onDidChangeTextEditorSelection(() => { invalidate(); schedulePanel(); }),
-    vscode.window.onDidChangeActiveTextEditor(() => { invalidate(); schedulePanel(); }),
+  context.subscriptions.push(vscode.window.onDidChangeTextEditorSelection(() => { invalidate(false); schedulePanel(); }),
+    vscode.window.onDidChangeActiveTextEditor(() => { invalidate(false); schedulePanel(); }),
     vscode.workspace.onDidChangeTextDocument(() => { invalidate(); schedulePanel(); }));
   // One provider owns explicit results in every language and automatic results in C/C++ only.
   context.subscriptions.push(vscode.languages.registerHoverProvider('*', {
     provideHover(document, position, token) {
       const sequence = ++hoverSequence;
+      const requestSequence = ++hoverRequestSequence;
       if (disposed) return;
       if (manual && manual.document === document && manual.version === document.version &&
           manual.epoch === epoch && (manual.range.contains(position) || manual.anchor.isEqual(position))) {
@@ -415,15 +440,27 @@ export async function activate(context: vscode.ExtensionContext) {
       if (!range) return;
       const value = document.getText(range);
       const source = local.sourceResult(value, document.uri?.fsPath);
-      if (source) return asHover(source, range);
-      if (hoverMode() === 'off' || token.isCancellationRequested) return;
-      const snapshot = { epoch, version: document.version };
-      return local.queryResult(value, hoverMode(), offline, document.uri?.fsPath).then(result => {
-        if (!result || disposed || token.isCancellationRequested || sequence !== hoverSequence ||
-            snapshot.epoch !== epoch || snapshot.version !== document.version) return;
-        logResult(result);
-        return asHover(result, range);
-      }).catch(error => {
+      if ((!source && hoverMode() === 'off') || token.isCancellationRequested) return;
+      const snapshot = { epoch, version: document.version, dataEpoch: hoverDataEpoch };
+      return (async () => {
+        let dataEpoch = snapshot.dataEpoch;
+        for (let attempt = 0; attempt < 3; attempt++) {
+          const result = await local.queryResult(value, hoverMode(), offline, document.uri?.fsPath);
+          if (disposed || token.isCancellationRequested || snapshot.version !== document.version) return;
+          if (source) {
+            if (requestSequence !== hoverRequestSequence || !config().get<boolean>('localHover', true)) return;
+            if (dataEpoch !== hoverDataEpoch) {
+              if (attempt === 2) return;
+              if (pendingReload) await pendingReload;
+              dataEpoch = hoverDataEpoch;
+              continue;
+            }
+          } else if (sequence !== hoverSequence || snapshot.epoch !== epoch) return;
+          if (!result) return;
+          logResult(result);
+          return asHover(result, range);
+        }
+      })().catch(error => {
         if (!disposed && !token.isCancellationRequested && sequence === hoverSequence && snapshot.epoch === epoch && snapshot.version === document.version) {
           output.appendLine(String(error));
           return asHover(errorResult(value, error), range);

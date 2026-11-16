@@ -5,6 +5,7 @@ import { KnowledgeIndex } from './knowledge-index';
 import { QueryResult, projectResult, legacyResult } from './query-result';
 import { isLikelySingleSymbol, normalizeSymbol } from './symbol-matcher';
 import { identifyProject, LibraryProject } from './library-catalog';
+import { supplementPronunciation } from './pronunciation';
 
 import { BingTranslator, defaultBingTranslator, translateWithBing } from './bing';
 export { BingTranslator } from './bing';
@@ -52,7 +53,42 @@ export class DaiguaTranslate {
   }
 
   /** Structured data shared by hover, commands and the fixed reader. */
-  async queryResult(content: string, mode: 'online' | 'ecdict' | 'off', offline: OfflineDictionary, documentPath = this.getContext().documentPath): Promise<QueryResult | undefined> {
+  async queryResult(content: string, mode: 'online' | 'ecdict' | 'off', offline: OfflineDictionary,
+    documentPath = this.getContext().documentPath, onPartial?: (result: QueryResult) => void): Promise<QueryResult | undefined> {
+    const result = await this.lookupResult(content, mode, offline, documentPath);
+    if (result?.kind === 'project' && result.candidates.some(c => !c.pronunciation?.segments.length ||
+        c.pronunciation.segments.some(s => s.status === 'pending'))) {
+      try {
+        const fallback = await offline.pronunciationForSymbol(result.text);
+        for (const candidate of result.candidates) {
+          candidate.pronunciation = supplementPronunciation(result.text, candidate.pronunciation, fallback);
+        }
+      } catch { /* Preserve source explanations if the optional local lookup fails. */ }
+    }
+    if (result && isLikelySingleSymbol(content)) {
+      try { result.nameDetails = await offline.nameDetails(normalizeSymbol(content)); }
+      catch { /* Optional learning details must not prevent the original result. */ }
+    }
+    const symbol = isLikelySingleSymbol(content) ? normalizeSymbol(content) : undefined;
+    if (result?.kind === 'dictionary' && result.match === 'components' && symbol && mode === 'online' &&
+        this.getSettings().bingEnabled && splitIdentifier(symbol).length > 1) {
+      try {
+        // A local component hit normally ends lookup early; add whole-name Bing translation
+        // without changing the local components or the selection of other lookup paths.
+        if (await offline.hasLocalTerms(symbol) && this.getSettings().bingEnabled) {
+          onPartial?.(result);
+          const onlineTranslation = await this.bingFallback(splitIdentifier(symbol).join(' '), 'auto', 'zh-CN', this.getSettings().bingTimeoutMs);
+          return { ...result, onlineTranslation };
+        }
+      } catch (error) {
+        return { ...result, diagnostics: [...result.diagnostics,
+          `联网补充失败：${error instanceof Error ? error.message : String(error)}`] };
+      }
+    }
+    return result;
+  }
+
+  private async lookupResult(content: string, mode: 'online' | 'ecdict' | 'off', offline: OfflineDictionary, documentPath?: string): Promise<QueryResult | undefined> {
     if (!content.trim()) return;
     if (content.length > this.maxLen) throw Error(`单次最多 ${this.maxLen} 字符，请缩小选区；原文未被截断。`);
     const source = this.sourceResult(content, documentPath);
@@ -71,7 +107,12 @@ export class DaiguaTranslate {
     try {
       const text = symbol ? splitIdentifier(symbol).join(' ') : content;
       const result = await this.bingFallback(text, 'auto', 'zh-CN', this.getSettings().bingTimeoutMs);
-      return { text: symbol || content, kind: 'online', match: 'none', candidates: [{ name: result }], diagnostics: [] };
+      let pronunciation;
+      if (symbol) {
+        try { pronunciation = await offline.pronunciationForSymbol(symbol); }
+        catch { /* Unavailable local pronunciation must not discard an online translation. */ }
+      }
+      return { text: symbol || content, kind: 'online', match: 'none', candidates: [{ name: result, pronunciation }], diagnostics: [] };
     } catch (error) {
       if (!symbol) throw error;
       const result = await offline.explainResult(symbol);

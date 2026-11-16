@@ -25,12 +25,19 @@ exports.run = async function () {
     ['ek', '柯达公司', ''], ['indication', '指示', ".indi'keiʃәn"],
     ['is', 'be的现在式第三人称', 'iz'], ['terminal', '终端机', "'tә:minәl"],
     ['markup', '"quoted" & <img src=x> [click](command:evil) **bold** &#39;', 'test'],
+    ['interrupt', '中断', 'ɪntə'], ['request', '请求', 'rɪkwest'],
+    ['static', '静态', "'stætik"], ['statically', '静态地', "'stætikli"],
+    ['parse', '解析', 'pɑ:s'], ['frame', '帧', 'freim'],
+    ['flash', '闪光', 'flæʃ'], ['low', '低', 'ləʊ'], ['level', '水平', 'levəl'],
   ];
   const shards = {};
   for (const [word, translation, phonetic] of words) {
     const file = word.slice(0, 2) + '.json';
     shards[word.slice(0, 2)] = file;
-    fs.writeFileSync(path.join(dictionary, file), JSON.stringify({ [word]: [{ word, translation, phonetic }] }));
+    const shardPath = path.join(dictionary, file);
+    const shard = fs.existsSync(shardPath) ? JSON.parse(fs.readFileSync(shardPath, 'utf8')) : {};
+    shard[word] = [{ word, translation, phonetic }];
+    fs.writeFileSync(shardPath, JSON.stringify(shard));
   }
   fs.writeFileSync(path.join(dictionary, 'manifest.json'), JSON.stringify({ format_version:1, source_sha256:'a'.repeat(64), shards }));
   await config.update('dictionaryPath', dictionary, 2);
@@ -45,7 +52,8 @@ exports.run = async function () {
   await config.update('libraryDirectory', libraryDirectory, 2);
   await vscode.commands.executeCommand('daiguaTranslate.reloadPacks');
   const names = ['course_board_init' , 'app_board_init', 'uint16_t', 'very_long_project_prefix_with_many_words_board_init',
-    'ek_indication_is_terminal_sample', 'markup', 'cross_function', 'shared_arg'];
+    'ek_indication_is_terminal_sample', 'markup', 'cross_function', 'shared_arg', 'gIRQ', 'p_mac', 's_count', 'static',
+    'statically', 'g_pBuffer', 'pucBuffer', 'parse_frame', 'sFLASH_LowLevel_Init'];
   fs.mkdirSync(currentRoot, { recursive: true });
   const sourceFile = path.join(currentRoot, 'probe.c');
   fs.writeFileSync(sourceFile, '// Concise word lookup\n\n' + names.map(name => `${name};`).join('\n') + '\n');
@@ -61,6 +69,8 @@ exports.run = async function () {
   const expectedClipboard = fs.readFileSync(path.join(root, 'plugin/resources/external-ai-handoff.md'), 'utf8');
   // Supply a deterministic picker result in this isolated host; no native dialog input.
   const originalOpenDialog = vscode.window.showOpenDialog;
+  const originalBing = api.translator.bingTranslator;
+  let releaseSupplement, pendingReader, pendingReaderError;
   let pickerResult;
   vscode.window.showOpenDialog = async () => pickerResult;
   await new Promise((resolve, reject) => {
@@ -72,6 +82,29 @@ exports.run = async function () {
           if (!['Default Dark Modern', 'Default Light Modern', 'Default High Contrast'].includes(theme)) throw Error('Invalid theme');
           await vscode.workspace.getConfiguration('workbench').update('colorTheme', theme, 2);
         } else if (url.pathname === '/reader') await showWord(url.searchParams.get('word') || names[0]);
+        else if (url.pathname === '/supplement-setup') {
+          api.translator.bingTranslator = () => new Promise(resolve => { releaseSupplement = resolve; });
+          await config.update('bingEnabled', true, 2);
+          await config.update('hoverFallback', 'online', 2);
+        } else if (url.pathname === '/reader-start') {
+          pendingReaderError = undefined;
+          pendingReader = showWord(url.searchParams.get('word')).catch(error => { pendingReaderError = error; });
+        } else if (url.pathname === '/supplement-release') {
+          if (!releaseSupplement) throw Error('Supplement request has not started');
+          api.translator.bingTranslator = async () => ({translation:'闪存底层初始化'});
+          releaseSupplement({translation:'闪存底层初始化'});
+          await pendingReader;
+          if (pendingReaderError) throw pendingReaderError;
+        }
+        else if (url.pathname === '/online-setup') {
+          api.translator.bingTranslator = async () => ({ translation: '静态' });
+          await config.update('bingEnabled', true, 2);
+          await config.update('hoverFallback', 'online', 2);
+        } else if (url.pathname === '/online-reset') {
+          await config.update('hoverFallback', 'ecdict', 2);
+          await config.update('bingEnabled', false, 2);
+          api.translator.bingTranslator = originalBing;
+        }
         else if (url.pathname === '/select') {
           const line = Number(url.searchParams.get('line'));
           if (!Number.isInteger(line) || line < 0 || line >= names.length) throw Error('Invalid selection');

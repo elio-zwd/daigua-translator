@@ -21,6 +21,8 @@ h2{font-size:21px;line-height:1.5;margin:0 0 10px;font-weight:650}h3{font-size:1
 .tag{display:inline-block;font-size:12px;border:1px solid var(--vscode-panel-border);border-radius:5px;padding:2px 9px;color:var(--vscode-descriptionForeground)}
 article{margin:24px 0;padding:22px 0;border-top:1px solid var(--vscode-panel-border)}.summary{font-size:16px;line-height:1.9;margin:8px 0 18px;white-space:pre-wrap;overflow-wrap:anywhere}
 .phonetic,.muted,.help{color:var(--vscode-descriptionForeground);font-size:13px;overflow-wrap:anywhere}.phonetic span{margin-right:8px}.note{border-left:3px solid var(--vscode-textLink-foreground);padding:8px 14px;white-space:pre-wrap}
+.name-details h2{font-size:16px}.name-detail{margin:16px 0;overflow-wrap:anywhere}.name-detail p{margin:4px 0}.name-detail strong{margin-right:8px}
+.online-translation h2{white-space:pre-wrap;overflow-wrap:anywhere}
 button,select,input{font:inherit;color:var(--vscode-input-foreground);background:var(--vscode-input-background);border:1px solid var(--vscode-input-border,var(--vscode-panel-border));border-radius:4px;padding:6px 10px;max-width:100%}
 button{cursor:pointer;background:var(--vscode-button-secondaryBackground);color:var(--vscode-button-secondaryForeground)}button:hover{background:var(--vscode-button-secondaryHoverBackground)}button.primary{background:var(--vscode-button-background);color:var(--vscode-button-foreground)}
 button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible,a:focus-visible,pre:focus-visible{outline:2px solid var(--vscode-focusBorder);outline-offset:3px}button[aria-pressed=true]{border-color:var(--vscode-focusBorder)}
@@ -54,7 +56,7 @@ export function settingsHtml(model: SettingsModel, notices: Record<string, strin
   };
   return `<header><p class="eyebrow">呆瓜 · 设置</p><h1>让查词顺手一点</h1><p class="muted">修改后自动保存到${e(model.scope)}，立即生效。</p>${notice('notice')}</header>
     <section><h2>日常使用</h2>${toggle('localHover', '悬停查词', '在 C/C++ 名称上显示释义；主动查询始终可用。')}
-    <div class="row"><div><label for="hoverFallback">未收录名称</label><p class="help">先查命名约定和词语释义，再按所选方式回退；关闭时只查源码符号。</p></div><select id="hoverFallback" data-key="hoverFallback">${[['online','自动查词，允许联网回退'],['ecdict','仅查本地词库'],['off','不自动解释']].map(([key,label]) => `<option value="${key}" ${v.hoverFallback === key ? 'selected' : ''}>${label}</option>`).join('')}</select></div>
+    <div class="row"><div><label for="hoverFallback">未收录名称</label><p class="help">先查命名约定和词语释义；自动模式可为拆词结果补充联网整名翻译。关闭时只查源码符号。</p></div><select id="hoverFallback" data-key="hoverFallback">${[['online','自动查词，允许联网回退'],['ecdict','仅查本地词库'],['off','不自动解释']].map(([key,label]) => `<option value="${key}" ${v.hoverFallback === key ? 'selected' : ''}>${label}</option>`).join('')}</select></div>
     ${toggle('bingEnabled','允许联网翻译','关闭后名称只查本地，普通句子无法联网翻译。')}${toggle('showStatusBar','显示状态栏入口','点击状态栏的“呆瓜”打开此设置页。')}
     <p class="help">音标以英式读音为主；词典没有完整区分口音，不能保证每条都是英式。没有可靠读音时显示“音标暂缺”。</p></section>
     <section><h2>词库管理</h2><p class="help">插件不内置词库。选择独立目录后，只加载 library.json 清单启用的文件。</p>

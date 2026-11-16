@@ -208,6 +208,10 @@ exports.run = async function () {
     await untilHover(false);
     await config.update('hoverFallback', 'off', vscode.ConfigurationTarget.Workspace);
     checks.push('real filesystem events discover a term in a newly created subdirectory and stop using it after catalog removal');
+    // The watcher scenario is complete; cancel its pending debounce before testing
+    // unrelated explicit commands so a late reload cannot invalidate them.
+    await config.update('autoReload', false, vscode.ConfigurationTarget.Workspace);
+    await vscode.commands.executeCommand('daiguaTranslate.reloadPacks');
     await vscode.window.showTextDocument(document);
     editor = vscode.window.activeTextEditor;
     editor.selection = new vscode.Selection(0, 1, 0, 1);

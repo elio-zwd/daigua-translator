@@ -19,14 +19,15 @@ const pronunciationLine = (p?: Pronunciation) => {
   const reading = pronunciationText(p);
   return reading === '音标暂缺' ? reading : '音标：' + reading;
 };
-export function debugText(r: QueryResult): string {
+export function debugText(r: QueryResult, includeNameDetails = false): string {
   return JSON.stringify({ 类型: r.kind, 匹配: r.match, 匹配名称: r.matchedName,
-    词条: r.candidates, 拆词: r.components, 诊断: r.diagnostics }, null, 2);
+    词条: r.candidates, 联网翻译: r.onlineTranslation, 拆词: r.components, ...(includeNameDetails ? { 名称补充: r.nameDetails } : {}), 诊断: r.diagnostics }, null, 2);
 }
 export function hoverMarkdown(r: QueryResult, debug = false): string {
   const e = escapeMarkdown;
   const lines = [`### ${e(r.text)}`, ''];
   if (r.message) lines.push(e(r.message), '');
+  if (r.onlineTranslation) lines.push(`**联网翻译**：${e(r.onlineTranslation)}`, '');
   r.candidates.forEach((c, i) => {
     if (i) lines.push('---', '');
     if (r.candidates.length > 1) lines.push(`候选 ${i + 1} / ${r.candidates.length}`, '');
@@ -53,7 +54,9 @@ export function resultHtml(r: QueryResult, debug = false): string {
   const components = (r.components || []).map(c => `<article><h2 class="component">${e(c.text)}</h2><p class="summary">${e(c.meanings[0] || '释义暂缺')}</p>
     <p class="phonetic">${e(pronunciationLine(c.pronunciation))}</p>${c.meanings.length > 1
       ? `<details><summary>其余 ${c.meanings.length - 1} 条词义</summary>${c.meanings.slice(1).map(m => `<p>${e(m)}</p>`).join('')}</details>` : ''}</article>`).join('');
+  const extra = r.nameDetails?.length ? `<section class="name-details"><h2>名称补充</h2>${r.nameDetails.map(d =>
+    `<div class="name-detail"><p><strong>${e(d.text)}</strong> <span class="muted">${d.kind === 'prefix' ? '常见命名约定' : '缩写原词'}</span></p><p>${e(d.description)}</p>${d.kind === 'expansion' ? `<p class="phonetic">原词${e(pronunciationLine(d.pronunciation))}</p>` : ''}</div>`).join('')}</section>` : '';
   return `<header><p class="eyebrow">呆瓜 · 查词</p><h1 class="word">${e(r.text)}</h1><span class="tag">${e(resultLabel(r))}</span></header>
-    ${r.message ? `<p class="note">${e(r.message)}</p>` : ''}${candidates}${components}
-    ${debug ? `<details class="debug" open><summary>调试信息</summary><pre>${e(debugText(r))}</pre></details>` : ''}`;
+    ${r.message ? `<p class="note">${e(r.message)}</p>` : ''}${r.onlineTranslation ? `<section class="online-translation"><p class="eyebrow">联网翻译</p><h2>${e(r.onlineTranslation)}</h2></section>` : ''}${candidates}${components}${extra}
+    ${debug ? `<details class="debug" open><summary>调试信息</summary><pre>${e(debugText(r, true))}</pre></details>` : ''}`;
 }

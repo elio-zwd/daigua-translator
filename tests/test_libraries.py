@@ -29,7 +29,10 @@ class LibraryTests(unittest.TestCase):
 
     def test_delivered_catalog_and_preserved_sources(self):
         _, _, _, counts = validate_library(ROOT / "dictionaries")
-        self.assertEqual(counts, dict(words=41, naming=28, symbols=191))
+        # The independent catalog accumulates entries; new projects and terms
+        # must not make the historical minimums fail.
+        for role, minimum in dict(words=41, naming=28, symbols=191).items():
+            self.assertGreaterEqual(counts[role], minimum, role)
         for original, copied in [
             ("knowledge-packs/enhanced/05_createtask-pack.phonetic.json", "dictionaries/symbols/freertos-learning/05_createtask-pack.phonetic.json"),
             ("knowledge-packs/dfu-20261110/project-pack.phonetic.json", "dictionaries/symbols/dfu-course/project-pack.phonetic.json"),
