@@ -3,6 +3,7 @@ import * as path from 'path';
 import { splitIdentifier, isNamingPrefix } from './identifier-words';
 import { Pronunciation, PronunciationSegment } from './types';
 import { QueryResult, Meaning, NameDetail, legacyResult } from './query-result';
+import { LearningItem, LearningMeaning, LearningBranch, PanelLearning } from './panel-learning';
 
 export interface TechnicalTerm {
   token: string;
@@ -10,6 +11,8 @@ export interface TechnicalTerm {
   symbol?: string;
   expansion?: string;
   panel_only?: boolean;
+  learning_only?: boolean;
+  inference?: { aliases?: string[]; requires_tokens?: string[]; context_zh?: string };
   translation: string;
   summary_zh?: string;
   reading: PronunciationSegment['reading'];
@@ -33,6 +36,12 @@ export function validateTerms(value: unknown): TechnicalTerm[] {
         (t.symbol !== undefined && (typeof t.symbol !== 'string' || !/^[A-Za-z_]\w*$/.test(t.symbol))) ||
         (t.expansion !== undefined && typeof t.expansion !== 'string') ||
         (t.panel_only !== undefined && (typeof t.panel_only !== 'boolean' || t.match !== 'prefix')) ||
+        (t.learning_only !== undefined && (typeof t.learning_only !== 'boolean' || !['exact', 'insensitive'].includes(t.match))) ||
+        (t.inference !== undefined && (!t.inference || typeof t.inference !== 'object' || Array.isArray(t.inference) ||
+          !['exact', 'insensitive'].includes(t.match) || Object.keys(t.inference).some(k => !['aliases', 'requires_tokens', 'context_zh'].includes(k)) ||
+          [t.inference.aliases, t.inference.requires_tokens].some(v => v !== undefined &&
+            (!Array.isArray(v) || !v.length || v.some(s => typeof s !== 'string' || !/^[A-Za-z]+$/.test(s)))) ||
+          (t.inference.context_zh !== undefined && (typeof t.inference.context_zh !== 'string' || !t.inference.context_zh.trim())))) ||
         (t.summary_zh !== undefined && typeof t.summary_zh !== 'string') ||
         (t.phonetic !== undefined && typeof t.phonetic !== 'string') ||
         (['word', 'letters'].includes(t.reading) && !t.phonetic?.trim())) throw Error('无效技术库词条');
@@ -44,7 +53,7 @@ export function validateTerms(value: unknown): TechnicalTerm[] {
 function findTerms(libraries: TechnicalTerm[][], symbol: string, token: string, index: number, whole = false,
   prefixMatches = isNamingPrefix, includePanelOnly = false): TechnicalTerm[] {
   for (const library of libraries) {
-    let matches = library.filter(t => (includePanelOnly || !t.panel_only) && (t.match === 'identifier') === whole && (!t.symbol || t.symbol === symbol) &&
+    let matches = library.filter(t => !t.learning_only && (includePanelOnly || !t.panel_only) && (t.match === 'identifier') === whole && (!t.symbol || t.symbol === symbol) &&
       (t.match === 'insensitive' ? t.token.toLowerCase() === token.toLowerCase() : t.token === token) &&
       (t.match !== 'prefix' || prefixMatches(symbol, token, index)));
     if (matches.some(t => t.symbol === symbol)) matches = matches.filter(t => t.symbol === symbol);
@@ -61,10 +70,11 @@ export class OfflineDictionary {
   private terms?: Promise<TechnicalTerm[][]>;
   private diagnostics = new Set<string>();
   private generation = 0;
+  private learningCache = new Map<string, Promise<PanelLearning>>();
   constructor(private readonly getSettings: () => OfflineSettings,
     private readonly warn: (message: string) => void = () => {}) {}
 
-  reset(): void { ++this.generation; this.key = ''; this.manifest = undefined; this.terms = undefined; this.shards.clear(); this.diagnostics.clear(); }
+  reset(): void { ++this.generation; this.key = ''; this.manifest = undefined; this.terms = undefined; this.shards.clear(); this.diagnostics.clear(); this.learningCache.clear(); }
   private report(message: string) { if (!this.diagnostics.has(message)) { this.diagnostics.add(message); this.warn(message); } }
   private configure(): OfflineSettings {
     const settings = this.getSettings();
@@ -238,6 +248,118 @@ export class OfflineDictionary {
     const settings = this.configure(), generation = this.generation;
     const libraries = await this.libraries(settings.technicalLibraryPaths);
     return this.pronunciationFor(symbol, settings, libraries, generation);
+  }
+
+  /** Local learning enrichment, independent of complete-name matching and networking. */
+  async panelLearning(result: QueryResult): Promise<PanelLearning> {
+    this.configure();
+    const key = JSON.stringify([this.generation, result.text, result.kind, result.candidates.map(c => c.pronunciation)]);
+    let cached = this.learningCache.get(key);
+    if (!cached) {
+      cached = this.buildPanelLearning(result);
+      this.learningCache.set(key, cached);
+      if (this.learningCache.size > 64) this.learningCache.delete(this.learningCache.keys().next().value!);
+      void cached.catch(() => { if (this.learningCache.get(key) === cached) this.learningCache.delete(key); });
+    }
+    return cached;
+  }
+
+  private async buildPanelLearning(result: QueryResult): Promise<PanelLearning> {
+    const settings = this.configure(), generation = this.generation;
+    const libraries = await this.libraries(settings.technicalLibraryPaths);
+    const tokens = splitIdentifier(result.text), lower = tokens.map(t => t.toLowerCase());
+    const prefixes = this.displayPrefixes(result.text, libraries);
+    const diagnostics = new Set<string>();
+    const dictionary = new Map<string, Promise<{ meanings: LearningMeaning[]; pronunciation?: Pronunciation }>>();
+    const word = (token: string) => {
+      const key = token.toLowerCase();
+      if (!dictionary.has(key)) dictionary.set(key, (async () => {
+        try {
+          const { rows, source } = await this.words(token, settings.dictionaryPath, generation);
+          const meanings = [...new Set(rows.flatMap(r => r.translation.replace(/\\n/g, '\n').split(/\r?\n/)).map(s => s.trim()).filter(Boolean))]
+            .map(text => ({ text, basis: 'dictionary' as const, source }));
+          const readings = [...new Set(rows.filter(r => r.word.toLowerCase() === key && r.phonetic.trim()).map(r => r.phonetic))];
+          if (readings.length > 1) diagnostics.add(`${token}：词典读音冲突`);
+          return { meanings, pronunciation: readings.length === 1 && token.length > 1 ? { segments: [{ text: token,
+            reading: 'word' as const, phonetic: readings[0], source, status: 'resolved' as const }] } : undefined };
+        } catch (error) {
+          if (generation !== this.generation) throw Error('词典配置已变化，请重新查询');
+          diagnostics.add(`${token}：${String(error)}`); return { meanings: [] };
+        }
+      })());
+      return dictionary.get(key)!;
+    };
+    const meaning = (term: TechnicalTerm, inferred: boolean): LearningMeaning => ({ text: term.translation || '释义暂缺',
+      basis: inferred ? 'inferred' : 'library', source: term.source, review_status: term.review_status, context: term.inference?.context_zh });
+    const sourcePronunciations = tokens.map((_token, index) => {
+      const authored = result.candidates.map(c => c.pronunciation).filter((p): p is Pronunciation => !!p);
+      const aligned = authored.filter(p => p.segments.length === tokens.length && p.segments.every((s, i) => s.text === tokens[i]));
+      if (authored.length !== aligned.length) diagnostics.add('部分读音无法逐词对应');
+      const resolved = aligned.map(p => p.segments[index]).filter(s => s.status === 'resolved' && (s.reading === 'silent' || !!s.phonetic));
+      const keys = new Set(resolved.map(s => JSON.stringify([s.reading, s.phonetic])));
+      if (keys.size > 1) { diagnostics.add(`${index}:${tokens[index]}：源码读音冲突`); return { conflict: true }; }
+      return { conflict: false, pronunciation: resolved.length ? { segments: [{ ...resolved[0] }] } : undefined };
+    });
+    const make = async (token: string, index: number, originalWord = false): Promise<LearningItem> => {
+      const item: LearningItem = { id: `${originalWord ? 'original' : 'token'}-${index}`, text: token, meanings: [], branches: [], dictionaryMeanings: [] };
+      if (/^\d+$/.test(token)) { item.numeric = true; item.meanings = [{text:'数字',basis:'library',source:'identifier'}]; return item; }
+      const base = { ...await word(token) };
+      const prefix = !originalWord ? prefixes.get(index) : undefined;
+      const matches = prefix ? [prefix] : findTerms(libraries.map(l => l.filter(t => ['exact','insensitive'].includes(t.match))),
+        originalWord ? token : result.text, token, index);
+      // An unrecognised one-letter fragment is not evidence for a naming convention.
+      if (!originalWord && tokens.length > 1 && token.length === 1 && !matches.length) base.meanings = [];
+      item.prefix = !!prefix;
+      const branch = async (term: TechnicalTerm, inferred: boolean): Promise<LearningBranch> => {
+        const b: LearningBranch = { meanings: [meaning(term, inferred)], context: term.inference?.context_zh, rule: { ...term } };
+        const pronunciation = this.termPronunciation(term, token);
+        b.pronunciation = pronunciation.segments[0].status === 'resolved' ? pronunciation : base.pronunciation;
+        if (prefix?.summary_zh) b.meanings.push({ ...meaning(term, inferred), text: prefix.summary_zh });
+        if (!originalWord && term.expansion?.trim()) {
+          const words: LearningItem[] = [];
+          for (const [i, w] of (term.expansion.match(/[A-Za-z]+/g) || []).entries()) words.push(await make(w, i, true));
+          b.expansion = { text: term.expansion, inferred, words };
+        }
+        return b;
+      };
+      if (matches.length) {
+        for (const term of matches) item.branches.push(await branch(term, false));
+      } else if (!originalWord) {
+        // Priority applies across files, but genuinely different candidates within a file remain separate.
+        let candidates: TechnicalTerm[] = [];
+        for (const library of libraries) {
+          candidates = library.filter(t => ['exact','insensitive'].includes(t.match) && (!t.symbol || t.symbol === result.text) &&
+            (t.learning_only || !!t.expansion || !!t.inference) &&
+            [t.token, ...(t.inference?.aliases || [])].some(s => s.toLowerCase() === token.toLowerCase()));
+          if (candidates.some(t => t.symbol === result.text)) candidates = candidates.filter(t => t.symbol === result.text);
+          if (candidates.length) break;
+        }
+        const eligible = candidates.filter(t => (t.inference?.requires_tokens || []).every(w => lower.includes(w.toLowerCase())));
+        for (const term of eligible.length ? eligible : candidates) {
+          const b = await branch(term, true);
+          if (!eligible.length) {
+            b.applicable = false;
+            b.context = `适用条件未满足：${term.inference?.context_zh || term.inference?.requires_tokens?.join('、')}`;
+          }
+          item.branches.push(b);
+        }
+        if (candidates.length && !eligible.length) item.meanings = base.meanings;
+      }
+      if (!item.meanings.length) item.meanings = item.branches.length ? [] : base.meanings;
+      const primary = new Set([...item.meanings, ...item.branches.flatMap(b => b.meanings)].map(m => m.text));
+      if (item.branches.length && !prefix) item.dictionaryMeanings = base.meanings.filter(m => !primary.has(m.text));
+      if (!item.meanings.length && !item.branches.length) item.meanings = [{ text: '释义暂缺', basis:'missing', source:'unavailable' }];
+      const source = originalWord ? undefined : sourcePronunciations[index];
+      item.pronunciation = source?.conflict ? undefined : source?.pronunciation || (item.branches.length === 1 ? item.branches[0].pronunciation : base.pronunciation);
+      if (result.kind === 'project' && !source?.pronunciation && item.pronunciation?.segments[0]?.reading === 'silent') item.pronunciation = undefined;
+      if (!originalWord && (/[0-9]/.test(tokens[index - 1] || '') || /[0-9]/.test(tokens[index + 1] || '')) && !source?.pronunciation) item.pronunciation = undefined;
+      if (source?.conflict) item.branches.forEach(b => { b.pronunciation = undefined; });
+      return item;
+    };
+    const items: LearningItem[] = [];
+    for (const [index, token] of tokens.entries()) items.push(await make(token, index));
+    if (generation !== this.generation) throw Error('词典配置已变化，请重新查询');
+    return { state:'ready', symbol:result.text, items, diagnostics:[...diagnostics] };
   }
 
   async explainResult(symbol: string): Promise<QueryResult> {

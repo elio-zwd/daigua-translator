@@ -204,6 +204,7 @@ export async function activate(context: vscode.ExtensionContext) {
         ? (report.failures.find(f => f.path === path.resolve(file))!.retained ? '加载失败，保留上次内容' : '加载失败，查看诊断')
         : loadedByPath.has(path.resolve(file)) ? '已加载' : '等待加载' })),
   }), settingsAction, schedulePanel);
+  panels.setLearningProvider(result => offline.panelLearning(result));
   context.subscriptions.push(panels);
   function logResult(result: QueryResult) {
     for (const message of result.diagnostics) output.appendLine('[查询诊断] ' + message);
@@ -222,6 +223,8 @@ export async function activate(context: vscode.ExtensionContext) {
       if (!panels.follows || disposed || sequence !== panelSequence) return;
       const isCurrent = () => !disposed && panels.follows && sequence === panelSequence && currentEpoch === epoch &&
         editor.document.version === version && vscode.window.activeTextEditor === editor;
+      const source = local.sourceResult(value, editor.document.uri?.fsPath);
+      if (source && isCurrent()) panels.setResult(source);
       let result: QueryResult | undefined;
       try { result = await local.queryResult(value, hoverMode(), offline, editor.document.uri?.fsPath,
         partial => { if (isCurrent()) panels.setResult(partial); }); }
@@ -239,6 +242,8 @@ export async function activate(context: vscode.ExtensionContext) {
     if (!text.trim()) { schedulePanel(); return; }
     const sequence = ++panelSequence, currentEpoch = epoch;
     if (panelTimer) clearTimeout(panelTimer);
+    const source = local.sourceResult(text, location?.file);
+    if (source) panels.setResult(source);
     try {
       const result = await local.queryResult(text, 'online', offline, location?.file, partial => {
         if (!disposed && panels.isOpen && sequence === panelSequence && currentEpoch === epoch) panels.setResult(partial);

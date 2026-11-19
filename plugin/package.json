@@ -2,7 +2,7 @@
   "name": "daigua-translator",
   "displayName": "呆瓜翻译器",
   "description": "独立 MCU C/C++ 代码知识查询、文本翻译、离线词典与音标学习。",
-  "version": "0.6.3",
+  "version": "0.7.0",
   "icon": "./images/icon.png",
   "engines": {
     "vscode": "^1.85.0"

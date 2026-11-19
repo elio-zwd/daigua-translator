@@ -633,6 +633,43 @@ test('reader follows only when open and unlocked; rapid selection changes deboun
   } finally {h.dispose();}
 });
 
+test('reader learning snapshots reject replacement/closure, complete while locked and preserve shared online enrichment', async () => {
+  const h=await extensionHarness([]);
+  try {
+    await h.commands.get('daiguaTranslate.openDetails')('uint16_t');
+    const reader=h.mock.panels.at(-1), pending=[];
+    h.panels.setLearningProvider(result=>new Promise(resolve=>pending.push({result,resolve})));
+    const r=name=>({text:name,kind:'project',match:'exact',candidates:[{name:'中文'}],diagnostics:[]});
+    const ready=name=>({symbol:name,state:'ready',items:[],diagnostics:[]});
+    const first=r('first'),second=r('second');
+    h.panels.setResult(first);h.panels.setResult(second);
+    pending[0].resolve(ready('first'));await new Promise(resolve=>setImmediate(resolve));
+    assert.equal(h.panels.result.text,'second');assert.match(reader.messages.at(-1).html,/data-state="loading"/);
+    await reader.receive({action:'lock',value:true});
+    pending[1].resolve(ready('second'));await new Promise(resolve=>setImmediate(resolve));
+    assert.equal(h.panels.result.text,'second');assert.match(reader.messages.at(-1).html,/data-state="ready"/);
+    const count=pending.length;
+    h.panels.setResult({...second,onlineTranslation:'补充译文'});
+    assert.equal(pending.length,count,'adding only whole-name translation must retain learning snapshot');
+    assert.match(reader.messages.at(-1).html,/补充译文/);
+    h.panels.setResult(r('third'));reader.dispose();
+    const before=reader.messages.length;pending.at(-1).resolve(ready('third'));await new Promise(resolve=>setImmediate(resolve));
+    assert.equal(reader.messages.length,before);
+  } finally {h.dispose();}
+});
+
+test('reader learning failure keeps source Chinese and hides diagnostics outside debug', async () => {
+  const h=await extensionHarness([]);
+  try {
+    await h.commands.get('daiguaTranslate.openDetails')('uint16_t');
+    h.panels.setLearningProvider(async()=>{throw Error('private/source/path');});
+    h.panels.setResult({text:'source_name',kind:'project',match:'exact',candidates:[{name:'已有源码中文'}],diagnostics:[]});
+    await new Promise(resolve=>setImmediate(resolve));
+    const html=h.mock.panels.at(-1).messages.at(-1).html;
+    assert.match(html,/已有源码中文/);assert.match(html,/逐词释义暂不可用/);assert.doesNotMatch(html,/private\/source/);
+  } finally {h.dispose();}
+});
+
 test('reader rejects late results after replacement, locking and closing', async () => {
   for(const action of ['replace','lock','close']) {
     const h=await extensionHarness([]);let finish;

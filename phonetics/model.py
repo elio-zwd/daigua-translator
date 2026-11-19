@@ -14,7 +14,7 @@ def is_prefix(symbol, token, index):
 
 def find_terms(libraries, symbol, token, index, whole=False):
     for library in libraries:
-        matches = [t for t in library if not t.get("panel_only") and (t["match"] == "identifier") == whole
+        matches = [t for t in library if not t.get("learning_only") and not t.get("panel_only") and (t["match"] == "identifier") == whole
                    and (not t.get("symbol") or t["symbol"] == symbol)
                    and (t["token"].lower() == token.lower() if t["match"] == "insensitive" else t["token"] == token)
                    and (t["match"] != "prefix" or is_prefix(symbol, token, index))]
@@ -50,6 +50,15 @@ def validate_terms(data):
     if not isinstance(data, dict) or type(data.get("format_version")) is not int or data["format_version"] != 1 or not isinstance(data.get("entries"), list):
         raise ValueError("技术库格式不兼容")
     for t in data["entries"]:
+        inference = t.get("inference") if isinstance(t, dict) else None
+        if isinstance(t, dict) and "inference" in t:
+            if (not isinstance(inference, dict) or t.get("match") not in ("exact", "insensitive")
+                    or set(inference) - {"aliases", "requires_tokens", "context_zh"}
+                    or any(k in inference and (not isinstance(inference[k], list) or not inference[k]
+                        or any(not isinstance(s, str) or not re.fullmatch(r"[A-Za-z]+", s, re.ASCII) for s in inference[k]))
+                        for k in ("aliases", "requires_tokens"))
+                    or ("context_zh" in inference and (not isinstance(inference["context_zh"], str) or not inference["context_zh"].strip()))):
+                raise ValueError("无效面板推测规则")
         if (not isinstance(t, dict) or not isinstance(t.get("token"), str)
                 or not re.fullmatch(r"[A-Za-z_]\w*" if t.get("match") == "identifier" else r"[A-Za-z]+", t["token"], re.ASCII)
                 or t.get("match") not in ("exact", "insensitive", "prefix", "identifier")
@@ -60,6 +69,7 @@ def validate_terms(data):
                 or ("symbol" in t and (not isinstance(t["symbol"], str) or not re.fullmatch(r"[A-Za-z_]\w*", t["symbol"], re.ASCII)))
                 or ("expansion" in t and not isinstance(t["expansion"], str))
                 or ("panel_only" in t and (type(t["panel_only"]) is not bool or t.get("match") != "prefix"))
+                or ("learning_only" in t and (type(t["learning_only"]) is not bool or t.get("match") not in ("exact", "insensitive")))
                 or ("summary_zh" in t and not isinstance(t["summary_zh"], str))
                 or ("phonetic" in t and not isinstance(t["phonetic"], str))
                 or (t.get("reading") in ("word", "letters") and not t.get("phonetic", "").strip())):

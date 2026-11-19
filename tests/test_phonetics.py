@@ -196,5 +196,21 @@ class PhoneticTests(unittest.TestCase):
         self.assertEqual(read_json(self.output)["entries"][0]["name_zh"], "启动")
 
 
+class LearningMetadataTests(unittest.TestCase):
+    def test_reader_only_rules_do_not_change_phonetic_matching(self):
+        from phonetics.model import validate_terms, find_terms
+        term = dict(token="MSG", match="exact", translation="消息", reading="unknown",
+                    source="fixture", review_status="unreviewed", learning_only=True,
+                    inference={"aliases": ["msg"], "requires_tokens": ["ble"], "context_zh": "蓝牙名称"})
+        entries = validate_terms({"format_version": 1, "entries": [term]})
+        self.assertEqual(find_terms([entries], "MSG", "MSG", 0), [])
+        for extra in ({"learning_only": "true"}, {"learning_only": True, "match": "prefix"},
+                      {"inference": []}, {"inference": {"aliases": []}},
+                      {"inference": {"requires_tokens": ["bad_1"]}}, {"inference": {"context_zh": 7}},
+                      {"inference": {"typo": True}}):
+            with self.assertRaises(ValueError):
+                validate_terms({"format_version": 1, "entries": [{**term, **extra}]})
+
+
 if __name__ == "__main__":
     unittest.main()

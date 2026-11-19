@@ -105,7 +105,10 @@ async function main() {
     const state = await until(() => bridge('/state'), 'isolated host startup', 60000);
     const target = await until(async () => (await (await fetch(`http://127.0.0.1:${debugPort}/json/list`)).json()).find(t => t.type === 'page' && t.url.includes('workbench')), 'Chromium target');
     cdp = await cdpConnect(target.webSocketDebuggerUrl);
-    const reader = () => until(() => cdp.frame('reader'), 'reader DOM');
+    const reader = () => until(async () => {
+      const context = await cdp.frame('reader');
+      return context && await cdp.evaluate(context, `!document.querySelector('.learning[data-state="loading"]')`) && context;
+    }, 'reader DOM and local learning');
     const screenshot = async name => {
       const r = await cdp.call('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
       fs.writeFileSync(path.join(directory, name + '.png'), Buffer.from(r.data, 'base64'));
@@ -123,8 +126,9 @@ async function main() {
     await bridge('/reader?word=' + phoneticName);
     await until(async () => cdp.evaluate(await reader(), `document.querySelector('h1').textContent === ${JSON.stringify(phoneticName)}`), 'phonetic reader');
     const panelText = await cdp.evaluate(await reader(), `document.querySelector('main').innerText`);
-    assert.match(panelText, /熠日照明/); assert.doesNotMatch(panelText, /柯达公司/);
-    for (const text of ["indication /.indi'keiʃәn/", "terminal /'tә:minәl/"]) assert.ok(panelText.includes(text));
+    assert.match(panelText, /熠日照明/); assert.match(panelText, /其他词典含义/);
+    assert.equal(await cdp.evaluate(await reader(), `document.querySelector('.learning-item[data-token="ek"] .learning-meanings li').innerText`),'熠日照明');
+    for (const text of ["/.indi'keiʃәn/", "/'tә:minәl/"]) assert.ok(panelText.includes(text));
     await bridge('/hover?word=' + phoneticName);
     const hover = await until(() => cdp.frame('hover'), 'rendered hover DOM');
     const hoverText = await until(async () => {
@@ -150,8 +154,8 @@ async function main() {
     for (const [name, theme, cls] of [['dark', 'Default Dark Modern', 'vscode-dark'], ['light', 'Default Light Modern', 'vscode-light'], ['contrast', 'Default High Contrast', 'vscode-high-contrast']]) {
       await bridge('/theme?name=' + encodeURIComponent(theme));
       await until(async () => cdp.evaluate(await reader(), `document.body.classList.contains(${JSON.stringify(cls)})`), `${name} name details theme`);
-      const info = await cdp.evaluate(await reader(), `({text:document.querySelector('.name-details')?.innerText,overflow:document.documentElement.scrollWidth>innerWidth})`);
-      assert.match(info.text, /interrupt request/); assert.match(info.text, /interrupt \/ɪntə\//);
+      const info = await cdp.evaluate(await reader(), `({text:document.querySelector('.learning')?.innerText,overflow:document.documentElement.scrollWidth>innerWidth})`);
+      assert.match(info.text, /interrupt request/); assert.match(info.text, /\/ɪntə\//);
       assert.match(info.text, /常见命名约定/); assert.match(info.text, /全局变量/); assert.equal(info.overflow, false);
       await screenshot('name-details-' + name);
     }
@@ -163,14 +167,14 @@ async function main() {
     for (const [word, meaning] of [['p_mac', '指针变量'], ['s_count', '静态变量']]) {
       await bridge('/reader?word=' + word);
       await until(async () => cdp.evaluate(await reader(), `document.querySelector('h1').textContent===${JSON.stringify(word)}`), 'underscore prefix reader');
-      const text = await cdp.evaluate(await reader(), `document.querySelector('.name-details')?.innerText`);
+      const text = await cdp.evaluate(await reader(), `document.querySelector('.learning')?.innerText`);
       assert.ok(text?.includes(meaning), `${word}: ${text}`);
       await screenshot('prefix-' + word);
     }
     for (const [word, expected] of [['g_pBuffer', ['全局变量', '指针变量']], ['pucBuffer', ['指向无符号字符']]]) {
       await bridge('/reader?word=' + word);
       await until(async () => cdp.evaluate(await reader(), `document.querySelector('h1').textContent===${JSON.stringify(word)}`), 'combined prefix reader');
-      const text = await cdp.evaluate(await reader(), `document.querySelector('.name-details')?.innerText`);
+      const text = await cdp.evaluate(await reader(), `document.querySelector('.learning')?.innerText`);
       for (const meaning of expected) assert.ok(text?.includes(meaning), `${word}: ${text}`);
     }
     await bridge('/reader?word=p_mac');
@@ -182,23 +186,25 @@ async function main() {
     await until(async () => cdp.evaluate(await reader(), `document.querySelector('h1').textContent==='static'`), 'static code term');
     const staticText = await cdp.evaluate(await reader(), `document.querySelector('main').innerText`);
     assert.match(staticText, /静态/); assert.doesNotMatch(staticText, /静电/);
-    assert.ok(staticText.includes("static /'stætik/"), staticText);
+    assert.ok(staticText.includes("/'stætik/"), staticText);
     await screenshot('static-term');
     await bridge('/online-setup');
     await bridge('/reader?word=statically');
     await until(async () => cdp.evaluate(await reader(), `document.querySelector('h1').textContent==='statically' && document.querySelector('main').innerText.includes('联网翻译')`), 'online pronunciation reader');
     const onlineText = await cdp.evaluate(await reader(), `document.querySelector('main').innerText`);
-    assert.match(onlineText, /联网翻译/); assert.ok(onlineText.includes("statically /'stætikli/"), onlineText);
+    assert.match(onlineText, /联网翻译/); assert.ok(onlineText.includes("/'stætikli/"), onlineText);
     await screenshot('online-pronunciation');
     await bridge('/online-reset');
     checks.push('static uses the code term and online translation displays local pronunciation');
     await bridge('/supplement-setup');
     await bridge('/reader-start?word=sFLASH_LowLevel_Init');
     const localText = await until(async () => cdp.evaluate(await reader(), `document.querySelector('h1').textContent==='sFLASH_LowLevel_Init' && document.querySelector('main').innerText.includes('FLASH') && document.querySelector('main').innerText`), 'local components before Bing');
-    assert.match(localText, /初始化/); assert.match(localText, /FLASH \/flæʃ\//); assert.doesNotMatch(localText, /闪存底层初始化/);
+    assert.match(localText, /初始化/); assert.match(localText, /\/flæʃ\//); assert.doesNotMatch(localText, /闪存底层初始化/);
+    await cdp.evaluate(await reader(), `(()=>{const node=document.querySelector('h1');window.savedHeading=node;const range=document.createRange();range.selectNodeContents(node);getSelection().removeAllRanges();getSelection().addRange(range);})()`);
     await bridge('/supplement-release');
     const combinedText = await until(async () => cdp.evaluate(await reader(), `document.querySelector('main').innerText.includes('闪存底层初始化') && document.querySelector('main').innerText`), 'whole-name Bing translation');
-    assert.match(combinedText, /联网翻译/); assert.match(combinedText, /FLASH \/flæʃ\//); assert.match(combinedText, /初始化/);
+    assert.match(combinedText, /联网翻译/); assert.match(combinedText, /\/flæʃ\//); assert.match(combinedText, /初始化/);
+    assert.equal(await cdp.evaluate(await reader(), `window.savedHeading===document.querySelector('h1') && getSelection().toString()==='sFLASH_LowLevel_Init'`),true,'same-word enrichment preserves nodes and selection');
     for (const [name,theme,cls] of [['dark','Default Dark Modern','vscode-dark'], ['light','Default Light Modern','vscode-light'], ['contrast','Default High Contrast','vscode-high-contrast']]) {
       await bridge('/theme?name=' + encodeURIComponent(theme));
       await until(async () => cdp.evaluate(await reader(), `document.body.classList.contains(${JSON.stringify(cls)})`), 'combined translation theme');
@@ -214,7 +220,7 @@ async function main() {
     await bridge('/reader?word=parse_frame');
     await until(async () => cdp.evaluate(await reader(), `document.querySelector('h1').textContent==='parse_frame'`), 'source pronunciation reader');
     const sourceText = await cdp.evaluate(await reader(), `document.querySelector('main').innerText`);
-    assert.match(sourceText, /源码释义/); assert.match(sourceText, /parse \/pɑ:s\//); assert.match(sourceText, /frame \/freim\//);
+    assert.match(sourceText, /源码释义/); assert.match(sourceText, /\/pɑ:s\//); assert.match(sourceText, /\/freim\//);
     await bridge('/hover?word=parse_frame');
     const sourceHover = await until(async () => cdp.evaluate(hover, `document.querySelector('.monaco-hover .rendered-markdown')?.innerText.includes('parse /pɑ:s/') && document.querySelector('.monaco-hover .rendered-markdown').innerText`), 'source pronunciation hover');
     assert.ok(sourceHover.includes('frame /freim/'), sourceHover);
@@ -239,6 +245,24 @@ async function main() {
       await bridge('/hide-hover');
     }
     checks.push('same fixtures in rendered hover and panel: local first, merged duplicate, three additional references and parameter owners');
+    await bridge('/reader?word=app_ble_adv_msg_handler');
+    await until(async()=>cdp.evaluate(await reader(),`document.querySelector('h1')?.textContent==='app_ble_adv_msg_handler' && document.querySelector('.learning')?.dataset.state==='ready'`),'example learning snapshot');
+    for (const [name,theme,cls] of [['dark','Default Dark Modern','vscode-dark'],['light','Default Light Modern','vscode-light'],['contrast','Default High Contrast','vscode-high-contrast'],['contrast-light','Default High Contrast Light','vscode-high-contrast-light']]) {
+      await bridge('/theme?name='+encodeURIComponent(theme));
+      await until(async()=>cdp.evaluate(await reader(),`document.body.classList.contains(${JSON.stringify(cls)})`),'learning theme '+name);
+      const info=await cdp.evaluate(await reader(),`({tokens:[...document.querySelectorAll('.learning>.learning-item')].map(n=>n.dataset.token),text:document.querySelector('.learning').innerText,collapsed:document.querySelectorAll('.learning details').length,overflow:document.documentElement.scrollWidth>innerWidth})`);
+      assert.deepEqual(info.tokens,['app','ble','adv','msg','handler']);
+      for(const expected of ['应用','低功耗蓝牙','广播','消息','application','message','Bluetooth Low Energy','音标暂缺','名称推测','谷氨酸一钠','拳击教练']) assert.ok(info.text.includes(expected),expected);
+      assert.equal(info.collapsed,0);assert.equal(info.overflow,false);
+      await cdp.evaluate(await reader(),'scrollTo(0,0)');await screenshot('learning-example-'+name);
+    }
+    const context=await reader();
+    await cdp.evaluate(context,`document.querySelector('[data-action=copy]').focus();document.querySelector('[data-action=copy]').click()`);
+    await until(async()=>(await bridge('/clipboard')).clipboard==='app_ble_adv_msg_handler','copy full identifier');
+    assert.equal(await cdp.evaluate(context,`document.activeElement.dataset.action`),'copy');
+    await cdp.evaluate(context,`scrollTo(0,500)`);await screenshot('learning-example-originals');
+    checks.push('source-hit learning: five aligned tokens, expanded original words and all senses, inferred labels, four themes, copy and focus');
+    await bridge('/theme?name=Default%20Dark%20Modern');
     await cdp.call('Emulation.setDeviceMetricsOverride', { width: 850, height: 900, deviceScaleFactor: 1, mobile: false });
     await bridge('/layout?ratio=.5');
     await bridge('/reader?word=very_long_project_prefix_with_many_words_board_init');
@@ -264,6 +288,24 @@ async function main() {
     await cdp.evaluate(await reader(), `document.querySelector('[data-action=lock]').click()`);
     await until(async () => (await bridge('/state')).result === 'uint16_t', 'unlock and cursor follow');
     checks.push('real webview lock/unlock messages and cursor-follow behavior');
+    await bridge('/reader?word=app_ble_adv_msg_handler');
+    await until(async()=>cdp.evaluate(await reader(),`document.querySelector('h1')?.textContent==='app_ble_adv_msg_handler'`),'narrow example');
+    let viewportWidth=1000;
+    const measuredWidths=[];
+    for (const target of [320,280]) {
+      for(let attempt=0;attempt<5;attempt++) {
+        await cdp.call('Emulation.setDeviceMetricsOverride',{width:viewportWidth,height:900,deviceScaleFactor:1,mobile:false});
+        await bridge('/layout?ratio=.3');await pause(150);
+        const actual=await cdp.evaluate(await reader(),'innerWidth');
+        if(Math.abs(actual-target)<=2)break;
+        viewportWidth+=Math.round((target-actual)/.3);
+      }
+      const data=await cdp.evaluate(await reader(),`({width:innerWidth,overflow:document.documentElement.scrollWidth>innerWidth,columns:getComputedStyle(document.querySelector('.learning-item')).gridTemplateColumns.split(' ').length})`);
+      assert.ok(Math.abs(data.width-target)<=2,JSON.stringify({target,...data}));
+      assert.equal(data.overflow,false);assert.equal(data.columns,target===280?1:2);
+      measuredWidths.push(data.width);await screenshot('learning-example-width-'+target);
+    }
+    checks.push('measured reader widths '+measuredWidths.join('/')+' px: two-column and stacked layouts without overflow');
     await cdp.call('Emulation.clearDeviceMetricsOverride');
     await bridge('/layout?ratio=.5');
     await bridge('/settings');

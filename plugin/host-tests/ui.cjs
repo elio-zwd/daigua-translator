@@ -29,6 +29,9 @@ exports.run = async function () {
     ['static', '静态', "'stætik"], ['statically', '静态地', "'stætikli"],
     ['parse', '解析', 'pɑ:s'], ['frame', '帧', 'freim'],
     ['flash', '闪光', 'flæʃ'], ['low', '低', 'ləʊ'], ['level', '水平', 'levəl'],
+    ['msg', '谷氨酸一钠', ''], ['app', '应用', ''], ['handler', '处理者\\n拳击教练', 'handler'],
+    ['application', '应用程序', 'application'], ['message', '消息\\n通知', 'message'],
+    ['advertising', '广告业', 'advertising'], ['bluetooth', '蓝牙技术', ''], ['energy', '能量', 'energy'],
   ];
   const shards = {};
   for (const [word, translation, phonetic] of words) {
@@ -53,7 +56,7 @@ exports.run = async function () {
   await vscode.commands.executeCommand('daiguaTranslate.reloadPacks');
   const names = ['course_board_init' , 'app_board_init', 'uint16_t', 'very_long_project_prefix_with_many_words_board_init',
     'ek_indication_is_terminal_sample', 'markup', 'cross_function', 'shared_arg', 'gIRQ', 'p_mac', 's_count', 'static',
-    'statically', 'g_pBuffer', 'pucBuffer', 'parse_frame', 'sFLASH_LowLevel_Init'];
+    'statically', 'g_pBuffer', 'pucBuffer', 'parse_frame', 'sFLASH_LowLevel_Init', 'app_ble_adv_msg_handler'];
   fs.mkdirSync(currentRoot, { recursive: true });
   const sourceFile = path.join(currentRoot, 'probe.c');
   fs.writeFileSync(sourceFile, '// Concise word lookup\n\n' + names.map(name => `${name};`).join('\n') + '\n');
@@ -83,7 +86,7 @@ exports.run = async function () {
         const url = new URL(req.url, 'http://127.0.0.1');
         if (url.pathname === '/theme') {
           const theme = url.searchParams.get('name');
-          if (!['Default Dark Modern', 'Default Light Modern', 'Default High Contrast'].includes(theme)) throw Error('Invalid theme');
+          if (!['Default Dark Modern', 'Default Light Modern', 'Default High Contrast', 'Default High Contrast Light'].includes(theme)) throw Error('Invalid theme');
           await vscode.workspace.getConfiguration('workbench').update('colorTheme', theme, 2);
         } else if (url.pathname === '/reader') await showWord(url.searchParams.get('word') || names[0]);
         else if (url.pathname === '/supplement-setup') {

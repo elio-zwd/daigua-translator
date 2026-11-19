@@ -1,7 +1,9 @@
 import * as vscode from 'vscode';
 import { randomBytes } from 'crypto';
 import { QueryResult } from './query-result';
-import { escapeHtml as e, resultHtml } from './result-renderer';
+import { escapeHtml as e, panelResultHtml } from './result-renderer';
+import { PanelLearning } from './panel-learning';
+import { isLikelySingleSymbol } from './symbol-matcher';
 
 export interface SettingsModel {
   libraryCounts?: { words: number; naming: number; symbols: number };
@@ -32,6 +34,13 @@ section{margin:28px 0;border-top:1px solid var(--vscode-panel-border);padding-to
 select{min-width:170px}input[type=number]{width:110px}.path{padding:12px 0;border-bottom:1px solid var(--vscode-panel-border);display:flex;gap:12px;align-items:center}.path>div{flex:1;min-width:0}.path code{font-family:var(--vscode-editor-font-family);font-size:12px;overflow-wrap:anywhere;display:block}.path p{margin:0}.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
 details{margin:16px 0}summary{cursor:pointer;color:var(--vscode-textLink-foreground)}pre{white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.7 var(--vscode-editor-font-family);padding:14px;background:var(--vscode-textCodeBlock-background)}.debug{border-top:1px solid var(--vscode-panel-border);padding-top:18px}
 @media(max-width:440px){.row{align-items:flex-start;flex-wrap:wrap;gap:8px}.row>div{flex-basis:80%}.row select{width:100%}nav{padding:10px 12px;gap:6px}nav button{font-size:12px}h2{font-size:19px}}
+.reader-nav{display:flex;align-items:center;flex-wrap:wrap;gap:10px;width:100%}.reader-brand{font-weight:600;margin-right:auto}.reader-follow{display:flex;align-items:center;gap:6px}.reader-follow input{min-width:18px;width:18px;height:18px}.reader-notice{font-size:12px}
+.reader-layout{max-width:760px;margin:auto}.reader-layout .word{font-size:clamp(20px,3vw,24px);padding:12px 16px;background:var(--vscode-textCodeBlock-background);border:1px solid var(--vscode-contrastBorder,transparent);border-radius:6px;line-height:1.4}.reader-layout article h2{font-size:clamp(24px,4vw,28px);font-weight:600}.reader-layout .candidate-tags{margin:0 0 12px}.reader-layout .summary{font-size:16px;line-height:1.7}
+.reader-layout,.reader-nav{font-family:'Segoe UI','Microsoft YaHei UI','Microsoft YaHei',sans-serif}.reader-layout article{margin:18px 0;padding:0;border:0}.reader-layout article+article{border-top:1px solid var(--vscode-panel-border);padding-top:18px}.reader-layout .summary{margin:8px 0 12px}.reader-layout .learning{margin:24px 0;padding-top:20px}
+.learning-heading{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px}.learning-heading h2{font-size:18px;border-left:4px solid var(--vscode-textLink-foreground);padding-left:12px}.learning-item,.original-word{display:grid;grid-template-columns:100px minmax(0,1fr);gap:16px;padding:16px 0;border-bottom:1px solid var(--vscode-panel-border)}.learning-token{font:600 16px/1.6 var(--vscode-editor-font-family);overflow-wrap:anywhere;align-self:start;background:var(--vscode-textCodeBlock-background);border:1px solid var(--vscode-contrastBorder,transparent);border-radius:4px;padding:2px 8px;justify-self:start;max-width:100%}.learning-content{min-width:0;overflow-wrap:anywhere}.learning-content p{margin:4px 0}.learning-content .phonetic{font:14px/1.6 'Segoe UI',sans-serif;color:var(--vscode-editor-foreground);opacity:.85}.learning-meanings{margin:0;padding:0;list-style:none;white-space:pre-wrap;line-height:1.7}.learning-meanings>li:first-child{font-weight:600;font-size:16px}.learning-meanings>li+li{margin-top:4px}.learning-caption{font-size:12px;color:var(--vscode-descriptionForeground)}.learning-caption+.learning-meanings>li:first-child{font-size:14px;font-weight:400}.expansion{margin-top:10px;padding-left:12px;border-left:1px solid var(--vscode-panel-border)}.expansion-name{font-size:14px}.original-word{grid-template-columns:100px minmax(0,1fr);padding:8px 0;border:0;gap:10px}.original-word .learning-token{font:14px/1.6 var(--vscode-font-family);background:none;padding:0;border:0}.original-word .learning-meanings>li:first-child{font-size:14px;font-weight:400}.learning-branch{border-left:2px solid var(--vscode-panel-border);padding:0 0 0 10px;margin:12px 0}.inference{font-size:12px;font-weight:400;letter-spacing:0}.learning-footer{font-size:12px;color:var(--vscode-descriptionForeground);padding-top:12px}
+body.vscode-high-contrast .learning-caption,body.vscode-high-contrast-light .learning-caption,body.vscode-high-contrast .learning-footer,body.vscode-high-contrast-light .learning-footer{color:var(--vscode-editor-foreground)}
+@media(max-width:479px){.learning-item{grid-template-columns:80px minmax(0,1fr);gap:12px}.original-word{grid-template-columns:minmax(0,1fr)}.reader-brand{flex-basis:100%}.reader-nav{gap:8px}}
+@media(max-width:319px){.learning-item{grid-template-columns:minmax(0,1fr);gap:6px}.learning-heading{display:block}.reader-layout .word{padding:10px}main:has(.reader-layout){padding:16px 12px 32px}}
 `;
 function documentHtml(content: string, toolbar: string): string {
   const nonce = randomBytes(18).toString('base64');
@@ -41,8 +50,25 @@ function documentHtml(content: string, toolbar: string): string {
     <script nonce="${nonce}">
     const api=acquireVsCodeApi();
     document.addEventListener('click',event=>{const b=event.target.closest('button[data-action]');if(b)api.postMessage({action:b.dataset.action,key:b.dataset.key,index:Number(b.dataset.index)});});
-    document.addEventListener('change',event=>{const t=event.target;if(t.dataset.key)api.postMessage({action:'set',key:t.dataset.key,value:t.type==='checkbox'?t.checked:t.type==='number'?Number(t.value):t.value});});
-    window.addEventListener('message',event=>{const m=event.data;if(m.type==='render'){const y=window.scrollY;document.getElementById('content').innerHTML=m.html;if(m.toolbar!==undefined)document.querySelector('nav').innerHTML=m.toolbar;window.scrollTo(0,y);}if(m.type==='notice'){const target=document.getElementById(m.target);if(target)target.textContent=m.text;}});
+    document.addEventListener('change',event=>{const t=event.target;if(t.dataset.action==='lock')api.postMessage({action:'lock',value:!t.checked});else if(t.dataset.key)api.postMessage({action:'set',key:t.dataset.key,value:t.type==='checkbox'?t.checked:t.type==='number'?Number(t.value):t.value});});
+    // Morph stable nodes instead of replacing the selected text or focused controls.
+    function morph(target,source){
+      if(target.nodeType!==source.nodeType||target.nodeName!==source.nodeName){target.replaceWith(source.cloneNode(true));return;}
+      if(target.nodeType===3){if(target.nodeValue!==source.nodeValue)target.nodeValue=source.nodeValue;return;}
+      if(target.nodeType!==1)return;
+      for(const a of [...target.attributes])if(!source.hasAttribute(a.name))target.removeAttribute(a.name);
+      for(const a of [...source.attributes])if(target.getAttribute(a.name)!==a.value)target.setAttribute(a.name,a.value);
+      if(target instanceof HTMLInputElement)target.checked=source.checked;
+      const desired=[...source.childNodes];
+      for(let i=0;i<desired.length;i++){const next=desired[i];let old=target.childNodes[i];const key=next.nodeType===1?next.getAttribute('data-key'):null;
+        if(key&&old?.nodeType===1&&old.getAttribute('data-key')!==key){const found=[...target.children].find(c=>c.getAttribute('data-key')===key);if(found){target.insertBefore(found,old);old=found;}}
+        if(!old)target.appendChild(next.cloneNode(true));else morph(old,next);
+      }
+      while(target.childNodes.length>desired.length)target.lastChild.remove();
+    }
+    function update(target,html){const source=target.cloneNode(false);source.innerHTML=html;morph(target,source);}
+    let readerKey='';
+    window.addEventListener('message',event=>{const m=event.data;if(m.type==='render'){const y=window.scrollY;const changed=m.readerKey!==undefined&&m.readerKey!==readerKey;if(changed)getSelection()?.removeAllRanges();update(document.getElementById('content'),m.html);if(m.toolbar!==undefined)update(document.querySelector('nav'),m.toolbar);if(m.readerKey!==undefined)readerKey=m.readerKey;window.scrollTo(0,changed?0:y);}if(m.type==='notice'){const target=document.getElementById(m.target);if(target)target.textContent=m.text;}});
     </script></body></html>`;
 }
 const button = (label: string, action: string, attrs = '') => `<button data-action="${action}" ${attrs}>${label}</button>`;
@@ -85,6 +111,10 @@ export function settingsHtml(model: SettingsModel, notices: Record<string, strin
 
 /** Owns at most one reader and one settings tab. No queries originate in a webview. */
 export class ReaderPanels implements vscode.Disposable {
+  private learning?: PanelLearning;
+  private learningSequence = 0;
+  private learningProvider?: (result: QueryResult) => Promise<PanelLearning>;
+  setLearningProvider(provider: (result: QueryResult) => Promise<PanelLearning>): void { this.learningProvider = provider; }
   private reader?: vscode.WebviewPanel;
   private settings?: vscode.WebviewPanel;
   private notices: Record<string, string> = {};
@@ -96,22 +126,38 @@ export class ReaderPanels implements vscode.Disposable {
   get follows(): boolean { return !!this.reader?.visible && !this.locked; }
   get isOpen(): boolean { return !!this.reader; }
   private toolbar(): string {
-    return button(this.locked ? '已锁定 · 解锁' : '跟随光标 · 锁定', 'lock', `aria-pressed="${this.locked}"`)
-      + button('复制名称','copy') + button('设置','settings');
+    return `<div class="reader-nav"><span class="reader-brand">呆瓜 · 查词</span><label class="reader-follow"><input type="checkbox" data-action="lock" ${this.locked ? '' : 'checked'}>跟随光标</label>${this.locked ? '<span class="muted">已锁定</span>' : ''}`
+      + button('复制名称','copy', this.result ? '' : 'disabled') + button('设置','settings') + '<span id="readerNotice" class="reader-notice" role="status"></span></div>';
   }
   showReader(result?: QueryResult): void {
-    if (result) this.result = result;
+    if (result) this.setResult(result);
     if (!this.reader) {
       this.reader = vscode.window.createWebviewPanel('daigua.reader', '呆瓜 · 查词', { viewColumn: vscode.ViewColumn.Beside, preserveFocus: true }, { enableScripts: true, localResourceRoots: [] });
       this.reader.webview.html = documentHtml(this.readerContent(), this.toolbar());
-      this.reader.onDidDispose(() => { this.reader = undefined; this.locked = false; this.follow(); });
+      this.reader.onDidDispose(() => { ++this.learningSequence; this.reader = undefined; this.locked = false; this.follow(); });
       this.reader.onDidChangeViewState(() => this.follow());
       this.reader.webview.onDidReceiveMessage(message => this.handle(message));
     } else { this.reader.reveal(undefined, true); this.refreshReader(); }
   }
-  private readerContent(): string { return this.result ? resultHtml(this.result, this.debug()) : '<p class="eyebrow">呆瓜 · 查词</p><h1>读懂一个名称</h1><p class="muted">将光标移到 C/C++ 名称上，或使用右键翻译选区。</p>'; }
-  setResult(result?: QueryResult): void { this.result = result; this.refreshReader(); }
-  private refreshReader(): void { void this.reader?.webview.postMessage({ type: 'render', html: this.readerContent(), toolbar: this.toolbar() }); }
+  private readerContent(): string { return this.result ? panelResultHtml(this.result, this.learning, this.debug()) : '<p class="eyebrow">呆瓜 · 查词</p><h1>读懂一个名称</h1><p class="muted">将光标移到 C/C++ 名称上，或使用右键翻译选区。</p>'; }
+  setResult(result?: QueryResult): void {
+    const same = result && this.result && result.text === this.result.text && result.kind === this.result.kind &&
+      result.candidates === this.result.candidates && result.components === this.result.components;
+    this.result = result;
+    if (same) { this.refreshReader(); return; }
+    const sequence = ++this.learningSequence;
+    this.learning = result && result.kind !== 'error' && isLikelySingleSymbol(result.text) && this.learningProvider
+      ? {state:'loading',symbol:result.text,items:[],diagnostics:[]} : undefined;
+    this.refreshReader();
+    if (this.learning && result) void this.learningProvider!(result).then(learning => {
+      if (sequence !== this.learningSequence) return;
+      this.learning = learning; this.refreshReader();
+    }).catch(error => {
+      if (sequence !== this.learningSequence) return;
+      this.learning = {state:'unavailable',symbol:result.text,items:[],diagnostics:[String(error)]}; this.refreshReader();
+    });
+  }
+  private refreshReader(): void { void this.reader?.webview.postMessage({ type: 'render', html: this.readerContent(), toolbar: this.toolbar(), readerKey:this.result?.text || '' }); }
   refresh(): void {
     this.refreshReader();
     void this.settings?.webview.postMessage({ type: 'render', html: settingsHtml(this.model(), this.notices) });
@@ -135,8 +181,8 @@ export class ReaderPanels implements vscode.Disposable {
       void this.settings?.webview.postMessage({ type: 'notice', target, text });
     };
     try {
-      if (m.action === 'lock') { this.locked = !this.locked; this.refreshReader(); this.follow(); }
-      else if (m.action === 'copy') { if (this.result) await vscode.env.clipboard.writeText(this.result.text); }
+      if (m.action === 'lock') { this.locked = typeof m.value === 'boolean' ? m.value : !this.locked; this.refreshReader(); this.follow(); }
+      else if (m.action === 'copy') { if (this.result) { await vscode.env.clipboard.writeText(this.result.text); void this.reader?.webview.postMessage({type:'notice',target:'readerNotice',text:'已复制名称'}); } }
       else if (m.action === 'copyAiHandoff' || m.action === 'copyMissingTermsHandoff') {
         const model = this.model();
         const missingTerms = m.action === 'copyMissingTermsHandoff';
@@ -157,5 +203,5 @@ export class ReaderPanels implements vscode.Disposable {
       notify('操作未完成：' + String(error));
     }
   }
-  dispose(): void { this.reader?.dispose(); this.settings?.dispose(); }
+  dispose(): void { ++this.learningSequence; this.reader?.dispose(); this.settings?.dispose(); }
 }

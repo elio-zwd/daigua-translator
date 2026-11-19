@@ -10,7 +10,7 @@ def main():
     target = Path(sys.argv[1])
     with zipfile.ZipFile(target) as archive:
         files = archive.namelist()
-        for name in ('extension', 'bing', 'pack-validation', 'knowledge-loader', 'knowledge-index', 'library-catalog', 'library-preference', 'daigua-translate', 'symbol-matcher', 'pronunciation', 'identifier-words', 'offline-dictionary', 'query-result', 'result-renderer', 'webviews'):
+        for name in ('extension', 'bing', 'pack-validation', 'knowledge-loader', 'knowledge-index', 'library-catalog', 'library-preference', 'daigua-translate', 'symbol-matcher', 'pronunciation', 'identifier-words', 'offline-dictionary', 'query-result', 'panel-learning', 'result-renderer', 'webviews'):
             assert f'extension/out/{name}.js' in files, f'missing runtime module: {name}'
         assert 'extension/node_modules/bing-translate-api/src/index.js' in files, 'missing Bing transport'
         assert not any(p.startswith('extension/test/') for p in files), 'test code should not ship'
