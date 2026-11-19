@@ -36,7 +36,7 @@ npm.cmd --prefix plugin run compile
 | 真实宿主检查 | `pwsh.exe -NoProfile -File scripts/test-vscode.ps1` | 激活、悬停、命令、配置及多个悬停提供者共存 |
 | 安装包宿主检查 | `pwsh.exe -NoProfile -File scripts/test-vscode.ps1 -VsixPath plugin/daigua-translator.vsix` | 将 VSIX 安装到隔离扩展目录，检查实际安装后的配置注册、保存和查询 |
 | 界面检查 | `node scripts/test-ui.cjs` | 查词面板、设置页、样式与真实页面交互 |
-| 打包 | `npm.cmd --prefix plugin run package` | 交付 VSIX；包含插件测试和离线冒烟检查 |
+| 一键编译打包 | `pwsh.exe -NoProfile -File build.ps1` | 编译、校验并覆盖最新版 VSIX，成功时无输出 |
 | 独立词库校验 | `python -X utf8 validator/validate.py --library dictionaries` | 清单、三类文件归属、工程元数据与结构 |
 | 安装包检查 | `python scripts/check-vsix.py plugin/daigua-translator.vsix` | 检查运行模块、资源、配置及打包排除规则 |
 
@@ -52,9 +52,8 @@ pwsh.exe -NoProfile -File scripts/verify.ps1
 pwsh.exe -NoProfile -File scripts/test-vscode.ps1
 node scripts/test-ui.cjs
 
-# 打包当前版本，检查生成的安装包
-npm.cmd --prefix plugin run package
-python scripts/check-vsix.py plugin/daigua-translator.vsix
+# 编译打包、校验并覆盖最新版
+pwsh.exe -NoProfile -File build.ps1
 pwsh.exe -NoProfile -File scripts/test-vscode.ps1 -VsixPath plugin/daigua-translator.vsix
 ```
 

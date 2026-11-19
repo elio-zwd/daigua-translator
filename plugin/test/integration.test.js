@@ -35,6 +35,7 @@ function vscodeMock(paths) {
     ViewColumn: { Active: -1, Beside: -2 }, env: { clipboard: { writeText: async text => { state.copied = text; } } },
     ConfigurationTarget: { Global: 1, Workspace: 2 }, StatusBarAlignment: { Right: 2 },
     RelativePattern: class { constructor(base, pattern) { this.base = base; this.pattern = pattern; } },
+    Position: class { constructor(line, character) { this.line = line; this.character = character; } },
     MarkdownString: class {
       value = ''; appendMarkdown(text) { this.value += text; return this; }
       appendText(text) { this.value += text; return this; }
@@ -42,6 +43,7 @@ function vscodeMock(paths) {
     Hover: class { constructor(contents, range) { this.contents = contents; this.range = range; } },
     workspace: {
       workspaceFolders: [{ uri: { fsPath: '/workspace' } }],
+      textDocuments: [],
       getConfiguration: section => ({
         get: (key, fallback) => section === 'mtrancode' ? state.source : (state.values[key] ?? fallback),
         inspect: key => state.missingKeys.has(key) ? undefined : ({ defaultValue: definitions[section + '.' + key]?.default, workspaceValue: state.values[key] }),
@@ -181,7 +183,7 @@ test('independent extension keeps the same translator alive across reload', asyn
 });
 
 
-async function extensionHarness(paths, withTerms = true) {
+async function extensionHarness(paths, withTerms = true, storageDirectory) {
   const mock = vscodeMock(paths);
   if (withTerms) mock.values.technicalLibraryPaths = require('../../tests/fixtures/library-paths.cjs');
   const { vscode, messages, commands } = mock;
@@ -196,7 +198,8 @@ async function extensionHarness(paths, withTerms = true) {
     delete require.cache[require.resolve('../out/webviews')];
     extension = require('../out/extension');
   } finally { Module._load = originalLoad; }
-  const api = await extension.activate({ subscriptions: [], globalState: mock.globalState, workspaceState: mock.workspaceState, extension: { packageJSON: { version: '0.3.0' } } });
+  const globalStorageUri = storageDirectory && { scheme: 'file', fsPath: storageDirectory };
+  const api = await extension.activate({ subscriptions: [], globalStorageUri, globalState: mock.globalState, workspaceState: mock.workspaceState, extension: { packageJSON: { version: '0.3.0' } } });
   const translator = api.translator;
   translator.bingTranslator = async () => ({ translation: 'fallback' });
   return { translator, panels: api.panels, messages, mock, commands, dispose: () => extension.deactivate(),
@@ -279,24 +282,28 @@ test('Bing switch takes effect for existing translators and never caches a disab
   assert.equal(calls, 1);
 });
 
-test('Bing has a bounded wait and coalesces identical requests until transport settles', async () => {
-  let calls = 0, finish;
+test('Bing shares an active attempt and starts a fresh request after timeout', async () => {
+  const finishes = [];
   const translator = new DaiguaTranslate([], async () => {
-    calls++;
-    return new Promise(resolve => { finish = resolve; });
+    return new Promise(resolve => { finishes.push(resolve); });
   }, () => ({ bingEnabled: true, bingTimeoutMs: 100, includeParameters: true }));
   const a = assert.rejects(translator.translate('hello', {}), /等待超过 100 ms/);
   const b = assert.rejects(translator.translate('hello', {}), /等待超过 100 ms/);
   await Promise.all([a, b]);
-  assert.equal(calls, 1);
+  assert.equal(finishes.length, 1);
   const later = translator.translate('hello', {});
-  finish({ translation: '你好' });
+  assert.equal(finishes.length, 2);
+  finishes[0]({ translation: '过期译文' });
+  await new Promise(resolve => setImmediate(resolve));
+  const concurrent = translator.translate('hello', {});
+  assert.equal(finishes.length, 2, 'a late reply must not remove the active retry');
+  finishes[1]({ translation: '你好' });
   assert.equal(await later, '你好');
-  assert.equal(calls, 1);
+  assert.equal(await concurrent, '你好');
   const after = translator.translate('hello', {});
-  finish({ translation: '新请求' });
+  assert.equal(finishes.length, 3, 'completed results are not cached by this extension');
+  finishes[2]({ translation: '新请求' });
   assert.equal(await after, '新请求');
-  assert.equal(calls, 2, 'completed results are not cached by this extension');
 });
 
 test('parameters are searchable with function scope without mutating JSON; settings and reload invalidate index', async () => {
@@ -436,6 +443,28 @@ test('explicit translation uses one hover, works in non-C files with auto hover 
     assert.equal(document.getText(), 'Motor_Start');
     h.mock.changeSelection();
     assert.equal(await h.mock.hover.provideHover(document, position, { isCancellationRequested: false }), undefined);
+  } finally { h.dispose(); }
+});
+
+test('hovering again at the same position retries a failed explicit translation', async () => {
+  const h = await extensionHarness([]);
+  const { position, document, editor } = documentFixture('Unknown_Name');
+  const token = { isCancellationRequested: false };
+  let attempts = 0;
+  try {
+    h.mock.vscode.window.activeTextEditor = editor;
+    h.translator.bingTranslator = async () => {
+      if (++attempts === 1) throw Error('test network failure');
+      return { translation: '重试成功' };
+    };
+    await h.commands.get('daiguaTranslate.translateSelection')();
+    const firstHover = await h.mock.hover.provideHover(document, position, token);
+    assert.match(firstHover.contents.value, /词语释义/);
+    assert.equal(attempts, 1);
+
+    const nextHover = await h.mock.hover.provideHover(document, position, token);
+    assert.match(nextHover.contents.value, /重试成功/);
+    assert.equal(attempts, 2);
   } finally { h.dispose(); }
 });
 
@@ -780,6 +809,125 @@ test('settings copies the complete maintained AI handoff and reports clipboard e
     assert.match(view.messages.at(-1).text, /操作未完成.*clipboard unavailable/);
     assert.equal(view.messages.at(-1).target, 'aiHandoffNotice');
   } finally { h.dispose(); }
+});
+
+test('active lookups append only unresolved source identifiers to a shared handoff file', async () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'daigua-missing-terms-'));
+  const library = path.join(directory, 'library');
+  const storage = path.join(directory, 'storage');
+  const missingFile = path.join(storage, 'missing-terms.jsonl');
+  const currentRoot = path.join(directory, 'current');
+  const otherRoot = path.join(directory, 'other');
+  const catalog = { format_version: 1, word_libraries: ['words.json'], naming_libraries: ['naming.json'], projects: [] };
+  fs.mkdirSync(library);
+  require('../../tests/fixtures/cross-project.cjs')(catalog, library, currentRoot);
+  const manifest = path.join(library, 'library.json');
+  fs.writeFileSync(manifest, JSON.stringify(catalog));
+  const term = { reading: 'unknown', source: 'fixture', review_status: 'unreviewed' };
+  fs.writeFileSync(path.join(library, 'words.json'), JSON.stringify({ format_version: 1, entries: [
+    { ...term, token: 'EK', match: 'exact', translation: '测试组织' },
+  ] }));
+  fs.writeFileSync(path.join(library, 'naming.json'), JSON.stringify({ format_version: 1, entries: [
+    { ...term, token: 'board_init', match: 'identifier', translation: '板级初始化', summary_zh: '准备硬件。' },
+  ] }));
+  const hosts = [];
+  const start = async () => {
+    const h = await extensionHarness([], false, storage);
+    hosts.push(h);
+    h.mock.values.libraryDirectory = library;
+    h.mock.values.bingTimeoutMs = 100;
+    await h.reload();
+    return h;
+  };
+  const source = (h, text, root = currentRoot, line = 2) => {
+    const fixture = documentFixture(text);
+    const file = path.join(root, 'probe.c');
+    fs.mkdirSync(root, { recursive: true });
+    fs.writeFileSync(file, '\n'.repeat(line) + text);
+    const { document, range, position, editor } = fixture;
+    position.line = line;
+    range.start = { line, character: 0 };
+    document.uri = require('node:url').pathToFileURL(file);
+    document.uri.fsPath = file;
+    document.uri.scheme = 'file';
+    document.lineCount = line + 1;
+    document.lineAt = () => ({ text });
+    h.mock.vscode.workspace.textDocuments = [document];
+    h.mock.vscode.window.activeTextEditor = editor;
+    h.mock.changeEditor();
+    return { ...fixture, file };
+  };
+  const entries = () => fs.readFileSync(missingFile, 'utf8').trim().split('\n').map(JSON.parse);
+  const translate = h => h.commands.get('daiguaTranslate.translateSelection')();
+  try {
+    const h = await start();
+    source(h, 'Missing_Disabled');
+    await translate(h);
+    assert.equal(fs.existsSync(missingFile), false);
+    await h.commands.get('daiguaTranslate.openSettings')();
+    const settings = h.mock.panels.at(-1);
+    assert.match(settings.webview.html, /复制待补词条处理提示词/);
+    await settings.receive({ action: 'set', key: 'recordMissingTerms', value: true });
+    assert.equal(h.mock.updates.at(-1).target, h.mock.vscode.ConfigurationTarget.Global);
+
+    const hoverSource = source(h, 'From_Hover');
+    const hover = await h.mock.hover.provideHover(hoverSource.document, hoverSource.position, { isCancellationRequested: false });
+    assert.equal(fs.existsSync(missingFile), false);
+    const args = JSON.parse(decodeURIComponent(hover.contents.value.match(/command:daiguaTranslate\.openDetails\?([^)]*)\)/)[1]));
+    source(h, 'Cursor_In_Another_File', otherRoot);
+    h.mock.vscode.workspace.textDocuments.push(hoverSource.document);
+    await h.commands.get('daiguaTranslate.openDetails')(...args);
+    assert.deepEqual(entries(), [{ file: hoverSource.file, symbol: 'From_Hover', line: 3 }]);
+
+    for (const covered of ['cross_function', 'shared_arg', 'EK', 'board_init']) {
+      source(h, covered);
+      h.mock.values.includeParameters = false;
+      await translate(h);
+    }
+    assert.equal(entries().length, 1);
+    h.mock.values.includeParameters = true;
+    const reference = source(h, 'cross_function', otherRoot);
+    await translate(h);
+    source(h, 'app_board_init');
+    await translate(h);
+    source(h, 'Two words');
+    await translate(h);
+    h.mock.input = 'Input_Without_Source';
+    await h.commands.get('daiguaTranslate.translateText')();
+    assert.deepEqual(entries().map(({ symbol }) => symbol), ['From_Hover', 'cross_function', 'app_board_init']);
+    assert.equal(entries()[1].file, reference.file);
+
+    const second = await start();
+    second.mock.values.recordMissingTerms = true;
+    second.translator.bingTranslator = () => new Promise(() => {});
+    const success = source(h, 'Bing_Success');
+    const timeout = source(second, 'Bing_Timeout', otherRoot, 4);
+    await Promise.all([translate(h), translate(second)]);
+    assert.deepEqual(entries().slice(3).sort((a, b) => a.symbol.localeCompare(b.symbol)), [
+      { file: success.file, symbol: 'Bing_Success', line: 3 },
+      { file: timeout.file, symbol: 'Bing_Timeout', line: 5 },
+    ]);
+    assert.ok(second.messages.log.some(message => message.includes('等待超过 100 ms')));
+
+    await settings.receive({ action: 'copyMissingTermsHandoff', value: 'untrusted replacement' });
+    const template = fs.readFileSync(path.resolve(__dirname, '../../docs/missing-terms-handoff.md'), 'utf8');
+    assert.equal(h.mock.copied, template.replace('{{MISSING_TERMS_FILE}}', () => missingFile).replace('{{LIBRARY_DIRECTORY}}', () => library));
+    assert.equal(settings.messages.at(-1).target, 'missingTermsHandoffNotice');
+    assert.doesNotMatch(h.mock.copied, /Bing_Timeout|From_Hover/);
+
+    h.dispose();
+    const restarted = await start();
+    restarted.mock.values.recordMissingTerms = true;
+    assert.equal(entries().length, 5);
+    fs.writeFileSync(manifest, '{broken');
+    await restarted.reload();
+    source(restarted, 'Broken_Library');
+    await translate(restarted);
+    assert.equal(entries().length, 5);
+  } finally {
+    for (const h of hosts) h.dispose();
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
 });
 
 

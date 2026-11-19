@@ -2,3 +2,4 @@ out/
 node_modules/
 *.vsix
 resources/external-ai-handoff.md
+resources/missing-terms-handoff.md

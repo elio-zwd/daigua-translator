@@ -267,7 +267,7 @@ async function main() {
     await cdp.call('Emulation.clearDeviceMetricsOverride');
     await bridge('/layout?ratio=.5');
     await bridge('/settings');
-    const settings = await until(() => cdp.frame('settings'), 'settings DOM');
+    let settings = await until(() => cdp.frame('settings'), 'settings DOM');
     const headings = await cdp.evaluate(settings, `[...document.querySelectorAll('section h2')].map(e=>e.textContent)`);
     assert.deepEqual(headings, ['日常使用', '词库管理', '调试与诊断']);
     const libraryButton = `document.querySelector('[data-action=choose][data-key=libraryDirectory]')`;
@@ -321,6 +321,26 @@ async function main() {
     await cdp.call('Emulation.clearDeviceMetricsOverride');
     await bridge('/theme?name=Default%20Dark%20Modern');
     checks.push('complete AI prompt preview and clipboard match maintained document; settings themes and narrow layout');
+    await cdp.evaluate(settings, `document.querySelector('#recordMissingTerms').click()`);
+    await until(async () => (await bridge('/state')).recordMissingTerms, 'missing terms setting persistence');
+    const missingTermsFile = path.resolve(configuredDirectory, '../../profile/User/globalStorage', 'elio-zwd.daigua-translator', 'missing-terms.jsonl');
+    await bridge('/select?line=1');
+    await until(async () => (await bridge('/state')).result === 'app_board_init', 'passive reader displays the inferred name');
+    assert.equal(fs.existsSync(missingTermsFile), false, 'passive reader must not collect');
+    assert.equal((await bridge('/reader?word=app_board_init')).result, 'app_board_init');
+    const missingTerm = JSON.parse(fs.readFileSync(missingTermsFile, 'utf8').trim());
+    assert.deepEqual(missingTerm, { file: path.resolve(configuredDirectory, '../current/probe.c'), symbol: 'app_board_init', line: 4 });
+    await bridge('/settings');
+    settings = await until(() => cdp.frame('settings'), 'reopened settings DOM');
+    const missingPrompt = fs.readFileSync(path.join(root, 'docs/missing-terms-handoff.md'), 'utf8')
+      .replace('{{LIBRARY_DIRECTORY}}', () => configuredDirectory).replace('{{MISSING_TERMS_FILE}}', () => missingTermsFile);
+    await cdp.evaluate(settings, `document.querySelector('#missingTermsPrompt').open=true; document.querySelector('#missingTermsPrompt').scrollIntoView({block:'center'})`);
+    assert.equal(await cdp.evaluate(settings, `document.querySelector('#missingTermsPrompt pre').textContent`), missingPrompt.replace(/\r\n/g, '\n'));
+    await cdp.evaluate(settings, `document.querySelector('[data-action=copyMissingTermsHandoff]').click()`);
+    await until(async () => cdp.evaluate(settings, `document.querySelector('#missingTermsHandoffNotice').textContent.includes('已复制待补词条处理提示词')`), 'missing terms prompt copy');
+    assert.equal((await bridge('/clipboard')).clipboard, missingPrompt);
+    await screenshot('settings-missing-terms');
+    checks.push('missing terms setting persists, active lookup appends a source record, and handoff preview and clipboard contain exact paths');
     await cdp.evaluate(settings, `(()=>{const t=document.querySelector('#debugMode');t.checked=true;t.dispatchEvent(new Event('change',{bubbles:true}));})()`);
     await until(async () => (await bridge('/state')).debug, 'settings persistence');
     await screenshot('settings');

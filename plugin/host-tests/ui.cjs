@@ -66,7 +66,11 @@ exports.run = async function () {
   };
   await showWord(names[0]);
   const originalClipboard = await vscode.env.clipboard.readText();
-  const expectedClipboard = fs.readFileSync(path.join(root, 'plugin/resources/external-ai-handoff.md'), 'utf8');
+  const missingTermsFile = path.resolve(libraryDirectory, '../../profile/User/globalStorage', extension.id, 'missing-terms.jsonl');
+  const expectedClipboard = ['external-ai-handoff.md', 'missing-terms-handoff.md'].map(name =>
+    fs.readFileSync(path.join(root, 'plugin/resources', name), 'utf8')
+      .replace('{{LIBRARY_DIRECTORY}}', () => libraryDirectory)
+      .replace('{{MISSING_TERMS_FILE}}', () => missingTermsFile));
   // Supply a deterministic picker result in this isolated host; no native dialog input.
   const originalOpenDialog = vscode.window.showOpenDialog;
   const originalBing = api.translator.bingTranslator;
@@ -128,11 +132,12 @@ exports.run = async function () {
         res.end(JSON.stringify({ ok: true, result: api.panels.result?.text, locked: api.panels.locked,
           clipboard: url.pathname === '/clipboard' ? await vscode.env.clipboard.readText() : undefined,
           libraryDirectory: vscode.workspace.getConfiguration('daiguaTranslate').get('libraryDirectory', ''),
+          recordMissingTerms: vscode.workspace.getConfiguration('daiguaTranslate').get('recordMissingTerms', false),
           debug: vscode.workspace.getConfiguration('daiguaTranslate').get('debugMode', false), vscode: vscode.version }));
         if (url.pathname === '/finish') {
           vscode.window.showOpenDialog = originalOpenDialog;
           // Restore only the clipboard value written by this test.
-          if (await vscode.env.clipboard.readText() === expectedClipboard)
+          if (expectedClipboard.includes(await vscode.env.clipboard.readText()))
             await vscode.env.clipboard.writeText(originalClipboard);
           server.close(); resolve();
         }

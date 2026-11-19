@@ -3,16 +3,24 @@ import * as path from 'path';
 import { KnowledgePack } from './types';
 import * as fs from 'fs';
 import { QueryResult, errorResult } from './query-result';
-import { hoverMarkdown } from './result-renderer';
+import { HoverLocation, hoverMarkdown } from './result-renderer';
 import { ReaderPanels } from './webviews';
 import { OfflineDictionary, validateTerms } from './offline-dictionary';
 import { DaiguaTranslate, TranslatorSettings } from './daigua-translate';
 import { KnowledgeLoader, PackLoadReport, resolvePackPaths } from './knowledge-loader';
-import { formatEntries } from './symbol-matcher';
+import { formatEntries, isLikelySingleSymbol, normalizeSymbol } from './symbol-matcher';
 import { LibrarySnapshot, loadLibrary } from './library-catalog';
 import { LibraryPreference } from './library-preference';
 
 let stop: (() => void) | undefined;
+
+interface MissingTermLocation {
+  file: string;
+  symbol: string;
+  line: number;
+}
+
+const identifierPattern = /[A-Za-z_]\w*/;
 
 export async function activate(context: vscode.ExtensionContext) {
   let loadedByPath = new Map<string, KnowledgePack>();
@@ -26,8 +34,13 @@ export async function activate(context: vscode.ExtensionContext) {
   let debounce: ReturnType<typeof setTimeout> | undefined;
   let watchers: vscode.Disposable[] = [];
   const output = vscode.window.createOutputChannel('呆瓜翻译器');
-  const aiHandoff = await fs.promises.readFile(path.join(__dirname, '../resources/external-ai-handoff.md'), 'utf8')
+  const readPrompt = (name: string) => fs.promises.readFile(path.join(__dirname, '../resources', name), 'utf8')
     .catch(error => { output.appendLine('[提示词加载失败] ' + String(error)); return undefined; });
+  const [aiHandoff, missingTermsTemplate] = await Promise.all([
+    readPrompt('external-ai-handoff.md'), readPrompt('missing-terms-handoff.md'),
+  ]);
+  const storagePath = context.globalStorageUri?.fsPath;
+  const missingTermsFile = storagePath && path.isAbsolute(storagePath) ? path.join(storagePath, 'missing-terms.jsonl') : undefined;
   const status = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
   status.command = 'daiguaTranslate.quickSettings';
   const config = () => vscode.workspace.getConfiguration('daiguaTranslate');
@@ -63,20 +76,79 @@ export async function activate(context: vscode.ExtensionContext) {
     const mode = config().get<string>('hoverFallback', 'online');
     return mode === 'ecdict' || mode === 'off' ? mode : 'online';
   };
-  const asHover = (result: QueryResult, range: vscode.Range) => {
+  const asHover = (result: QueryResult, range: vscode.Range, document: vscode.TextDocument) => {
+    const location: HoverLocation | undefined = document.uri?.scheme === 'file' && range.start
+      ? { uri: document.uri.toString(), version: document.version, line: range.start.line, character: range.start.character } : undefined;
     const markdown = new vscode.MarkdownString();
-    markdown.appendMarkdown(hoverMarkdown(result, config().get<boolean>('debugMode', false)));
+    markdown.appendMarkdown(hoverMarkdown(result, config().get<boolean>('debugMode', false), location));
     markdown.isTrusted = { enabledCommands: ['daiguaTranslate.openDetails', 'daiguaTranslate.openSettings'] };
     return new vscode.Hover(markdown, range);
   };
   function selectedText(editor = vscode.window.activeTextEditor) {
     if (!editor) return '';
     if (!editor.selection.isEmpty) return editor.document.getText(editor.selection);
-    const word = editor.document.getWordRangeAtPosition(editor.selection.active, /[A-Za-z_]\w*/);
+    const word = editor.document.getWordRangeAtPosition(editor.selection.active, identifierPattern);
     return word ? editor.document.getText(word) : '';
   }
+
+  function locateTerm(text: string, document?: vscode.TextDocument, range?: vscode.Range): MissingTermLocation | undefined {
+    if (!document || !range?.start || !isLikelySingleSymbol(text) ||
+        !['c', 'cpp'].includes(document.languageId) || document.uri?.scheme !== 'file' ||
+        !path.isAbsolute(document.uri.fsPath)) return;
+    const original = document.getText(range);
+    const symbol = normalizeSymbol(text);
+    if (!isLikelySingleSymbol(original) || normalizeSymbol(original) !== symbol) return;
+    const leadingLines = (original.match(/^\s*/)?.[0].match(/\r\n|\r|\n/g) || []).length;
+    return { file: document.uri.fsPath, symbol, line: range.start.line + leadingLines + 1 };
+  }
+
+  function locateSelection(text: string, editor = vscode.window.activeTextEditor) {
+    if (!editor) return;
+    const { document, selection } = editor;
+    const range = selection.isEmpty ? document.getWordRangeAtPosition(selection.active, identifierPattern) : selection;
+    return locateTerm(text, document, range);
+  }
+
+  function locateHover(text: string, value: unknown): MissingTermLocation | undefined {
+    if (!value || typeof value !== 'object') return;
+    const { uri, version, line, character } = value as Partial<HoverLocation>;
+    if (typeof uri !== 'string' || typeof line !== 'number' || typeof character !== 'number' ||
+        !Number.isSafeInteger(line) || !Number.isSafeInteger(character) || line < 0 || character < 0) return;
+    const document = vscode.workspace.textDocuments.find(doc => doc.uri.toString() === uri && doc.version === version);
+    if (!document || line >= document.lineCount || character >= document.lineAt(line).text.length) return;
+    const range = document.getWordRangeAtPosition(new vscode.Position(line, character), identifierPattern);
+    return locateTerm(text, document, range);
+  }
+
+  function currentRecordingLibrary() {
+    const directory = libraryDirectory();
+    return !disposed && !pendingReload && directory && library && !library.failures.length &&
+      path.resolve(directory) === library.directory && config().get<boolean>('recordMissingTerms', false)
+      ? library : undefined;
+  }
+
+  async function recordMissing(result: QueryResult, location?: MissingTermLocation) {
+    if (!missingTermsFile || !location || result.text !== location.symbol || result.kind === 'error' ||
+        result.kind === 'general' && result.match === 'exact' ||
+        result.candidates.some(candidate => candidate.relation === 'current')) return;
+    const snapshot = currentRecordingLibrary();
+    if (!snapshot) return;
+    try {
+      const { file, symbol } = location;
+      if (!settings().includeParameters && local.sourceResult(symbol, file, true)?.candidates.some(candidate => candidate.relation === 'current')) return;
+      if (await offline.hasExactWord(symbol) ||
+          result.kind === 'project' && (await offline.generalResult(symbol))?.match === 'exact') return;
+      if (!(await fs.promises.stat(file)).isFile()) return;
+      await fs.promises.mkdir(path.dirname(missingTermsFile), { recursive: true });
+      if (snapshot !== currentRecordingLibrary()) return;
+      await fs.promises.appendFile(missingTermsFile, JSON.stringify(location) + '\n', 'utf8');
+    } catch (error) {
+      output.appendLine('[待补词条记录失败] ' + String(error));
+    }
+  }
+
   async function display(result: QueryResult, editor: vscode.TextEditor | undefined,
-    snapshot: { version: number; anchor: vscode.Position; epoch: number; request: number }) {
+    snapshot: { version: number; anchor: vscode.Position; epoch: number; request: number }, location?: MissingTermLocation) {
     if (disposed || snapshot.epoch !== epoch || snapshot.request !== commandSequence) return;
     if (!editor) { panels.showReader(result); return; }
     if (vscode.window.activeTextEditor !== editor || editor.document.version !== snapshot.version ||
@@ -85,6 +157,7 @@ export async function activate(context: vscode.ExtensionContext) {
     manual = { document: editor.document, version: snapshot.version, anchor: snapshot.anchor, range, result, epoch };
     if (panels.follows) panels.setResult(result);
     await vscode.commands.executeCommand('editor.action.showHover');
+    if (snapshot.epoch === epoch && snapshot.request === commandSequence) await recordMissing(result, location);
   }
   async function translateInput(input: boolean) {
     const content = input ? await vscode.window.showInputBox({ title: '呆瓜翻译器：输入文本翻译',
@@ -93,6 +166,7 @@ export async function activate(context: vscode.ExtensionContext) {
     if (content === undefined || !content.trim()) return;
     const editor = vscode.window.activeTextEditor;
     const snapshot = { version: editor?.document.version || 0, anchor: editor?.selection.active!, epoch, request: ++commandSequence };
+    const location = locateSelection(content, editor);
     manual = undefined;
     try {
       const result = await local.queryResult(content, 'online', offline, undefined, partial => {
@@ -101,7 +175,7 @@ export async function activate(context: vscode.ExtensionContext) {
         if (vscode.window.activeTextEditor === editor && editor.document.version === snapshot.version &&
             editor.selection.active.isEqual(snapshot.anchor) && panels.follows) panels.setResult(partial);
       });
-      if (result) { logResult(result); await display(result, editor, snapshot); }
+      if (result) { logResult(result); await display(result, editor, snapshot, location); }
     } catch (error) { output.appendLine(String(error)); await display(errorResult(content, error), editor, snapshot); }
   }
   const settingTarget = () => vscode.workspace.workspaceFolders?.length
@@ -116,9 +190,14 @@ export async function activate(context: vscode.ExtensionContext) {
     bingTimeoutMs: 5000, libraryDirectory: '', packPaths: [], technicalLibraryPaths: [], dictionaryPath: '' };
   const panels = new ReaderPanels(debugMode, () => ({
     aiHandoff: aiHandoff?.replace('{{LIBRARY_DIRECTORY}}', () => libraryDirectory() || '（未设置，请填写含 library.json 的词库目录）'),
+    missingTermsHandoff: missingTermsFile && libraryDirectory() ? missingTermsTemplate?.replace(
+      /\{\{(LIBRARY_DIRECTORY|MISSING_TERMS_FILE)\}\}/g,
+      (_token, key: string) => key === 'LIBRARY_DIRECTORY' ? path.resolve(libraryDirectory()) : missingTermsFile,
+    ) : undefined,
     libraryCounts: library?.counts,
     libraryErrors: library?.failures.length || report?.failures.length || 0,
-    values: Object.fromEntries(Object.entries(defaultValues).map(([k, v]) => [k, k === 'libraryDirectory' ? libraryDirectory() : config().get(k, v)])),
+    values: { ...Object.fromEntries(Object.entries(defaultValues).map(([k, v]) => [k, k === 'libraryDirectory' ? libraryDirectory() : config().get(k, v)])),
+      recordMissingTerms: config().get<boolean>('recordMissingTerms', false) },
     scope: vscode.workspace.workspaceFolders?.length ? '当前工作区' : '用户设置', count: countEntries(),
     packs: config().get<string[]>('packPaths', []).map(file => ({ path: file,
       status: report?.failures.some(f => f.path === path.resolve(file))
@@ -136,7 +215,7 @@ export async function activate(context: vscode.ExtensionContext) {
     const editor = vscode.window.activeTextEditor;
     if (!editor) return; // Moving focus into a webview retains the current word.
     if (!['c', 'cpp'].includes(editor.document.languageId)) { panels.setResult(); return; }
-    const word = editor.document.getWordRangeAtPosition(editor.selection.active, /[A-Za-z_]\w*/);
+    const word = editor.document.getWordRangeAtPosition(editor.selection.active, identifierPattern);
     if (!word) { panels.setResult(); return; }
     const value = editor.document.getText(word), version = editor.document.version, currentEpoch = epoch;
     panelTimer = setTimeout(async () => {
@@ -152,19 +231,21 @@ export async function activate(context: vscode.ExtensionContext) {
       panels.setResult(result);
     }, 350);
   }
-  async function openDetails(content?: unknown) {
+  async function openDetails(content?: unknown, hoverLocation?: unknown) {
     const text = typeof content === 'string' ? content : selectedText();
     if (typeof content === 'string' && content.length > 1000) return;
+    const location = hoverLocation === undefined ? locateSelection(text) : locateHover(text, hoverLocation);
     panels.showReader();
     if (!text.trim()) { schedulePanel(); return; }
     const sequence = ++panelSequence, currentEpoch = epoch;
     if (panelTimer) clearTimeout(panelTimer);
     try {
-      const result = await local.queryResult(text, 'online', offline, undefined, partial => {
+      const result = await local.queryResult(text, 'online', offline, location?.file, partial => {
         if (!disposed && panels.isOpen && sequence === panelSequence && currentEpoch === epoch) panels.setResult(partial);
       });
       if (result && !disposed && panels.isOpen && sequence === panelSequence && currentEpoch === epoch) {
         logResult(result); panels.setResult(result);
+        await recordMissing(result, location);
       }
     } catch (error) {
       output.appendLine(String(error));
@@ -177,7 +258,9 @@ export async function activate(context: vscode.ExtensionContext) {
     if (message.action === 'set' && typeof key === 'string') {
       const value = message.value;
       const bools = ['localHover', 'bingEnabled', 'showStatusBar', 'autoReload', 'includeParameters', 'debugMode'];
-      if (bools.includes(key) && typeof value === 'boolean' || key === 'hoverFallback' && ['online','ecdict','off'].includes(value as string) ||
+      if (key === 'recordMissingTerms' && typeof value === 'boolean') {
+        await config().update(key, value, vscode.ConfigurationTarget.Global);
+      } else if (bools.includes(key) && typeof value === 'boolean' || key === 'hoverFallback' && ['online','ecdict','off'].includes(value as string) ||
           key === 'bingTimeoutMs' && typeof value === 'number' && Number.isFinite(value) && value >= 100 && value <= 30000) {
         await config().update(key, value, settingTarget());
       } else throw Error('设置值无效');
@@ -405,11 +488,12 @@ export async function activate(context: vscode.ExtensionContext) {
     if (symbol === undefined) return;
     const editorNow = vscode.window.activeTextEditor;
     const snapshot = { version: editorNow?.document.version || 0, anchor: editorNow?.selection.active!, epoch, request: ++commandSequence };
+    const location = locateSelection(symbol, editorNow);
     const entries = local.findLocalEntries(symbol);
     output.appendLine(`\n[本地查询] ${symbol.trim()} | ${loadedPacks.length} 个包，${countEntries()} 条词条 | ${new Date().toLocaleString()}`);
     output.appendLine(entries.length ? `[本地命中 ${entries.length} 项]\n${formatEntries(entries)}` : '本地未命中。请检查生效路径、加载诊断及名称大小写；参数查询需在设置中开启。');
     const result = await local.queryResult(symbol, 'ecdict', offline) || { text: symbol.trim(), kind: 'error' as const, match: 'none' as const, candidates: [], diagnostics: [], message: '本地词库未收录此名称。' };
-    await display(result, editorNow, snapshot);
+    await display(result, editorNow, snapshot, location);
   }
 
   for (const [name, callback] of Object.entries({ reloadPacks: () => reloadPacks(true), choosePacks, queryLocal, showStatus, quickSettings: () => panels.showSettings(), openSettings: () => panels.showSettings(), openDetails, translateSelection: () => translateInput(false), translateText: () => translateInput(true) })) {
@@ -430,13 +514,15 @@ export async function activate(context: vscode.ExtensionContext) {
     provideHover(document, position, token) {
       const sequence = ++hoverSequence;
       const requestSequence = ++hoverRequestSequence;
-      if (disposed) return;
+      if (disposed || token?.isCancellationRequested) return;
       if (manual && manual.document === document && manual.version === document.version &&
           manual.epoch === epoch && (manual.range.contains(position) || manual.anchor.isEqual(position))) {
-        return asHover(manual.result, manual.range);
+        const { result, range } = manual;
+        if (result.onlineFailed) manual = undefined;
+        return asHover(result, range, document);
       }
       if (!config().get<boolean>('localHover', true) || !['c', 'cpp'].includes(document.languageId)) return;
-      const range = document.getWordRangeAtPosition(position, /[A-Za-z_]\w*/);
+      const range = document.getWordRangeAtPosition(position, identifierPattern);
       if (!range) return;
       const value = document.getText(range);
       const source = local.sourceResult(value, document.uri?.fsPath);
@@ -458,12 +544,12 @@ export async function activate(context: vscode.ExtensionContext) {
           } else if (sequence !== hoverSequence || snapshot.epoch !== epoch) return;
           if (!result) return;
           logResult(result);
-          return asHover(result, range);
+          return asHover(result, range, document);
         }
       })().catch(error => {
         if (!disposed && !token.isCancellationRequested && sequence === hoverSequence && snapshot.epoch === epoch && snapshot.version === document.version) {
           output.appendLine(String(error));
-          return asHover(errorResult(value, error), range);
+          return asHover(errorResult(value, error), range, document);
         }
       });
     },

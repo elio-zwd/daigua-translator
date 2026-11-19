@@ -184,7 +184,7 @@ test('hover modes/global network switch, explicit query and failed online fallba
   assert.match(await translator.query('Motor_Start', 'online', offline), /联网失败：offline-test[\s\S]*ECDICT/);
 });
 
-test('online timeout falls back offline while the transport remains deduplicated', async t => {
+test('concurrent online lookups share a timeout and fall back offline', async t => {
   const { offline } = fixture(t);
   let calls = 0, resolve;
   const translator = new DaiguaTranslate([], () => { calls++; return new Promise(r => { resolve = r; }); },

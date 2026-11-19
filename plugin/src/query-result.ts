@@ -26,6 +26,7 @@ export interface QueryResult {
   candidates: ResultCandidate[];
   components?: Meaning[];
   onlineTranslation?: string;
+  onlineFailed?: boolean;
   diagnostics: string[];
   message?: string;
   nameDetails?: NameDetail[];

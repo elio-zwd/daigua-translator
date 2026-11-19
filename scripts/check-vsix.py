@@ -22,12 +22,17 @@ def main():
         prompt = archive.read('extension/resources/external-ai-handoff.md').decode('utf-8')
         assert archive.read('extension/resources/external-ai-handoff.md') == (Path(__file__).resolve().parents[1] / 'docs/external-ai-handoff.md').read_bytes()
         assert 'library.json' in prompt and 'project-pack.json' in prompt
+        missing_terms_prompt = archive.read('extension/resources/missing-terms-handoff.md')
+        assert missing_terms_prompt == (Path(__file__).resolve().parents[1] / 'docs/missing-terms-handoff.md').read_bytes()
+        assert b'{{MISSING_TERMS_FILE}}' in missing_terms_prompt and b'{{LIBRARY_DIRECTORY}}' in missing_terms_prompt
         groups = manifest['contributes']['configuration']
         properties = {key: value for group in groups for key, value in group['properties'].items()}
         technical_paths = properties['daiguaTranslate.technicalLibraryPaths']
         assert technical_paths['type'] == 'array' and technical_paths['items']['type'] == 'string'
         assert technical_paths['default'] == [] and technical_paths['scope'] == 'window'
         assert properties['daiguaTranslate.debugMode']['default'] is False
+        assert properties['daiguaTranslate.recordMissingTerms']['default'] is False
+        assert properties['daiguaTranslate.recordMissingTerms']['scope'] == 'application'
         commands = {item['command'] for item in manifest['contributes']['commands']}
         assert {'daiguaTranslate.openDetails', 'daiguaTranslate.openSettings'} <= commands
         assert properties['daiguaTranslate.libraryDirectory']['default'] == ''

@@ -40,13 +40,13 @@ export class DaiguaTranslate {
     this.getPacks = () => packs;
   }
 
-  findLocalEntries(content: string) {
+  findLocalEntries(content: string, includeParameters = this.getSettings().includeParameters) {
     if (!isLikelySingleSymbol(content)) return [];
-    return this.index.find(normalizeSymbol(content), this.getPacks(), this.getSettings().includeParameters);
+    return this.index.find(normalizeSymbol(content), this.getPacks(), includeParameters);
   }
 
-  sourceResult(content: string, documentPath = this.getContext().documentPath): QueryResult | undefined {
-    const entries = this.findLocalEntries(content);
+  sourceResult(content: string, documentPath = this.getContext().documentPath, includeParameters?: boolean): QueryResult | undefined {
+    const entries = this.findLocalEntries(content, includeParameters);
     if (!entries.length) return;
     const project = identifyProject(documentPath, this.getContext().projects);
     return projectResult(normalizeSymbol(content), entries, project.id, project.diagnostics);
@@ -81,7 +81,7 @@ export class DaiguaTranslate {
           return { ...result, onlineTranslation };
         }
       } catch (error) {
-        return { ...result, diagnostics: [...result.diagnostics,
+        return { ...result, onlineFailed: true, diagnostics: [...result.diagnostics,
           `联网补充失败：${error instanceof Error ? error.message : String(error)}`] };
       }
     }
@@ -116,8 +116,8 @@ export class DaiguaTranslate {
     } catch (error) {
       if (!symbol) throw error;
       const result = await offline.explainResult(symbol);
-      result.diagnostics.unshift(`联网失败：${error instanceof Error ? error.message : String(error)}`);
-      return result;
+      return { ...result, onlineFailed: true, diagnostics: [
+        `联网失败：${error instanceof Error ? error.message : String(error)}`, ...result.diagnostics] };
     }
   }
 
@@ -143,22 +143,21 @@ export class DaiguaTranslate {
 
   private async bingFallback(content: string, from: string, to: string, timeoutMs: number): Promise<string> {
     const key = JSON.stringify([content, from, to]);
-    let request = this.pending.get(key);
-    if (!request) {
-      if (this.pending.size >= 16) throw new Error('Bing 请求繁忙，请稍后重试或关闭 Bing 回退。');
-      request = translateWithBing(content, { from, to }, this.bingTranslator);
-      this.pending.set(key, request);
-      // Keep deduplication until the transport actually settles, including after UI timeout.
-      const remove = () => { if (this.pending.get(key) === request) this.pending.delete(key); };
-      void request.then(remove, remove);
-    }
+    const pending = this.pending.get(key);
+    if (pending) return pending;
+    if (this.pending.size >= 16) throw new Error('Bing 请求繁忙，请稍后重试或关闭 Bing 回退。');
     const limit = Number.isFinite(timeoutMs) ? Math.max(100, Math.min(30000, timeoutMs)) : 5000;
     let timer: ReturnType<typeof setTimeout> | undefined;
-    try {
-      return await Promise.race([request, new Promise<never>((_, reject) => {
-        timer = setTimeout(() => reject(new Error(`Bing 等待超过 ${limit} ms；可关闭回退以仅查询本地包。`)), limit);
-      })]);
-    } finally { if (timer) clearTimeout(timer); }
+    const timeout = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new Error(`Bing 等待超过 ${limit} ms；可关闭回退以仅查询本地包。`)), limit);
+    });
+    // Share one deadline. A transport that settles after it cannot affect a later lookup.
+    const request = Promise.race([translateWithBing(content, { from, to }, this.bingTranslator), timeout]).finally(() => {
+      if (timer) clearTimeout(timer);
+      this.pending.delete(key);
+    });
+    this.pending.set(key, request);
+    return request;
   }
 
 }

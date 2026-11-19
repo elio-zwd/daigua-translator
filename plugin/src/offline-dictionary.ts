@@ -288,5 +288,12 @@ export class OfflineDictionary {
     return splitIdentifier(symbol).some((token, index) => findTerms(libraries, symbol, token, index).length > 0);
   }
 
+  async hasExactWord(symbol: string): Promise<boolean> {
+    const settings = this.configure();
+    const libraries = await this.libraries(settings.technicalLibraryPaths);
+    const words = libraries.map(library => library.filter(t => t.match === 'exact' || t.match === 'insensitive'));
+    return findTerms(words, symbol, symbol, 0).some(t => !!t.translation.trim());
+  }
+
   async explain(symbol: string): Promise<string> { return legacyResult(await this.explainResult(symbol)); }
 }

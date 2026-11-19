@@ -29,8 +29,7 @@ pwsh.exe -NoProfile -File scripts/verify.ps1
 pwsh.exe -NoProfile -File scripts/test-vscode.ps1
 # 可选：真实 Webview 三类主题、窄面板、交互与截图（不操作鼠标或键盘）
 node scripts/test-ui.cjs
-npm.cmd --prefix plugin run package
-python -X utf8 scripts/check-vsix.py plugin/daigua-translator.vsix
+pwsh.exe -NoProfile -File build.ps1
 ```
 
 可选 `verify.ps1 -Online` 只发送一个普通英文句子测试 Bing。测试与打包不会自动安装插件或发布 Marketplace。
@@ -38,6 +37,8 @@ python -X utf8 scripts/check-vsix.py plugin/daigua-translator.vsix
 ## 知识包与音标
 
 在中文设置页的“词库管理 → 让外部 AI 完善词库”点击“复制完整提示词”，附上要处理的 .c、.h 文件路径发送给外部 AI。提示词自动填入当前词库目录，可展开预览。
+
+在“词库管理”开启“记录待补词条”后，主动查询遇到未收录的 C/C++ 名称时，插件会在本机记录源码路径、名称和行号，各工作区共用一份文件。点击“复制待补词条处理提示词”，把待补文件路径和当前词库目录交给外部 AI。AI 补完后，点击“重新加载”即可使用新增词条。
 
 外部 AI 按[交接提示词](docs/external-ai-handoff.md)读取源码，按词语释义、命名约定、源码符号三类维护词库，并在验证后提交词库 Git。[旧直接阅读方案](docs/ai-direct-read-plan.md)保留为历史试验记录。ECDICT 索引只需用 `phonetics/tool.py index` 生成一次。未找到的词及不确定读法导出清单，由外部 AI 回填，仍不确定的保留缺失。始终保留原始 JSON，不改已有中文说明。
 

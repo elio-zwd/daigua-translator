@@ -11,6 +11,7 @@ export interface SettingsModel {
   packs: { path: string; status: string }[];
   count: number;
   aiHandoff?: string;
+  missingTermsHandoff?: string;
 }
 const css = `
 :root{color-scheme:light dark}*{box-sizing:border-box}body{margin:0;background:var(--vscode-editor-background);color:var(--vscode-editor-foreground);font:var(--vscode-font-size)/1.7 var(--vscode-font-family)}
@@ -65,10 +66,16 @@ export function settingsHtml(model: SettingsModel, notices: Record<string, strin
     ${model.libraryErrors ? `<p class="help">${model.libraryErrors} 个文件加载失败，查看加载诊断了解详情。</p>` : ''}
     <p class="help">源码目录自动识别本工程；其他工程最多显示 3 条不同释义。词库目录默认保存到用户设置，可跨工程共用。</p>
     <div class="actions">${button('选择词库目录','choose','data-key="libraryDirectory" class="primary"')}${v.libraryDirectory ? button('移除目录','remove','data-key="libraryDirectory"') : ''}${button('重新加载','reload')}${button('查看加载诊断','diagnostics')}</div>${notice('libraryDirectoryNotice')}</div>
+    ${toggle('recordMissingTerms','记录待补词条','主动查询 C/C++ 名称时，将未收录的名称和源码位置保存到本机。此开关适用于所有工作区，需要先选定词库目录。')}
     <div class="ai-handoff"><h3>让外部 AI 完善词库</h3><p class="help">复制提示词并附上要处理的 .c、.h 文件路径，AI 将分析工程并维护词库。</p>
     <div class="actions">${button('复制完整提示词','copyAiHandoff', `class="primary" ${model.aiHandoff ? '' : 'disabled'}`)}</div>
     ${notice('aiHandoffNotice')}
-    ${model.aiHandoff ? `<details><summary>查看完整提示词</summary><pre tabindex="0" aria-label="外部 AI 完整提示词">${e(model.aiHandoff)}</pre></details>` : '<p class="help">提示词未能加载，请重新安装插件后重试。</p>'}</div>
+    ${model.aiHandoff ? `<details><summary>查看完整提示词</summary><pre tabindex="0" aria-label="外部 AI 完整提示词">${e(model.aiHandoff)}</pre></details>` : '<p class="help">提示词未能加载，请重新安装插件后重试。</p>'}
+    <p class="help">也可让 AI 读取本机待补文件，集中处理主动查询留下的词条。</p>
+    <div class="actions">${button('复制待补词条处理提示词','copyMissingTermsHandoff', model.missingTermsHandoff ? '' : 'disabled')}</div>
+    ${notice('missingTermsHandoffNotice')}
+    ${model.missingTermsHandoff ? `<details id="missingTermsPrompt"><summary>查看待补词条处理提示词</summary><pre tabindex="0" aria-label="外部 AI 待补词条处理提示词">${e(model.missingTermsHandoff)}</pre></details>`
+      : model.values.libraryDirectory ? '<p class="help">待补词条处理提示词暂不可用，请查看加载诊断。</p>' : '<p class="help">选择词库目录后可复制待补词条处理提示词。</p>'}</div>
     ${!v.libraryDirectory ? `<details class="legacy-libraries"><summary>旧版文件配置（迁移兼容）</summary><p class="help">选择词库目录后仅使用清单，不再叠加这些旧配置。</p>${list('packPaths','源码符号文件')}<br>${list('technicalLibraryPaths','旧版混合词库文件')}<br>${list('dictionaryPath','ECDICT 索引')}</details>` : ''}
     ${toggle('autoReload','保存词库后自动更新','清单和启用文件保存后自动更新，失败时保留上次可用内容。')}${toggle('includeParameters','查询函数参数','将源码符号库中的参数说明加入查词，同名候选保留所属函数。')}</section>
     <section><h2>调试与诊断</h2>${toggle('debugMode','显示调试信息','在结果末尾显示原始详细说明、来源编号、文件位置与匹配依据。日常可保持关闭。')}
@@ -120,6 +127,7 @@ export class ReaderPanels implements vscode.Disposable {
     if (!message || typeof message !== 'object' || typeof (message as Record<string, unknown>).action !== 'string') return;
     const m = message as Record<string, unknown>;
     const target = m.action === 'copyAiHandoff' ? 'aiHandoffNotice'
+      : m.action === 'copyMissingTermsHandoff' ? 'missingTermsHandoffNotice'
       : ['choose', 'remove'].includes(m.action as string) && ['libraryDirectory', 'packPaths', 'technicalLibraryPaths', 'dictionaryPath'].includes(m.key as string)
         ? m.key + 'Notice' : 'notice';
     const notify = (text: string) => {
@@ -129,11 +137,14 @@ export class ReaderPanels implements vscode.Disposable {
     try {
       if (m.action === 'lock') { this.locked = !this.locked; this.refreshReader(); this.follow(); }
       else if (m.action === 'copy') { if (this.result) await vscode.env.clipboard.writeText(this.result.text); }
-      else if (m.action === 'copyAiHandoff') {
-        const prompt = this.model().aiHandoff;
+      else if (m.action === 'copyAiHandoff' || m.action === 'copyMissingTermsHandoff') {
+        const model = this.model();
+        const missingTerms = m.action === 'copyMissingTermsHandoff';
+        const prompt = missingTerms ? model.missingTermsHandoff : model.aiHandoff;
+        if (missingTerms && !model.values.libraryDirectory) throw Error('请先选择词库目录。');
         if (!prompt) throw Error('提示词未能加载，请重新安装插件后重试。');
         await vscode.env.clipboard.writeText(prompt);
-        notify('已复制完整提示词，请附上要处理的 .c、.h 文件路径。');
+        notify(missingTerms ? '已复制待补词条处理提示词，可粘贴给外部 AI。' : '已复制完整提示词，请附上要处理的 .c、.h 文件路径。');
       }
       else if (m.action === 'settings') this.showSettings();
       else {

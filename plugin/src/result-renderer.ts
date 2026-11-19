@@ -1,6 +1,13 @@
 import { QueryResult, resultLabel } from './query-result';
 import { Pronunciation } from './types';
 
+export interface HoverLocation {
+  uri: string;
+  version: number;
+  line: number;
+  character: number;
+}
+
 export const escapeHtml = (s: string) => s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
 // VS Code's hover renderer preserves HTML entities as text. Escape Markdown
 // directly so apostrophes stay readable and HTML/entity input stays literal.
@@ -23,7 +30,7 @@ export function debugText(r: QueryResult, includeNameDetails = false): string {
   return JSON.stringify({ 类型: r.kind, 匹配: r.match, 匹配名称: r.matchedName,
     词条: r.candidates, 联网翻译: r.onlineTranslation, 拆词: r.components, ...(includeNameDetails ? { 名称补充: r.nameDetails } : {}), 诊断: r.diagnostics }, null, 2);
 }
-export function hoverMarkdown(r: QueryResult, debug = false): string {
+export function hoverMarkdown(r: QueryResult, debug = false, location?: HoverLocation): string {
   const e = escapeMarkdown;
   const lines = [`### ${e(r.text)}`, ''];
   if (r.message) lines.push(e(r.message), '');
@@ -41,7 +48,8 @@ export function hoverMarkdown(r: QueryResult, debug = false): string {
   lines.push(e(resultLabel(r)), '');
   if (debug) lines.push('---', '', '**调试信息**', '', '```json', debugText(r).replace(/`/g, '\\u0060'), '```', '');
   // Command arguments are encoded from data; only these app-owned links are trusted.
-  const args = encodeURIComponent(JSON.stringify([r.text]));
+  const args = encodeURIComponent(JSON.stringify(location ? [r.text, location] : [r.text]))
+    .replace(/\(/g, '%28').replace(/\)/g, '%29');
   lines.push(`[在面板中查看](command:daiguaTranslate.openDetails?${args}) · [设置](command:daiguaTranslate.openSettings)`);
   return lines.join('\n');
 }
